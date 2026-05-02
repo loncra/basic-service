@@ -1,0 +1,88 @@
+loncra:
+  basic-service:
+    auth:
+      app:
+        scan-plugin-packages:
+          auth-server:
+            - io.github.loncra.basic.service.auth.server.controller
+          resource-server:
+            - io.github.loncra.basic.service.resource.server.controller
+          message-server:
+            - io.github.loncra.basic.service.message.server.controller
+  framework:
+    authentication:
+      captcha-verification:
+        verify-urls:
+          - "/login/**"
+          - "/sms/send/**"
+      permit-uri-ant-matchers:
+        - "/prepare/**"
+        - "/login/**"
+        - "/logout/**"
+        - "/findDataDictionariesByTypeId/**"
+        - "/findGroupDataDictionariesByTypeIds/**"
+        - "/findGroupDataDictionariesByCodes/**"
+        - "/findDataDictionariesByTypeId/**"
+        - "/findGroupDataDictionariesByTypeId/**"
+        - "/findDataDictionaries/**"
+        - "/getDataDictionary/**"
+        - "/getDataDictionaryByCode/**"
+        - "/enumerate/**"
+        - "/captcha/**"
+        - "/tianai-captcha.css/**"
+        - "/carousel/find/**"
+    security:
+      web:
+        ignore-result-map:
+          signContractParticipantFindByContractId:
+            - "$.data[*].metadata"
+          housingResourceSignContractPage:
+            - "$.data.elements[*].participants[*].metadata"
+          user:
+            - "$.data.authorities"
+            - "$.data.details.requestDetails"
+            - "$.data.details.metadata.wechatAuthentication"
+            - "$.data.principal.name"
+            - "$.data.details.remember"
+            - "$.data.credentials"
+          findSystemUsers:
+            - "$.data[*].value[*].creationTime"
+            - "$.data[*].value[*].groupsInfo"
+            - "$.data[*].value[*].version"
+          login:
+            - "$.data.details.remember"
+            - "$.data.details.requestDetails"
+            - "$.data.credentials"
+            - "$.data.principal.name"
+            - "$.data.details.metadata.wechatAuthentication"
+            - "$.data.authorities"
+          prepare:
+            - "$.data.authorities"
+            - "$.data.details.requestDetails"
+            - "$.data.principal.name"
+            - "$.data.details.metadata.wechatAuthentication"
+            - "$.data.details.remember"
+            - "$.data.credentials"
+          consoleUserPage:
+            - "$.data.elements[*].password"
+        desensitize-result-map:
+          consoleUserPage:
+            - "$.data.elements[*].realName"
+            - "$.data.elements[*].phoneNumber"
+            - "$.data.elements[*].email"
+          getPrincipal:
+            - "$.data.details.metadata.realNameAuthenticationInfo.identNo"
+            - "$.data.details.metadata.realNameAuthenticationInfo.userName"
+            - "$.data.details.metadata.realName"
+            - "$.data.details.metadata.email"
+            - "$.data.details.metadata.phoneNumber"
+          login:
+            - "$.data.details.metadata.realNameAuthenticationInfo.identNo"
+            - "$.data.details.metadata.realNameAuthenticationInfo.userName"
+            - "$.data.details.metadata.realName"
+            - "$.data.details.metadata.email"
+            - "$.data.details.metadata.phoneNumber"
+          findSystemUsers:
+            - "$.data[*].value[*].realName"
+            - "$.data[*].value[*].email"
+            - "$.data[*].value[*].phoneNumber"

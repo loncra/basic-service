@@ -1,0 +1,149 @@
+loncra:
+  basic-service:
+    resource:
+      app:
+        scan-plugin-packages:
+          auth-server:
+            - io.github.loncra.basic.service.auth.server.enumerate
+          resource-server:
+            - io.github.loncra.basic.service.commons.enumerate
+            - io.github.loncra.basic.service.resource.api.enumerate
+            - io.github.loncra.framework.security.enumerate
+            - io.github.loncra.framework.commons.enumerate
+          message-server:
+            - io.github.loncra.basic.service.message.api.enumerate
+            - io.github.loncra.basic.service.message.server.enumerate
+  framework:
+    captcha:
+      tianai:
+        random-captcha-type: SLIDER
+        api-base-url: http://192.168.1.58:8080
+        tolerant-map:
+          ROTATE: 0.056F
+        template-map:
+          ROTATE:
+            - tag: default
+              active-image:
+                type: classpath
+                data: tianai/template/rotate/1/active.png
+              fixed-image:
+                type: classpath
+                data: tianai/template/rotate/1/fixed.png
+          SLIDER:
+            - tag: default
+              active-image:
+                type: classpath
+                data: tianai/template/slider/1/active.png
+              fixed-image:
+                type: classpath
+                data: tianai/template/slider/1/fixed.png
+            - tag: default
+              active-image:
+                type: classpath
+                data: tianai/template/slider/2/active.png
+              fixed-image:
+                type: classpath
+                data: tianai/template/slider/2/fixed.png
+        resource-map:
+          SLIDER:
+            - type: classpath
+              data: tianai/1.jpg
+              tag: default
+            - type: classpath
+              data: tianai/2.jpg
+              tag: default
+            - type: classpath
+              data: tianai/3.jpg
+              tag: default
+            - type: classpath
+              data: tianai/4.jpg
+              tag: default
+            - type: classpath
+              data: tianai/4.jpg
+              tag: default
+            - type: classpath
+              data: tianai/5.jpg
+              tag: default
+            - type: classpath
+              data: tianai/6.jpg
+              tag: default
+            - type: classpath
+              data: tianai/7.jpg
+              tag: default
+            - type: classpath
+              data: tianai/8.jpg
+              tag: default
+            - type: classpath
+              data: tianai/9.jpg
+              tag: default
+            - type: classpath
+              data: tianai/10.jpg
+              tag: default
+          ROTATE:
+            - type: classpath
+              data: tianai/1.jpg
+              tag: default
+            - type: classpath
+              data: tianai/2.jpg
+              tag: default
+            - type: classpath
+              data: tianai/3.jpg
+              tag: default
+            - type: classpath
+              data: tianai/4.jpg
+              tag: default
+            - type: classpath
+              data: tianai/4.jpg
+              tag: default
+            - type: classpath
+              data: tianai/5.jpg
+              tag: default
+            - type: classpath
+              data: tianai/6.jpg
+              tag: default
+            - type: classpath
+              data: tianai/7.jpg
+              tag: default
+            - type: classpath
+              data: tianai/8.jpg
+              tag: default
+            - type: classpath
+              data: tianai/9.jpg
+              tag: default
+            - type: classpath
+              data: tianai/10.jpg
+              tag: default
+          CONCAT:
+            - type: classpath
+              data: tianai/1.jpg
+              tag: default
+            - type: classpath
+              data: tianai/2.jpg
+              tag: default
+            - type: classpath
+              data: tianai/3.jpg
+              tag: default
+            - type: classpath
+              data: tianai/4.jpg
+              tag: default
+            - type: classpath
+              data: tianai/4.jpg
+              tag: default
+            - type: classpath
+              data: tianai/5.jpg
+              tag: default
+            - type: classpath
+              data: tianai/6.jpg
+              tag: default
+            - type: classpath
+              data: tianai/7.jpg
+              tag: default
+            - type: classpath
+              data: tianai/8.jpg
+              tag: default
+            - type: classpath
+              data: tianai/9.jpg
+              tag: default
+            - type: classpath
+              data: tianai/10.jpg
+              tag: default

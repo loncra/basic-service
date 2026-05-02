@@ -1,0 +1,72 @@
+mybatis-plus:
+  type-aliases-package: io.github.loncra.basic.service.auth.simple.server.domain.entity
+  configuration:
+    call-setters-on-nulls: on
+    default-enum-type-handler: io.github.loncra.framework.mybatis.handler.NameValueEnumTypeHandler
+  global-config:
+    db-config:
+      id-type: auto
+      column-format: "`%s`"
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: "off"
+
+info:
+  version: @version@
+  name: @name@
+  artifact-id: ${spring.application.name}
+  group-id: @groupId@
+
+loncra:
+  framework:
+    captcha:
+      controller:
+        enabled: false
+    authentication:
+      captcha-verification:
+        verify-urls:
+          - "/login/**"
+      plugin:
+        base-packages: io.github.loncra.basic.service.auth.server.controller
+      permit-uri-ant-matchers:
+        - "/prepare/**"
+        - "/login/**"
+        - "/logout/**"
+    mvc:
+      enumerate-endpoint-base-packages:
+        - io.github.loncra.basic.service.auth.server.enumerate
+
+server:
+  port: 8081
+
+spring:
+  config:
+    import:
+      - nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+      - nacos:application.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+  main:
+    banner-mode: "off"
+  application:
+    name: @artifactId@
+  cloud:
+    nacos:
+      discovery:
+        event:
+          enabled: true
+        ip: ${NACOS_DISCOVERY_IP:}
+        server-addr: ${NACOS_HOST:localhost:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:Cxb@20160826}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        metadata:
+          version: ${info.version}
+          name: ${info.name}
+          artifact-id: ${info.artifact-id}
+          group-id: ${info.group-id}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        username: ${spring.cloud.nacos.discovery.username}
+        password: ${spring.cloud.nacos.discovery.password}
+        file-extension: yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}

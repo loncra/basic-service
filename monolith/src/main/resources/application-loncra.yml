@@ -1,0 +1,88 @@
+loncra:
+  basic-service:
+    commons:
+      app:
+        operation-data-trace-entity-storage-count: 32
+  framework:
+    mvc:
+      all-rest-result-format: true
+    idempotent:
+      ignore-classes: org.springframework.security.core.context.SecurityContext
+    wechat:
+      enabled: false
+    mybatis:
+      operation-data-trace:
+        storage-position:
+          prefix: ix_operation_data_trace
+          spring-expression:
+            - "T(io.github.loncra.framework.commons.ObjectUtils).getDimension(${loncra.basic.service.commons.app.operation-data-trace-entity-storage-count}, #target, T(java.util.Objects).toString(#entityId))"
+    security:
+      audit:
+        enabled: true
+        type: elasticsearch
+        storage-position:
+          prefix: ix_audit_event
+          spring-expression:
+            - "T(io.github.loncra.framework.commons.DateUtils).dateFormat(#timestamp,'yyyy_MM_dd')"
+            - "T(io.github.loncra.framework.commons.DateUtils).dateFormat(#creationTime,'yyyy_MM_dd')"
+    authentication:
+      plugin:
+        generateSources: CONSOLE
+        parent:
+          dictionary:
+            application-name: resource-server
+            name: "数据字典管理"
+            parent: config
+            type: menu
+            sources: CONSOLE
+          config:
+            application-name: commons
+            name: "基础配置"
+            type: root
+            sources: CONSOLE
+          resource:
+            application-name: commons
+            name: "资源管理"
+            type: root
+            sources: CONSOLE
+          organization:
+            application-name: commons
+            name: "机构管理"
+            type: root
+            sources: CONSOLE
+          authority:
+            application-name: commons
+            name: "权限管理"
+            type: root
+            sources: CONSOLE
+          log:
+            application-name: commons
+            name: "日志查询"
+            type: root
+            sources: CONSOLE
+          video_assembly:
+            application-name: commons
+            name: "视频创作"
+            type: root
+            sources: CONSOLE
+          workbench:
+            name: "工作台"
+            application-name: commons
+            sources: CONSOLE
+            type: tool
+            value: workbench
+          ai:
+            name: "人工智能"
+            application-name: commons
+            sources: CONSOLE
+            type: root
+            value: ai
+          setting:
+            name: "系统设置"
+            application-name: commons
+            sources: CONSOLE
+            type: tool
+            value: setting
+      ignore-audit-types:
+        - AUTHENTICATION_FAILURE
+        - AUTHORIZATION_FAILURE

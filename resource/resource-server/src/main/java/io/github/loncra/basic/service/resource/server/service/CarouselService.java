@@ -1,0 +1,39 @@
+package io.github.loncra.basic.service.resource.server.service;
+
+import io.github.loncra.basic.service.commons.enumerate.DataRecordStatusEnum;
+import io.github.loncra.basic.service.resource.server.dao.CarouselDao;
+import io.github.loncra.basic.service.resource.server.domain.entity.CarouselEntity;
+import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * tb_carousel 的业务逻辑
+ *
+ * <p>Table: tb_carousel - 轮播图表</p>
+ *
+ * @author maurice.chen
+ * @see CarouselEntity
+ * @since 2025-05-25 08:27:31
+ */
+@Service
+@RequiredArgsConstructor
+public class CarouselService extends BasicService<CarouselDao, CarouselEntity> {
+
+    @Transactional(rollbackFor = Exception.class)
+    public void publish(List<Integer> ids) {
+        get(ids).stream()
+                .peek(entity -> entity.setStatus(DataRecordStatusEnum.PUBLISH))
+                .forEach(this::updateById);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deactivate(List<Integer> ids) {
+        get(ids).stream()
+                .peek(entity -> entity.setStatus(DataRecordStatusEnum.UPDATE))
+                .forEach(this::updateById);
+    }
+}

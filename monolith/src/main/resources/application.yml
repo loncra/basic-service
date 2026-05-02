@@ -1,0 +1,44 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      force: true
+  tomcat:
+    # 与 spring.servlet.multipart 配合；仅调 multipart 时，Tomcat 默认约 2MB 仍会拒绝大 POST
+    max-http-form-post-size: 50MB
+    max-swallow-size: 50MB
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+  application:
+    name: @artifactId@
+  main:
+    banner-mode: "off"
+  profiles:
+    group:
+      dev: common, infra, loncra, resource, auth, message, ai, dev
+      test: common, infra, loncra, resource, auth, message, ai, test
+      prod: common, infra, loncra, resource, auth, message, ai, prod
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+      config:
+        enabled: false
+
+mybatis-plus:
+  type-aliases-package: io.github.loncra.basic.service.**.entity
+  configuration:
+    call-setters-on-nulls: on
+    default-enum-type-handler: io.github.loncra.framework.mybatis.handler.NameValueEnumTypeHandler
+  global-config:
+    db-config:
+      id-type: auto
+      column-format: "`%s`"
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: "off"

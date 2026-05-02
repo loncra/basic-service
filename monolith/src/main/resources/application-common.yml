@@ -1,0 +1,26 @@
+
+info:
+  version: @version@
+  name: @name@
+  artifact-id: ${spring.application.name}
+  group-id: @groupId@
+
+management:
+  info:
+    env:
+      enabled: true
+
+spring:
+  messages:
+    basename: classpath:org/springframework/security/messages
+  aop:
+    proxy-target-class: true
+  jackson:
+    default-property-inclusion: non_empty
+    time-zone: GMT+8
+    deserialization:
+      fail-on-ignored-properties: false
+    serialization:
+      write-date-timestamps-as-nanoseconds: false
+      write-durations-as-timestamps: true
+      write-dates-as-timestamps: true

@@ -1,0 +1,37 @@
+info:
+  version: @version@
+  name: @name@
+  artifact-id: ${spring.application.name}
+  group-id: @groupId@
+
+server:
+  port: 8080
+
+spring:
+  config:
+    import:
+      - nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+      - nacos:application.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+  main:
+    banner-mode: "off"
+  application:
+    name: @project.artifactId@
+  cloud:
+    nacos:
+      discovery:
+        ip: ${NACOS_DISCOVERY_IP:}
+        server-addr: ${NACOS_HOST:localhost:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:Cxb@20160826}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        metadata:
+          version: ${info.version}
+          name: ${info.name}
+          artifact-id: ${info.artifact-id}
+          group-id: ${info.group-id}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        username: ${spring.cloud.nacos.discovery.username}
+        password: ${spring.cloud.nacos.discovery.password}
+        file-extension: yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}

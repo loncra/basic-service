@@ -1,0 +1,105 @@
+mybatis-plus:
+  type-aliases-package: io.github.loncra.basic.service.resource.server.domain.entity
+  configuration:
+    call-setters-on-nulls: on
+    default-enum-type-handler: io.github.loncra.framework.mybatis.handler.NameValueEnumTypeHandler
+  global-config:
+    db-config:
+      id-type: auto
+      column-format: "`%s`"
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: "off"
+
+info:
+  version: @version@
+  name: @name@
+  artifact-id: ${spring.application.name}
+  group-id: @groupId@
+
+loncra:
+  framework:
+    captcha:
+      build-token-cache:
+        name: 'basic:service:resource:captcha:build-token:'
+        expires-time:
+          value: 10
+          unit: MINUTES
+      interceptor-token-cache:
+        name: 'basic:service:resource:captcha:interceptor-token:'
+        expires-time:
+          value: 10
+          unit: MINUTES
+    authentication:
+      plugin:
+        base-packages: io.github.loncra.basic.service.resource.server.controller
+      permit-uri-ant-matchers:
+        - "/findDataDictionariesByTypeId/**"
+        - "/findGroupDataDictionariesByTypeIds/**"
+        - "/findGroupDataDictionariesByCodes/**"
+        - "/findDataDictionariesByTypeId/**"
+        - "/findGroupDataDictionariesByTypeId/**"
+        - "/findDataDictionaries/**"
+        - "/getDataDictionary/**"
+        - "/getDataDictionaryByCode/**"
+        - "/getServiceEnumerate/**"
+        - "/getServiceEnumerates/**"
+        - "/captcha/**"
+        - "/tianai-captcha.css/**"
+        - "/carousel/find/**"
+    mvc:
+      enumerate-endpoint-base-packages:
+        - io.github.loncra.basic.service.commons.enumerate
+        - io.github.loncra.basic.service.resource.api.enumerate
+        - io.github.loncra.framework.security.enumerate
+        - io.github.loncra.framework.commons.enumerate
+
+server:
+  port: 8082
+
+spring:
+  config:
+    import:
+      - nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+      - nacos:application.${spring.cloud.nacos.config.file-extension}?group=${spring.cloud.nacos.config.group}
+  freemarker:
+    template-loader-path: classpath:/templates/
+    cache: false
+    charset: UTF-8
+    check-template-location: true
+    expose-request-attributes: true
+    expose-session-attributes: true
+    request-context-attribute: request
+    suffix: .ftl
+    settings:
+      datetime_format: 'yyyy年MM月dd日 HH:mm:ss'
+      date_format: 'yyyy年MM月dd日'
+      time_format: 'HH:mm'
+      classic_compatible: true
+      template_exception_handler: ignore
+  main:
+    banner-mode: "off"
+  application:
+    name: @artifactId@
+  cloud:
+    nacos:
+      discovery:
+        event:
+          enabled: true
+        ip: ${NACOS_DISCOVERY_IP:}
+        server-addr: ${NACOS_HOST:localhost:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:Cxb@20160826}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        metadata:
+          version: ${info.version}
+          name: ${info.name}
+          artifact-id: ${info.artifact-id}
+          group-id: ${info.group-id}
+      config:
+        server-addr: ${spring.cloud.nacos.discovery.server-addr}
+        username: ${spring.cloud.nacos.discovery.username}
+        password: ${spring.cloud.nacos.discovery.password}
+        file-extension: yml
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
