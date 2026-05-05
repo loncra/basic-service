@@ -2,10 +2,12 @@ package io.github.loncra.basic.service.auth.server.domain.metdata;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.tree.Tree;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
+import io.github.loncra.framework.security.entity.ResourceAuthority;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -26,25 +28,33 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class ResourceMetadata extends IdResourceAuthorityMetadata implements Tree<String, ResourceMetadata> {
+public class ResourceMetadata extends ResourceAuthority implements Tree<Long, ResourceMetadata> {
 
     @Serial
     private static final long serialVersionUID = 4709419291009298510L;
+
+    private String code;
+
+    /**
+     * 应用名称
+     */
+    private String applicationName;
 
     /**
      * 类型
      */
     @NotEmpty
     @Length(max = 16)
-    private String type;
+    private ResourceTypeEnum type;
 
     /**
-     * 来源
+     * 所属来源
      *
      * @see ResourceSourceEnum
      */
     @NotEmpty
     @Length(max = 16)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
     @JsonCollectionGenericType(ResourceSourceEnum.class)
     private List<ResourceSourceEnum> sources;
 
@@ -58,7 +68,7 @@ public class ResourceMetadata extends IdResourceAuthorityMetadata implements Tre
     /**
      * 父类 id
      */
-    private String parentId;
+    private Long parentId;
 
     /**
      * 顺序值
@@ -75,11 +85,11 @@ public class ResourceMetadata extends IdResourceAuthorityMetadata implements Tre
      * 子节点
      */
     @TableField(exist = false)
-    private List<Tree<String, ResourceMetadata>> children = new LinkedList<>();
+    private List<Tree<Long, ResourceMetadata>> children = new LinkedList<>();
 
     @Override
     @JsonIgnore
-    public String getParent() {
+    public Long getParent() {
         return parentId;
     }
 

@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.resource.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.server.domain.entity.CarouselEntity;
 import io.github.loncra.basic.service.resource.server.service.CarouselService;
@@ -32,8 +32,8 @@ import java.util.List;
         name = "轮播图管理",
         id = "carousel",
         parent = "config",
-        authority = "resource_server_carousel:page",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        authority = "perms[resource_server_carousel:page]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -52,7 +52,7 @@ public class CarouselController {
      * @see CarouselEntity
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('resource_server_carousel:page')")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:page]')")
     public Page<CarouselEntity> page(
             PageRequest pageRequest,
             HttpServletRequest request
@@ -72,8 +72,8 @@ public class CarouselController {
      *
      * @see CarouselEntity
      */
-    @GetMapping("/{id:\\d+}")
-    @PreAuthorize("hasAuthority('resource_server_carousel:get')")
+    @GetMapping("{id:\\d+}")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:get]')")
     @Plugin(name = "查看明细")
     public CarouselEntity get(
             @RequestParam
@@ -90,7 +90,7 @@ public class CarouselController {
      * @see CarouselEntity
      */
     @PutMapping
-    @PreAuthorize("hasAuthority('resource_server_carousel:save')")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:save]')")
     @Plugin(name = "保存或添加信息", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
@@ -109,7 +109,7 @@ public class CarouselController {
      * @see CarouselEntity
      */
     @DeleteMapping
-    @PreAuthorize("hasAuthority('resource_server_carousel:delete')")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:delete]')")
     @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam
@@ -127,7 +127,7 @@ public class CarouselController {
      * @return REST 响应结果
      */
     @PostMapping("publish")
-    @PreAuthorize("hasAuthority('resource_server_carousel:publish')")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:publish]')")
     @Plugin(name = "发布信息", operationDataTrace = true)
     public RestResult<Void> publish(
             @RequestParam
@@ -145,7 +145,7 @@ public class CarouselController {
      * @return REST 响应结果
      */
     @PostMapping("deactivate")
-    @PreAuthorize("hasAuthority('resource_server_carousel:deactivate')")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:deactivate]')")
     @Plugin(name = "下架信息", operationDataTrace = true)
     public RestResult<Void> deactivate(
             @RequestParam

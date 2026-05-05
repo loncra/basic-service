@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.auth.server.service;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserRoleSyncResolver;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -12,8 +14,6 @@ import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.commons.page.ScrollPage;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdRoleAuthorityMetadata;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import lombok.Setter;
@@ -56,7 +56,7 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
     }
 
 
-    public void syncSystemUserGroup(
+    public void syncSystemUserRole(
             List<BasicSystemRole> roles,
             SystemUserRoleSyncResolver systemUserRoleSyncResolver
     ) {
@@ -66,7 +66,7 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
                 .toList();
 
         List<Long> groupIds = roles.stream()
-                .map(IdRoleAuthorityMetadata::getId)
+                .map(BasicSystemRole::getId)
                 .collect(Collectors.toList());
 
         for (ResourceSourceEnum source : sources) {
@@ -105,21 +105,6 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
             String newPassword
     ) {
         return getSystemUserAuthorizationResolver(token.getType(), true).updatePassword(token, oldPassword, newPassword);
-    }
-
-    public List<T> findByRoleAuthority(
-            String type,
-            String roleAuthority
-    ) {
-        return getSystemUserAuthorizationResolver(type, true).findByRoleAuthority(roleAuthority);
-    }
-
-    public void updateResources(
-            String type,
-            String id,
-            List<IdResourceAuthorityMetadata> resources
-    ) {
-        getSystemUserAuthorizationResolver(type, true).updateResources(id, resources);
     }
 
     public Map<IdNameMetadata, List<T>> findSystemUser(
@@ -164,5 +149,18 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
         }
 
         return result;
+    }
+
+    public List<ResourceEntity> getSystemUserResource(
+            AuditAuthenticationToken token,
+            List<ResourceTypeEnum> list,
+            List<ResourceSourceEnum> sourceContains
+    ) {
+        return getSystemUserAuthorizationResolver(token.getType(), true)
+                .getSystemUserResource(
+                        token,
+                        list,
+                        sourceContains
+                );
     }
 }

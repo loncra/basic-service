@@ -25,7 +25,7 @@ import java.util.List;
 @Plugin(
         name = "开放平台商户客户端管理",
         id = "open_platform_merchant_client",
-        authority = "auth_server_open_platform_merchant_client:get_by_merchant_id",
+        authority = "perms[auth_server_open_platform_merchant_client:get_by_merchant_id]",
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -43,7 +43,7 @@ public class OpenPlatformMerchantClientController {
      * @see OpenPlatformMerchantClientEntity
      */
     @GetMapping("byMerchantId/{id:\\d+}")
-    @PreAuthorize("hasAuthority('auth_server_open_platform_merchant_client:by_merchant_id')")
+    @PreAuthorize("hasAuthority('perms[auth_server_open_platform_merchant_client:by_merchant_id]')")
     public List<OpenPlatformMerchantClientEntity> getByMerchantId(
             @PathVariable
             Long id
@@ -58,8 +58,8 @@ public class OpenPlatformMerchantClientController {
      *
      * @see OpenPlatformMerchantClientEntity
      */
-    @PostMapping
-    @PreAuthorize("hasAuthority('auth_server_open_platform_merchant_client:save')")
+    @PutMapping
+    @PreAuthorize("hasAuthority('perms[auth_server_open_platform_merchant_client:save]')")
     @Plugin(name = "保存或添加信息", operationDataTrace = true)
     public RestResult<String> save(
             @Valid
@@ -77,8 +77,8 @@ public class OpenPlatformMerchantClientController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
-    @PreAuthorize("hasRole('FEIGN') or hasAuthority('auth_server_open_platform_merchant_client:get')")
+    @GetMapping("{id:\\d+}")
+    @PreAuthorize("hasRole('FEIGN') or hasAuthority('perms[auth_server_open_platform_merchant_client:get]')")
     @Plugin(name = "查看明细")
     public OpenPlatformMerchantClientEntity get(
             @PathVariable

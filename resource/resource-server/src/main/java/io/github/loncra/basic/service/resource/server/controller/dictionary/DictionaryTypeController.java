@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.resource.server.controller.dictionary;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DictionaryTypeEntity;
 import io.github.loncra.basic.service.resource.server.service.dictionary.DictionaryService;
@@ -28,10 +28,10 @@ import java.util.Objects;
 @RequestMapping("dictionary/type")
 @Plugin(
         name = "字典类型管理",
-        id = "dictionaryType",
+        id = "dictionary_type",
         parent = "dictionary",
-        authority = "resource_server_dictionary_type:find",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        authority = "perms[resource_server_dictionary_type:find]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -48,7 +48,7 @@ public class DictionaryTypeController {
      * @return REST 响应结果
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('resource_server_dictionary_type:find')")
+    @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:find]')")
     public RestResult<List<DictionaryTypeEntity>> find(
             HttpServletRequest request,
             @RequestParam(required = false)
@@ -78,9 +78,9 @@ public class DictionaryTypeController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("{id:\\d+}")
     @Plugin(name = "查看明细")
-    @PreAuthorize("hasAuthority('resource_server_dictionary_type:get')")
+    @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:get]')")
     public DictionaryTypeEntity get(
             @PathVariable
             Long id
@@ -95,7 +95,7 @@ public class DictionaryTypeController {
      * @param entity 数据字典类型实体
      */
     @PutMapping
-    @PreAuthorize("hasAuthority('resource_server_dictionary_type:save')")
+    @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:save]')")
     @Plugin(name = "添加或保存字典类型", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
@@ -113,7 +113,7 @@ public class DictionaryTypeController {
      */
     @DeleteMapping
     @Plugin(name = "删除字典类型", operationDataTrace = true)
-    @PreAuthorize("hasAuthority('resource_server_dictionary_type:delete')")
+    @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:delete]')")
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids

@@ -18,7 +18,6 @@ import io.github.loncra.framework.crypto.algorithm.ByteSource;
 import io.github.loncra.framework.crypto.algorithm.SimpleByteSource;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -160,11 +159,12 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
     @Override
     public void updateResources(
             String id,
-            List<IdResourceAuthorityMetadata> resources
+            List<Long> resourceIds
     ) {
-        String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(resources));
+
+        String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(resourceIds));
         personalUserService.lambdaUpdate()
-                .set(AbstractPlatformUser::getResources, json)
+                .set(AbstractPlatformUser::getResourceIds, json)
                 .eq(AbstractPlatformUser::getId, id)
                 .update();
     }

@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.message.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.server.domain.body.site.SiteMessageBody;
 import io.github.loncra.basic.service.message.server.domain.entity.SiteMessageEntity;
@@ -41,7 +41,7 @@ import java.util.Map;
         id = "site",
         parent = "message",
         authority = "perms[message_server_site:page]",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -78,7 +78,7 @@ public class SiteMessageController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("{id:\\d+}")
     @Plugin(name = "查看明细")
     @PreAuthorize("hasAuthority('perms[message_server_site:get]')")
     public SiteMessageEntity get(

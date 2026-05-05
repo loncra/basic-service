@@ -1,15 +1,15 @@
 package io.github.loncra.basic.service.auth.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.security.plugin.Plugin;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdRoleAuthorityMetadata;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +31,8 @@ import java.util.List;
         name = "角色管理",
         id = "role",
         parent = "authority",
-        authority = "auth_server_role:find",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        authority = "perms[auth_server_role:find]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -49,8 +49,8 @@ public class RoleController {
      *
      * @return REST 响应结果
      */
-    @GetMapping
-    @PreAuthorize("hasAuthority('auth_server_role:find')")
+    @PostMapping
+    @PreAuthorize("hasAuthority('perms[auth_server_role:find]')")
     public List<Object> find(
             HttpServletRequest request,
             @RequestParam(required = false, defaultValue = "false")
@@ -79,7 +79,7 @@ public class RoleController {
         else if (idValueMetadata) {
             List<Object> result = new LinkedList<>();
             roleList.stream()
-                    .map(g -> IdRoleAuthorityMetadata.of(g.getId(), g.getName(), g.getAuthority(), g.getStatus()))
+                    .map(g -> TypeIdNameMetadata.of(g.getId().toString(), g.getName(), g.getAuthority()))
                     .forEach(result::add);
             return result;
         }
@@ -95,9 +95,9 @@ public class RoleController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("{id:\\d+}")
     @Plugin(name = "查看明细")
-    @PreAuthorize("hasAuthority('auth_server_role:get')")
+    @PreAuthorize("hasAuthority('perms[auth_server_role:get]')")
     public RoleEntity get(
             @PathVariable
             Long id
@@ -112,8 +112,8 @@ public class RoleController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
-    @PreAuthorize("hasAuthority('auth_server_role:save')")
+    @PutMapping
+    @PreAuthorize("hasAuthority('perms[auth_server_role:save]')")
     @Plugin(name = "添加或保存信息", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
@@ -132,7 +132,7 @@ public class RoleController {
      * @return REST 响应结果
      */
     @DeleteMapping
-    @PreAuthorize("hasAuthority('auth_server_role:delete')")
+    @PreAuthorize("hasAuthority('perms[auth_server_role:delete]')")
     @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam

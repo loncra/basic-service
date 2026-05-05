@@ -22,7 +22,7 @@ import io.github.loncra.framework.captcha.storage.support.RedissonCaptchaStorage
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
-import io.github.loncra.framework.commons.tenant.TenantContext;
+import io.github.loncra.framework.commons.tenant.SimpleTenantContext;
 import io.github.loncra.framework.crypto.algorithm.Base64;
 import io.github.loncra.framework.mybatis.plus.tenant.TenantLinePolicy;
 import io.github.loncra.framework.socketio.api.SocketPrincipal;
@@ -46,6 +46,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.server.authentication.ServerHttpBasicAuthenticationConverter;
@@ -86,22 +87,18 @@ public class MonolithStartupAutoConfig {
     @Bean
     public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatUploadSizeCustomizer() {
         int maxBytes = (int) Math.min(MAX_UPLOAD_REQUEST.toBytes(), Integer.MAX_VALUE);
-        return factory -> factory.addConnectorCustomizers((Connector connector) -> {
-            connector.setMaxPostSize(maxBytes);
-        });
+        return factory -> factory.addConnectorCustomizers((Connector connector) -> connector.setMaxPostSize(maxBytes));
     }
 
     @Bean
-    public TenantLinePolicy tenantLinePolicy() {
-        return new TenantLinePolicy() {
-            @Override
-            public boolean tenantIdSupport(TenantContext tenantContext) {
-                if (tenantContext instanceof SpringSecurityTenantContext context) {
-                    return !ResourceSourceEnum.CONSOLE_SOURCE_VALUE.equals(context.getType());
-                } else if (Objects.isNull(tenantContext.getId())) {
-                    return false;
-                }
-                return true;
+    public TenantLinePolicy tenantLinePolicy(AuthenticationProperties properties) {
+        return tenantContext -> {
+            if (tenantContext instanceof SpringSecurityTenantContext context) {
+                return !ResourceSourceEnum.CONSOLE_SOURCE_VALUE.equals(context.getType());
+            } else if (tenantContext instanceof SimpleTenantContext context) {
+                return properties.getUsers().stream().map(SecurityProperties.User::getName).noneMatch(s -> s.equals(context.getId()));
+            } else {
+                return Objects.nonNull(tenantContext.getId());
             }
         };
     }
@@ -146,6 +143,11 @@ public class MonolithStartupAutoConfig {
                     } else {
                         modified.header(HttpHeaders.AUTHORIZATION, ServerHttpBasicAuthenticationConverter.BASIC + base64);
                     }
+                } else if (authentication instanceof UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken) {
+                    String usernameToken = usernamePasswordAuthenticationToken.getName() + CacheProperties.DEFAULT_SEPARATOR + usernamePasswordAuthenticationToken.getCredentials().toString();
+
+                    String usernameBase64 = Base64.encodeToString(usernameToken.getBytes(Charset.defaultCharset()));
+                    modified.header(HttpHeaders.AUTHORIZATION, ServerHttpBasicAuthenticationConverter.BASIC + usernameBase64);
                 }
             }
 

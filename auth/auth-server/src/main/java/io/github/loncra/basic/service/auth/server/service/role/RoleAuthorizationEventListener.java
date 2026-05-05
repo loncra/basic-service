@@ -2,35 +2,34 @@ package io.github.loncra.basic.service.auth.server.service.role;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
-import io.github.loncra.basic.service.auth.server.domain.dto.AbstractSyncPluginResourceDto;
-import io.github.loncra.basic.service.auth.server.domain.dto.DisabledApplicationResourceDto;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
-import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
-import io.github.loncra.basic.service.auth.server.resolver.PluginResourceResolver;
 import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.AbstractPluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.disconvery.PluginNacosEventSourceListener;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * 角色插件资源拦截器实现，主要是自动同步一些默认角色的权限信息。
+ * 角色授权时间监听器
  *
  * @author maurice.chen
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RolePluginResourceResolver implements PluginResourceResolver {
+public class RoleAuthorizationEventListener {
 
     private final RedissonCacheAuthorizationService<AbstractBasicSystemUser> redissonCacheAuthorizationService;
 
@@ -38,19 +37,28 @@ public class RolePluginResourceResolver implements PluginResourceResolver {
 
     private final RoleService roleService;
 
-    @Override
-    public void postSyncPlugin(AbstractSyncPluginResourceDto dto) {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onUpdated(UpdatedEvent event) {
+        redissonCacheAuthorizationService.postUpdateRole(event.before());
+    }
 
-        List<ResourceSourceEnum> sources = dto.getResources()
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onDelete(DeleteEvent event) {
+        redissonCacheAuthorizationService.postDeleteRole(event.entity());
+    }
+
+    @EventListener
+    public void onSyncPlugin(AbstractPluginResourceService.SyncPluginResourceEvent event) {
+        List<ResourceSourceEnum> sources = event.dto().getResources()
                 .stream()
-                .filter(r -> r.getApplicationName().equals(dto.getServiceName()))
+                .filter(r -> r.getApplicationName().equals(event.dto().getServiceName()))
                 .flatMap(r -> r.getSources().stream())
                 .distinct()
                 .toList();
 
         for (IdNameValueMetadata<String, List<ResourceSourceEnum>> metadata : authAppConfig.getAutoAssociateAllPermissionsRoleAuthorities()) {
 
-            if (log.isDebugEnabled()) {
+            /*if (log.isDebugEnabled()) {
                 log.debug("【同步角色资源权限】更新 {} 服务资源到 {} 角色中.", dto.getServiceName(), metadata.getName());
             }
 
@@ -67,29 +75,29 @@ public class RolePluginResourceResolver implements PluginResourceResolver {
                     .filter(r -> r.getSources().stream().anyMatch(s -> role.getSources().contains(s)))
                     .toList();
 
-            if (CollectionUtils.isEmpty(role.getResources())) {
-                role.setResources(new LinkedList<>());
+            if (CollectionUtils.isEmpty(role.getResourceIds())) {
+                role.setResourceIds(new LinkedList<>());
             }
 
             // 删除不存在的资源
-            List<IdResourceAuthorityMetadata> removes = role
-                    .getResources()
+            List<ResourceMetadata> removes = role
+                    .getResourceIds()
                     .stream()
+                    .flatMap()
                     .filter(s -> s.getApplicationName().equals(dto.getServiceName()))
                     .filter(s -> newResources.stream().noneMatch(n -> n.getId().equals(s.getApplicationName())))
                     .toList();
-            role.getResources()
+            role.getResourceIds()
                     .removeAll(removes);
 
             // 覆盖当前应用的资源
             newResources
                     .stream()
-                    .map(s -> CastUtils.of(s, IdResourceAuthorityMetadata.class))
-                    .filter(s -> !role.getResources().contains(s))
-                    .forEach(s -> role.getResources().add(s));
-            String resourceMap = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(role.getResources()));
+                    .filter(s -> !role.getResourceIds().contains(s))
+                    .forEach(s -> role.getResourceIds().add(s));
+            String resourceMap = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(role.getResourceIds()));
             roleService.lambdaUpdate()
-                    .set(RoleEntity::getResources, resourceMap)
+                    .set(RoleEntity::getResourceIds, resourceMap)
                     .eq(RoleEntity::getId, role.getId())
                     .update();
 
@@ -102,51 +110,24 @@ public class RolePluginResourceResolver implements PluginResourceResolver {
                 );
             }
 
-            updateUserResource(role, metadata.getValue());
+            updateUserResource(role, metadata.getValue());*/
         }
 
         redissonCacheAuthorizationService.deleteAuthorizationCache(sources);
     }
 
-    private void updateUserResource(
-            RoleEntity role,
-            List<ResourceSourceEnum> sources
-    ) {
-        List<AbstractBasicSystemUser> users = sources
+    @EventListener
+    public void onDisabledPlugin(PluginNacosEventSourceListener.DisabledPluginResourceEvent event) {
+        List<ResourceSourceEnum> sources = event.dto().getResources()
                 .stream()
-                .flatMap(s -> roleService.getRedissonCacheAuthorizationService().findByRoleAuthority(s.getValue(), role.getAuthority()).stream())
-                .toList();
-        for (AbstractBasicSystemUser user : users) {
-            List<String> userResourceIds = user.getResources()
-                    .stream()
-                    .map(IdResourceAuthorityMetadata::getId)
-                    .toList();
-            List<IdResourceAuthorityMetadata> resourceAuthorities = role
-                    .getResources()
-                    .stream()
-                    .filter(s -> !userResourceIds.contains(s.getId()))
-                    .toList();
-            user.getResources()
-                    .addAll(resourceAuthorities);
-            roleService
-                    .getRedissonCacheAuthorizationService()
-                    .updateResources(user.getType().getValue(), user.getId().toString(), user.getResources());
-        }
-    }
-
-    @Override
-    public void postDisabledApplicationResource(DisabledApplicationResourceDto dto) {
-
-        List<ResourceSourceEnum> sources = dto.getResources()
-                .stream()
-                .filter(r -> r.getApplicationName().equals(dto.getEvent().getServiceName()))
+                .filter(r -> r.getApplicationName().equals(event.dto().getEvent().getServiceName()))
                 .flatMap(r -> r.getSources().stream())
                 .distinct()
                 .toList();
 
         for (IdNameValueMetadata<String, List<ResourceSourceEnum>> metadata : authAppConfig.getAutoAssociateAllPermissionsRoleAuthorities()) {
             if (log.isDebugEnabled()) {
-                log.debug("【禁用角色资源权限】禁用 {} 服务在 {} 角色中的资源.", dto.getEvent().getServiceName(), metadata.getName());
+                log.debug("【禁用角色资源权限】禁用 {} 服务在 {} 角色中的资源.", event.dto().getEvent().getServiceName(), metadata.getName());
             }
 
             RoleEntity role = roleService.getByAuthority(metadata.getId());
@@ -156,25 +137,30 @@ public class RolePluginResourceResolver implements PluginResourceResolver {
                 return;
             }
 
-            List<String> disabledResourceIds = dto
+            List<Long> disabledResourceIds = event.dto()
                     .getResources()
                     .stream()
                     .filter(r -> r.getSources().stream().anyMatch(s -> role.getSources().contains(s)))
-                    .filter(r -> r.getApplicationName().equals(dto.getEvent().getServiceName()))
-                    .map(IdResourceAuthorityMetadata::getId)
+                    .filter(r -> r.getApplicationName().equals(event.dto().getEvent().getServiceName()))
+                    .map(ResourceEntity::getId)
                     .toList();
 
-            role.getResources()
-                    .removeIf(r -> disabledResourceIds.contains(r.getId()));
-            String resourceMap = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(role.getResources()));
+            role.getResourceIds()
+                    .removeIf(disabledResourceIds::contains);
+            String resourceString = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(role.getResourceIds()));
             roleService
                     .lambdaUpdate()
-                    .set(RoleEntity::getResources, resourceMap)
+                    .set(RoleEntity::getResourceIds, resourceString)
                     .eq(RoleEntity::getId, role.getId())
                     .update();
-            updateUserResource(role, metadata.getValue());
         }
 
         redissonCacheAuthorizationService.deleteAuthorizationCache(sources);
     }
+
+    public record UpdatedEvent(RoleEntity before, RoleEntity after) {}
+
+    public record DeleteEvent(RoleEntity entity) {}
+
+
 }

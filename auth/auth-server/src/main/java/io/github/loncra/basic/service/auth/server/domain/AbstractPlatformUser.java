@@ -17,8 +17,6 @@ import io.github.loncra.framework.mybatis.plus.annotation.Decryption;
 import io.github.loncra.framework.mybatis.plus.annotation.Encryption;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import io.github.loncra.framework.mybatis.plus.baisc.support.IntegerVersionEntity;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdRoleAuthorityMetadata;
 import jakarta.validation.constraints.Email;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -65,7 +63,8 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     /**
      * 创建时间
      */
-    private Instant creationTime = Instant.now();
+    @EqualsAndHashCode.Exclude
+    private Instant creationTime;
 
     /**
      * 乐观锁版本号
@@ -91,16 +90,16 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     /**
      * 拥有角色
      */
+    @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    @JsonCollectionGenericType(IdRoleAuthorityMetadata.class)
-    private List<IdRoleAuthorityMetadata> roles = new LinkedList<>();
+    private List<Long> roleIds = new LinkedList<>();
 
     /**
      * 拥有资源
      */
+    @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    @JsonCollectionGenericType(IdResourceAuthorityMetadata.class)
-    private List<IdResourceAuthorityMetadata> resources = new LinkedList<>();
+    private List<Long> resourceIds = new LinkedList<>();
 
     /**
      * 密码

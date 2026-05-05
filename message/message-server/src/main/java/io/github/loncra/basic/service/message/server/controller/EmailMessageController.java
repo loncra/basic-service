@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.message.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.server.domain.body.email.EmailMessageBody;
@@ -38,7 +39,7 @@ import java.util.regex.Pattern;
         id = "email",
         parent = "message",
         authority = "perms[message_server_email:page]",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -77,7 +78,7 @@ public class EmailMessageController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[message_server_email:get]')")
     @Plugin(name = "查看明细")
     public EmailMessageEntity get(

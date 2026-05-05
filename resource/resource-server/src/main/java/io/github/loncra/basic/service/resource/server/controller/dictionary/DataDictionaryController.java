@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.resource.server.controller.dictionary;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DataDictionaryEntity;
@@ -32,10 +32,10 @@ import java.util.Objects;
 @RequestMapping("data/dictionary")
 @Plugin(
         name = "数据字典管理",
-        id = "dataDictionary",
+        id = "data_dictionary",
         parent = "dictionary",
-        authority = "resource_server_data_dictionary:page",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        authority = "perms[resource_server_data_dictionary:page]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -52,7 +52,7 @@ public class DataDictionaryController {
      * @return REST 响应结果
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('resource_server_data_dictionary:page')")
+    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:page]')")
     public Page<DataDictionaryEntity> page(
             PageRequest pageRequest,
             HttpServletRequest request
@@ -73,8 +73,8 @@ public class DataDictionaryController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
-    @PreAuthorize("hasAuthority('resource_server_data_dictionary:get')")
+    @GetMapping("{id:\\d+}")
+    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:get]')")
     @Plugin(name = "查看明细")
     public DataDictionaryEntity get(
             @PathVariable
@@ -90,7 +90,7 @@ public class DataDictionaryController {
      * @param entity 数据字典实体
      */
     @PutMapping
-    @PreAuthorize("hasAuthority('resource_server_data_dictionary:save')")
+    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:save]')")
     @Plugin(name = "添加或保存数据字典", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
@@ -107,7 +107,7 @@ public class DataDictionaryController {
      * @param ids 主键值集合
      */
     @DeleteMapping
-    @PreAuthorize("hasAuthority('resource_server_data_dictionary:delete')")
+    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:delete]')")
     @Plugin(name = "删除数据字典实体", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam

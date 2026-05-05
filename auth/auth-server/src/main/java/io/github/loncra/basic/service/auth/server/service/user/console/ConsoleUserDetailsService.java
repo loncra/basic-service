@@ -20,7 +20,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConsoleUserDetailsService extends AbstractSystemUserDetailsService<ConsoleUserEntity> {
 
-
     private final ConsoleUserService consoleUserService;
 
     @Override

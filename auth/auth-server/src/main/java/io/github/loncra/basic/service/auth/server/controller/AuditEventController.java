@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.auth.server.controller;
 
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
@@ -46,8 +47,8 @@ public class AuditEventController {
     private final ExtendAuditEventRepository operationDataTraceRepository;
 
     @PostMapping("login")
-    @PreAuthorize("hasAuthority('auth_server_audit_event:login')")
-    @Plugin(id = "login_log", name = "登录日志查询", parent = "log", type = SystemConstants.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
+    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:login]')")
+    @Plugin(id = "login_log", name = "登录日志查询", parent = "log", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
     public Page<AuditEvent> authenticationPage(
             PageRequest pageRequest,
             @RequestParam(required = false)
@@ -66,8 +67,8 @@ public class AuditEventController {
     }
 
     @PostMapping("operationDataTrace")
-    @PreAuthorize("hasAuthority('auth_server_audit_event:operation_data_trace')")
-    @Plugin(id = "operation_log", name = "操作日志查询", parent = "log", type = SystemConstants.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
+    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:operation_data_trace]')")
+    @Plugin(id = "operation_log", name = "操作日志查询", parent = "log", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
     public Page<AuditEvent> operationDataTracePage(
             PageRequest pageRequest,
             @RequestParam(required = false)
@@ -114,9 +115,9 @@ public class AuditEventController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id}")
+    @GetMapping("{id}")
     @Plugin(name = "查看明细", parent = "log", sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
-    @PreAuthorize("hasAuthority('auth_server_audit_event:get')")
+    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:get]')")
     public AuditEvent get(
             @PathVariable(required = false)
             String id,

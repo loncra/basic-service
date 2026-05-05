@@ -1,20 +1,26 @@
 package io.github.loncra.basic.service.auth.server.controller;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.WechatAuthenticationEntity;
+import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
 import io.github.loncra.basic.service.auth.server.security.handler.JsonLogoutSuccessHandler;
 import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
 import io.github.loncra.basic.service.auth.server.service.WechatAuthenticationService;
+import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.page.PageRequest;
+import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.security.audit.IdAuditEvent;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.authentication.handler.JsonAuthenticationSuccessResponse;
@@ -112,6 +118,54 @@ public class AuthRootController {
         return result;
     }
 
+    /**
+     * 获取当前用户资源
+     *
+     * @param securityContext 安全上下文
+     * @param mergeTree       是否合并树形 true，是 否则 false
+     *
+     * @return 资源实体集合
+     */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("principalResources")
+    public List<ResourceEntity> getPrincipalResources(
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            @RequestParam(required = false)
+            List<String> types,
+            @RequestParam(required = false)
+            boolean mergeTree
+    ) {
+
+        Assert.isTrue(
+                AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass()),
+                "当前 Authentication 非 AuditAuthenticationToken 实例，无法需改个人登录密码"
+        );
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+
+        List<ResourceSourceEnum> sourceContains = Collections.singletonList(
+                NameEnum.ofEnum(ResourceSourceEnum.class, token.getType())
+        );
+
+        List<ResourceEntity> resourceList = redissonCacheAuthorizationService.getSystemUserResource(
+                token,
+                types.stream().map(v -> ValueEnum.ofEnum(ResourceTypeEnum.class, v)).toList(),
+                sourceContains
+        );
+
+        List<ResourceEntity> result = resourceList
+                .stream()
+                .sorted(Comparator.comparing(ResourceMetadata::getSort).reversed())
+                .toList();
+
+        if (mergeTree) {
+            return TreeUtils.buildGenericTree(result);
+        }
+        else {
+            return result;
+        }
+    }
+
     @ResponseBody
     @GetMapping(value = "/oauth2/consent")
     public RestResult<Map<String, Object>> consent(
@@ -183,7 +237,7 @@ public class AuthRootController {
      */
     @ResponseBody
     @PutMapping("user/password/admin/reset")
-    @PreAuthorize("hasAuthority('auth_server_system_user:admin_reset_password')")
+    @PreAuthorize("hasAuthority('perms[auth_server_system_user:admin_reset_password]')")
     @Plugin(name = "重置用户密码", operationDataTrace = true, parent = "authority")
     public RestResult<Object> adminRestPassword(
             String type,
@@ -292,7 +346,7 @@ public class AuthRootController {
 
     @ResponseBody
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("systemUser/{type}/{id}")
+    @GetMapping("systemUser/{type}/{id:\\d+}")
     public AbstractBasicSystemUser getSystemUser(
             @PathVariable String type,
             @PathVariable Long id

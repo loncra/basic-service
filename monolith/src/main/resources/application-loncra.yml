@@ -29,12 +29,6 @@ loncra:
       plugin:
         generateSources: CONSOLE
         parent:
-          dictionary:
-            application-name: resource-server
-            name: "数据字典管理"
-            parent: config
-            type: menu
-            sources: CONSOLE
           config:
             application-name: commons
             name: "基础配置"
@@ -44,6 +38,12 @@ loncra:
             application-name: commons
             name: "资源管理"
             type: root
+            sources: CONSOLE
+          dictionary:
+            application-name: resource-server
+            name: "数据字典管理"
+            parent: config
+            type: menu
             sources: CONSOLE
           organization:
             application-name: commons
@@ -60,29 +60,16 @@ loncra:
             name: "日志查询"
             type: root
             sources: CONSOLE
-          video_assembly:
-            application-name: commons
-            name: "视频创作"
-            type: root
-            sources: CONSOLE
           workbench:
             name: "工作台"
             application-name: commons
             sources: CONSOLE
             type: tool
-            value: workbench
-          ai:
-            name: "人工智能"
-            application-name: commons
-            sources: CONSOLE
-            type: root
-            value: ai
           setting:
             name: "系统设置"
             application-name: commons
             sources: CONSOLE
-            type: tool
-            value: setting
+            type: profile
       ignore-audit-types:
         - AUTHENTICATION_FAILURE
         - AUTHORIZATION_FAILURE

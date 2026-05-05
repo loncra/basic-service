@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.auth.server.security.handler;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
-import io.github.loncra.basic.service.auth.server.service.plugin.PluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.PluginResourceService;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.spring.security.core.authentication.handler.JsonAuthenticationSuccessResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix ="spring.cloud.discovery", value = "enabled", havingValue = "true")
-public class DisconverySuccessResponse implements JsonAuthenticationSuccessResponse {
+public class DiscoverySuccessResponse implements JsonAuthenticationSuccessResponse {
 
     private final NacosDiscoveryProperties nacosDiscoveryProperties;
 

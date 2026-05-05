@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.resource.server.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
@@ -58,8 +58,7 @@ import java.util.zip.ZipOutputStream;
         name = "文件管理",
         id = "attachment",
         parent = "resource",
-        authority = "resource_server_attachment:list",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor

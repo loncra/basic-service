@@ -3,8 +3,6 @@ package io.github.loncra.basic.service.auth.api.domain;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.id.number.LongIdEntity;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdRoleAuthorityMetadata;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -43,14 +41,14 @@ public abstract class AbstractBasicSystemUser extends LongIdEntity {
      *
      * @return 角色信息
      */
-    public abstract List<IdRoleAuthorityMetadata> getRoles();
+    public abstract List<Long> getRoleIds();
 
     /**
      * 获取资源信息
      *
      * @return 资源信息
      */
-    public abstract List<IdResourceAuthorityMetadata> getResources();
+    public abstract List<Long> getResourceIds();
 
     /**
      * 转换当事人元数据信息

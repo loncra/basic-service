@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.service.plugin.disconvery;
+package io.github.loncra.basic.service.auth.server.service.resource.plugin.disconvery;
 
 import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;

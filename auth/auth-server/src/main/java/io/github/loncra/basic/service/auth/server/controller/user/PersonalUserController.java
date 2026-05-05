@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.auth.server.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.service.user.personal.PersonalUserService;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -36,7 +36,7 @@ import java.util.List;
     id = "personal_user",
     parent = "system",
     authority = "perms[auth_server_personal_user:page]",
-    type = SystemConstants.RESOURCE_MENU_TYPE,
+    type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
     sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -54,7 +54,7 @@ public class PersonalUserController {
      *
      * @see PersonalUserEntity
      */
-    @GetMapping
+    @PostMapping
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:page]')")
     public Page<PersonalUserEntity> page(PageRequest pageRequest, HttpServletRequest request) {
         QueryWrapper<PersonalUserEntity> query = personalUserService
@@ -73,7 +73,7 @@ public class PersonalUserController {
      *
      * @see PersonalUserEntity
      */
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:get]')")
     @Plugin(name = "查看明细")
     public PersonalUserEntity get(@RequestParam Integer id) {
@@ -87,7 +87,7 @@ public class PersonalUserController {
      *
      * @see PersonalUserEntity
      */
-    @PostMapping
+    @PutMapping
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:save]')")
     @Plugin(name = "保存或添加信息", operationDataTrace = true)
     public RestResult<Long> save(@Valid @RequestBody PersonalUserEntity entity) {

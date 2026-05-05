@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.auth.server.resolver.user;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
@@ -15,7 +17,6 @@ import io.github.loncra.framework.commons.page.ScrollPage;
 import io.github.loncra.framework.crypto.algorithm.ByteSource;
 import io.github.loncra.framework.crypto.algorithm.SimpleByteSource;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -147,13 +148,23 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
     @Override
     public void updateResources(
             String id,
-            List<IdResourceAuthorityMetadata> resources
+            List<Long> resourceIds
     ) {
-        String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(resources));
+        String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(resourceIds));
         consoleUserService.lambdaUpdate()
-                .set(AbstractPlatformUser::getResources, json)
+                .set(AbstractPlatformUser::getResourceIds, json)
                 .eq(AbstractPlatformUser::getId, id)
                 .update();
+    }
+
+
+    @Override
+    public List<ResourceEntity> getSystemUserResource(
+            AuditAuthenticationToken token,
+            List<ResourceTypeEnum> list,
+            List<ResourceSourceEnum> sourceContains
+    ) {
+        return consoleUserService.getResource(token, list, sourceContains);
     }
 
     @Override

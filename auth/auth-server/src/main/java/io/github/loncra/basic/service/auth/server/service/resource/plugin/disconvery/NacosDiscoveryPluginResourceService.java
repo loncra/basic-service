@@ -1,16 +1,18 @@
-package io.github.loncra.basic.service.auth.server.service.plugin.disconvery;
+package io.github.loncra.basic.service.auth.server.service.resource.plugin.disconvery;
 
 import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.util.VersionUtil;
-import io.github.loncra.basic.service.auth.server.domain.dto.DisabledApplicationResourceDto;
+import io.github.loncra.basic.service.auth.server.domain.dto.DisabledPluginResourceDto;
 import io.github.loncra.basic.service.auth.server.domain.dto.NacosSyncPluginResourceDto;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
-import io.github.loncra.basic.service.auth.server.service.plugin.AbstractRedissonPluginResourceService;
-import io.github.loncra.basic.service.auth.server.service.plugin.scan.ScanModulePluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.AbstractPluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.scan.ScanModulePluginResourceService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.nacos.event.NacosSpringEventManager;
 import io.github.loncra.framework.security.plugin.PluginInfo;
@@ -23,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.redisson.api.RList;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
@@ -46,7 +47,7 @@ import java.util.stream.Collectors;
 @AutoConfigureBefore(ScanModulePluginResourceService.class)
 @ConditionalOnProperty(prefix ="spring.cloud.nacos.discovery", value = "enabled", matchIfMissing = true)
 @ConditionalOnProperty(prefix = "loncra.basic-service.commons.app",value = "runtime-mode", havingValue = "MICROSERVICE")
-public class NacosDiscoveryPluginResourceService extends AbstractRedissonPluginResourceService {
+public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceService {
 
     /**
      * 默认获取应用信息的后缀 uri
@@ -168,7 +169,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractRedissonPluginR
 
         cache.add(nacosPluginInstance);
 
-        List<ResourceMetadata> data = enabledApplicationResource(nacosPluginInstance);
+        List<ResourceMetadata> data = enabledPluginResource(nacosPluginInstance);
 
         NacosSyncPluginResourceDto nacosSyncPluginResourceDto = new NacosSyncPluginResourceDto();
         nacosSyncPluginResourceDto.setResources(data);
@@ -181,7 +182,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractRedissonPluginR
      *
      * @param instance 插件实例
      */
-    public List<ResourceMetadata> enabledApplicationResource(NacosPluginInstance instance) {
+    public List<ResourceMetadata> enabledPluginResource(NacosPluginInstance instance) {
 
         if (Objects.isNull(instance) || Objects.isNull(instance.getVersion())) {
             return new LinkedList<>();
@@ -197,7 +198,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractRedissonPluginR
         List<PluginInfo> pluginList = createPluginInfoListFromInfo(instance.getPluginResources());
         // 启用資源得到新的資源集合
         List<ResourceMetadata> newResourceList = pluginList.stream()
-                .map(p -> createResource(p, null, metadata -> this.appendInstanceInfo(metadata, instance)))
+                .map(p -> createResource(p, metadata -> this.appendInstanceInfo(metadata, instance)))
                 .collect(Collectors.toList());
 
         return updateResourceMetadata(instance.getVersion(), newResourceList, applicationName);
@@ -274,24 +275,23 @@ public class NacosDiscoveryPluginResourceService extends AbstractRedissonPluginR
      *
      * @param event 服务变更时间
      */
-    public DisabledApplicationResourceDto disabledApplicationResource(NamingEvent event) {
+    public DisabledPluginResourceDto disabledApplicationPlugin(NamingEvent event) {
 
-        // 从 Redis 获取资源
-        RList<ResourceMetadata> redisResourceList = getRedisResourceList();
-        List<ResourceMetadata> resources = new ArrayList<>(redisResourceList.readAll());
-
-        // 从 Redis 中移除该应用的资源
-        resources.removeIf(r -> r.getApplicationName().equals(event.getServiceName()));
-        redisResourceList.clear();
-        if (!resources.isEmpty()) {
-            redisResourceList.addAll(resources);
+        // 获取资源
+        List<ResourceEntity> resources = getResources(event.getServiceName());
+        for (ResourceEntity entity : resources) {
+            entity.setEnabled(YesOrNo.No);
+            getResourceService().lambdaUpdate()
+                    .set(ResourceEntity::getEnabled, entity.getEnabled().getValue())
+                    .eq(ResourceEntity::getId, entity.getId())
+                    .update();
         }
 
         // 清除组的实例缓存
         List<NacosPluginInstance> instances = instanceCache.computeIfAbsent(event.getGroupName(), k -> new LinkedList<>());
         instances.removeIf(p -> p.getServiceName().equals(event.getServiceName()));
         event.setInstances(new LinkedList<>(instances));
-        return DisabledApplicationResourceDto.of(event, resources);
+        return DisabledPluginResourceDto.of(event, resources);
     }
 
 }

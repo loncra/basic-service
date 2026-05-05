@@ -1,6 +1,12 @@
 package io.github.loncra.basic.service.monolith.rabbit;
 
+import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.tenant.SimpleTenantContext;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.spring.security.core.authentication.AccessTokenContextRepository;
+import io.github.loncra.framework.spring.security.core.authentication.TenantContextSecurityFilter;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.support.AccessTokenAuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,19 +34,24 @@ public class SpringSecurityRabbitTemplateCustomizer implements RabbitTemplateCus
     public void customize(RabbitTemplate rabbitTemplate) {
         rabbitTemplate.addBeforePublishPostProcessors(message -> {
             Optional<HttpServletRequest> optional = SpringMvcUtils.getHttpServletRequest();
-            if (optional.isEmpty()) {
-                return message;
-            }
-            HttpServletRequest httpServletRequest = optional.get();
-            String accessToken = accessTokenContextRepository.getAccessToken(httpServletRequest);
-            if (StringUtils.isNotEmpty(accessToken)) {
-                message.getMessageProperties()
-                        .setHeader(accessTokenContextRepository.getAuthenticationProperties().getAccessToken().getHeaderName(), accessToken);
-            }
-            String deviceIdentified = httpServletRequest.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME);
-            if (StringUtils.isNotEmpty(deviceIdentified)) {
-                message.getMessageProperties()
-                        .setHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME, deviceIdentified);
+            if (optional.isPresent()) {
+                HttpServletRequest httpServletRequest = optional.get();
+                String accessToken = accessTokenContextRepository.getAccessToken(httpServletRequest);
+                if (StringUtils.isNotEmpty(accessToken)) {
+                    message.getMessageProperties()
+                            .setHeader(accessTokenContextRepository.getAuthenticationProperties().getAccessToken().getHeaderName(), accessToken);
+                }
+                String deviceIdentified = httpServletRequest.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME);
+                if (StringUtils.isNotEmpty(deviceIdentified)) {
+                    message.getMessageProperties()
+                            .setHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME, deviceIdentified);
+                }
+            } else {
+                String accessToken = getFromSecurityContext(SecurityContextHolder.getContext());
+                if (StringUtils.isNotEmpty(accessToken)) {
+                    message.getMessageProperties()
+                            .setHeader(accessTokenContextRepository.getAuthenticationProperties().getAccessToken().getHeaderName(), accessToken);
+                }
             }
 
             return message;
@@ -56,6 +67,23 @@ public class SpringSecurityRabbitTemplateCustomizer implements RabbitTemplateCus
         });
     }
 
+    private String getFromSecurityContext(SecurityContext securityContext) {
+        if (Objects.isNull(securityContext.getAuthentication())) {
+            return null;
+        }
+
+        if (!AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass())){
+            return null;
+        }
+
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        if (token.getDetails() instanceof AccessTokenAuditAuthenticationSuccessDetails details) {
+            return details.getToken().getValue();
+        }
+
+        return null;
+    }
+
     @Override
     public void configure(SimpleMessageListenerContainer container) {
         container.addAfterReceivePostProcessors(message -> {
@@ -67,6 +95,8 @@ public class SpringSecurityRabbitTemplateCustomizer implements RabbitTemplateCus
             if (Objects.nonNull(securityContext) && Optional.of(securityContext.getAuthentication()).map(Authentication::isAuthenticated).get()) {
                 SecurityContextHolder.setContext(securityContext);
             }
+            SimpleTenantContext tenantContext = TenantContextSecurityFilter.resolveTenantContext(securityContext);
+            TenantContextHolder.set(tenantContext);
             return message;
         });
     }

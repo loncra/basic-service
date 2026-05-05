@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.auth.server.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.user.console.ConsoleUserService;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -30,8 +30,8 @@ import java.util.List;
         name = "员工管理",
         id = "console_user",
         parent = "organization",
-        authority = "auth_server_console_user:page",
-        type = SystemConstants.RESOURCE_MENU_TYPE,
+        authority = "perms[auth_server_console_user:page]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -47,8 +47,8 @@ public class ConsoleUserController {
      *
      * @return REST 响应结果
      */
-    @GetMapping
-    @PreAuthorize("hasAuthority('auth_server_console_user:page')")
+    @PostMapping
+    @PreAuthorize("hasAuthority('perms[auth_server_console_user:page]')")
     public Page<ConsoleUserEntity> page(
             PageRequest pageRequest,
             HttpServletRequest request
@@ -69,8 +69,8 @@ public class ConsoleUserController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("/{id:\\d+}")
-    @PreAuthorize("hasRole('FEIGN') or hasAuthority('auth_server_console_user:get')")
+    @GetMapping("{id:\\d+}")
+    @PreAuthorize("hasRole('FEIGN') or hasAuthority('perms[auth_server_console_user:get]')")
     @Plugin(name = "查看明细")
     public ConsoleUserEntity get(
             @PathVariable
@@ -87,9 +87,9 @@ public class ConsoleUserController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PutMapping
     @Plugin(name = "添加或保存信息", operationDataTrace = true)
-    @PreAuthorize("hasAuthority('auth_server_console_user:save')")
+    @PreAuthorize("hasAuthority('perms[auth_server_console_user:save]')")
     public RestResult<Long> save(
             @Valid
             @RequestBody
@@ -109,7 +109,7 @@ public class ConsoleUserController {
      */
     @DeleteMapping
     @Plugin(name = "删除信息", operationDataTrace = true)
-    @PreAuthorize("hasAuthority('auth_server_console_user:delete')")
+    @PreAuthorize("hasAuthority('perms[auth_server_console_user:delete]')")
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids

@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.resource.server.controller;
 
 
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.server.service.enumerate.SystemResourceService;
 import io.github.loncra.framework.commons.RestResult;
@@ -101,7 +101,7 @@ public class ResourceRootController {
      * @return 所有服务枚举信息
      */
     @PostMapping("enumerate/sync")
-    @PreAuthorize("hasAuthority('resource_server_enumerate:sync')")
+    @PreAuthorize("hasAuthority('perms[resource_server_enumerate:sync]')")
     @ConditionalOnProperty(prefix = "loncra.basic-service.commons.app",value = "runtime-mode", havingValue = "MICROSERVICE")
     @Plugin(name = "同步所有枚举", parent = "enumerate", sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE, audit = true)
     public RestResult<Map<String, Map<String, Map<String, Object>>>> syncEnumerate() throws Exception {
@@ -116,7 +116,7 @@ public class ResourceRootController {
      * @return 服务枚举信息
      */
     @GetMapping("enumerate")
-    @Plugin(name = "系统枚举查询", id = "enumerate", parent = "resource", type = SystemConstants.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
+    @Plugin(name = "系统枚举查询", id = "enumerate", parent = "resource", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
     public Map<String, Map<String, Map<String, Object>>> enumerate() {
         return systemResourceService.getServiceEnumerate();
     }

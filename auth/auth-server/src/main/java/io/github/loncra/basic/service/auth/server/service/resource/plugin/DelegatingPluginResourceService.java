@@ -1,10 +1,9 @@
-package io.github.loncra.basic.service.auth.server.service.plugin;
+package io.github.loncra.basic.service.auth.server.service.resource.plugin;
 
-import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
-import io.github.loncra.basic.service.auth.server.service.plugin.disconvery.NacosDiscoveryPluginResourceService;
-import io.github.loncra.basic.service.auth.server.service.plugin.scan.ScanModulePluginResourceService;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.disconvery.NacosDiscoveryPluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.scan.ScanModulePluginResourceService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Primary;
@@ -28,11 +27,11 @@ public class DelegatingPluginResourceService implements PluginResourceService {
     }
 
     @Override
-    public List<ResourceMetadata> getResourcesStream(
-            List<IdResourceAuthorityMetadata> resources,
+    public List<ResourceEntity> getResourcesStream(
+            List<Long> resourceIds,
             ResourceSourceEnum... sources
     ) {
-        return getDelegate().getResourcesStream(resources, sources);
+        return getDelegate().getResourcesStream(resourceIds, sources);
     }
 
     @Override
@@ -41,12 +40,12 @@ public class DelegatingPluginResourceService implements PluginResourceService {
     }
 
     @Override
-    public List<ResourceMetadata> getResources() {
+    public List<ResourceEntity> getResources() {
         return getDelegate().getResources();
     }
 
     @Override
-    public List<ResourceMetadata> getResources(
+    public List<ResourceEntity> getResources(
             String applicationName,
             ResourceSourceEnum... sources
     ) {

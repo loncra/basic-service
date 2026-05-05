@@ -1,10 +1,10 @@
-package io.github.loncra.basic.service.auth.server.service.plugin.disconvery;
+package io.github.loncra.basic.service.auth.server.service.resource.plugin.disconvery;
 
 import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.client.naming.listener.NamingChangeEvent;
-import io.github.loncra.basic.service.auth.server.domain.dto.DisabledApplicationResourceDto;
+import io.github.loncra.basic.service.auth.server.domain.dto.DisabledPluginResourceDto;
 import io.github.loncra.basic.service.auth.server.domain.dto.NacosSyncPluginResourceDto;
-import io.github.loncra.basic.service.auth.server.resolver.PluginResourceResolver;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.AbstractPluginResourceService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.nacos.event.NacosInstancesChangeEvent;
 import io.github.loncra.framework.nacos.event.NacosServiceSubscribeEvent;
@@ -13,10 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * 插件的 nacos 事件源监听实现，用于把所有微服务带有插件的数据加载后形成权限资源使用。
@@ -33,7 +32,7 @@ public class PluginNacosEventSourceListener {
 
     private final NacosDiscoveryPluginResourceService nacosDiscoveryPluginResourceService;
 
-    private final List<PluginResourceResolver> pluginResourceResolver;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     /**
      * 监听 nacos 服务被订阅事件，自动同步插件資源
@@ -44,10 +43,11 @@ public class PluginNacosEventSourceListener {
     public void onNacosServiceSubscribeEvent(NacosServiceSubscribeEvent event) {
         NamingEvent namingEvent = CastUtils.cast(event.getSource());
         NacosSyncPluginResourceDto dto = nacosDiscoveryPluginResourceService.syncPluginResource(namingEvent);
-
-        if (CollectionUtils.isNotEmpty(pluginResourceResolver) && CollectionUtils.isNotEmpty(dto.getResources())) {
+        applicationEventPublisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(dto));
+        //applicationEventPublisher.publishEvent(new );
+        /*if (CollectionUtils.isNotEmpty(pluginResourceResolver) && CollectionUtils.isNotEmpty(dto.getResources())) {
             pluginResourceResolver.forEach(i -> i.postSyncPlugin(dto));
-        }
+        }*/
 
     }
 
@@ -61,16 +61,21 @@ public class PluginNacosEventSourceListener {
         NamingChangeEvent namingEvent = CastUtils.cast(event.getSource());
 
         if (CollectionUtils.isEmpty(namingEvent.getInstances())) {
-            DisabledApplicationResourceDto dto = nacosDiscoveryPluginResourceService.disabledApplicationResource(namingEvent);
-            if (CollectionUtils.isNotEmpty(pluginResourceResolver)) {
+            DisabledPluginResourceDto dto = nacosDiscoveryPluginResourceService.disabledApplicationPlugin(namingEvent);
+            /*if (CollectionUtils.isNotEmpty(pluginResourceResolver)) {
                 pluginResourceResolver.forEach(i -> i.postDisabledApplicationResource(dto));
-            }
+            }*/
+            applicationEventPublisher.publishEvent(new DisabledPluginResourceEvent(dto));
         }
         else {
             NacosSyncPluginResourceDto dto = nacosDiscoveryPluginResourceService.syncPluginResource(namingEvent);
-            if (CollectionUtils.isNotEmpty(pluginResourceResolver) && CollectionUtils.isNotEmpty(dto.getResources())) {
+            /*if (CollectionUtils.isNotEmpty(pluginResourceResolver) && CollectionUtils.isNotEmpty(dto.getResources())) {
                 pluginResourceResolver.forEach(i -> i.postSyncPlugin(dto));
-            }
+            }*/
+
+            applicationEventPublisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(dto));
         }
     }
+
+    public record DisabledPluginResourceEvent(DisabledPluginResourceDto dto) {}
 }

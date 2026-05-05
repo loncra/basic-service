@@ -22,6 +22,7 @@ import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections4.CollectionUtils;
@@ -78,7 +79,8 @@ public class OpenPlatformMerchantClientEntity implements VersionEntity<Integer, 
     /**
      * 创建时间
      */
-    private Instant creationTime = Instant.now();
+    @EqualsAndHashCode.Exclude
+    private Instant creationTime;
 
     /**
      * 商户 id

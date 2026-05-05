@@ -36,9 +36,10 @@ public class WechatAuthenticationEntity extends AbstractWechatAuthentication imp
     private Long id;
 
     @Version
-    private Integer version = 0;
+    private Integer version;
 
-    private Instant creationTime = Instant.now();
+    @EqualsAndHashCode.Exclude
+    private Instant creationTime;
 
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();

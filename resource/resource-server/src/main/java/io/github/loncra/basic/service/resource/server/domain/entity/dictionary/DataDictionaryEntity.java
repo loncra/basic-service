@@ -37,7 +37,7 @@ public class DataDictionaryEntity extends DataDictionaryMetadata implements Vers
      * 创建时间
      */
     @EqualsAndHashCode.Exclude
-    private Instant creationTime = Instant.now();
+    private Instant creationTime;
 
     /**
      * 版本号

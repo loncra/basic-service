@@ -2,16 +2,18 @@ package io.github.loncra.basic.service.auth.server.security;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
-import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
+import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
-import io.github.loncra.basic.service.auth.server.service.plugin.PluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.PluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.role.RoleService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.domain.AccessToken;
-import io.github.loncra.framework.commons.enumerate.basic.DisabledOrEnabled;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
 import io.github.loncra.framework.security.entity.ResourceAuthority;
@@ -25,7 +27,6 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Type
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.security.core.entity.support.AccessTokenAuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.security.core.plugin.PluginEndpoint;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdRoleAuthorityMetadata;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,6 +63,8 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
 
     private PluginResourceService pluginResourceService;
 
+    private RoleService roleService;
+
     private AuthAppConfig authAppConfig;
 
     private OpenPlatformMerchantService openPlatformMerchantService;
@@ -75,8 +78,8 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
     }
 
     public Collection<SimpleGrantedAuthority> createGrantedAuthorities(
-            List<IdRoleAuthorityMetadata> roleAuthorities,
-            List<ResourceMetadata> resourceAuthorities
+            List<RoleEntity> roleAuthorities,
+            List<ResourceEntity> resourceAuthorities
     ) {
 
         List<SimpleGrantedAuthority> result = new ArrayList<>();
@@ -110,13 +113,13 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
 
         T user = getByIdentity(principal.getId().toString());
 
-        List<IdRoleAuthorityMetadata> roleAuthorityMetadataList = user
-                .getRoles()
+        List<RoleEntity> roleAuthorityMetadataList = user
+                .getRoleIds()
                 .stream()
-                .filter(g -> DisabledOrEnabled.Enabled.equals(g.getStatus()))
+                .map(roleService::get)
+                .filter(r -> YesOrNo.Yes.equals(r.getEnabled()))
                 .toList();
-
-        List<ResourceMetadata> resourceMetadataList = pluginResourceService.getResourcesStream(user.getResources(), ResourceSourceEnum.valueOf(token.getType()));
+        List<ResourceEntity> resourceMetadataList = pluginResourceService.getResourcesStream(user.getResourceIds(), ResourceSourceEnum.valueOf(token.getType()));
 
         return new HashSet<>(createGrantedAuthorities(roleAuthorityMetadataList, resourceMetadataList));
     }
@@ -141,8 +144,8 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
         AuditAuthenticationSuccessDetails details = super.getPrincipalDetails(principal, token, successToken, grantedAuthorities);
 
         T user = getByIdentity(principal.getId().toString());
-        if (CollectionUtils.isNotEmpty(user.getRoles())) {
-            List<RoleAuthority> roles = user.getRoles()
+        if (CollectionUtils.isNotEmpty(user.getRoleIds())) {
+            List<RoleAuthority> roles = user.getRoleIds()
                     .stream()
                     .map(s -> CastUtils.of(s, RoleAuthority.class))
                     .toList();

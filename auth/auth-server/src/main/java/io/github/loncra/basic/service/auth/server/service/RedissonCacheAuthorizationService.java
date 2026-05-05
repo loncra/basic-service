@@ -16,7 +16,6 @@ import io.github.loncra.framework.spring.security.core.authentication.TypeSecuri
 import io.github.loncra.framework.spring.security.core.authentication.service.TypeSecurityPrincipalManager;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.TypeAuthenticationToken;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdRoleAuthorityMetadata;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -137,33 +136,28 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
 
     public void postUpdateRole(BasicSystemRole exist) {
         deleteAuthorizationCache(exist.getSources());
-        syncSystemUserGroup(Collections.singletonList(exist), (sue, roles) -> {
+        syncSystemUserRole(Collections.singletonList(exist), (sue, roles) -> {
             List<Long> roleId = roles.stream()
-                    .map(IdRoleAuthorityMetadata::getId)
+                    .map(BasicSystemRole::getId)
                     .toList();
 
-            sue.getRoles()
-                    .removeIf(p -> roleId.contains(p.getId()));
+            sue.getRoleIds()
+                    .removeIf(roleId::contains);
 
-            List<IdRoleAuthorityMetadata> idRoleAuthorityMetas = roles
-                    .stream()
-                    .map(g -> IdRoleAuthorityMetadata.of(g.getId(), g.getName(), g.getAuthority(), g.getStatus()))
-                    .toList();
-
-            sue.getRoles()
-                    .addAll(idRoleAuthorityMetas);
+            sue.getRoleIds()
+                    .addAll(roles.stream().map(BasicSystemRole::getId).toList());
         });
     }
 
     public void postDeleteRole(BasicSystemRole entity) {
 
         deleteAuthorizationCache(entity.getSources());
-        syncSystemUserGroup(Collections.singletonList(entity), (sue, groupEntityList) -> {
+        syncSystemUserRole(Collections.singletonList(entity), (sue, groupEntityList) -> {
             List<Long> groupIds = groupEntityList.stream()
-                    .map(IdRoleAuthorityMetadata::getId)
+                    .map(BasicSystemRole::getId)
                     .toList();
-            sue.getRoles()
-                    .removeIf(p -> groupIds.contains(p.getId()));
+            sue.getRoleIds()
+                    .removeIf(groupIds::contains);
         });
     }
 }

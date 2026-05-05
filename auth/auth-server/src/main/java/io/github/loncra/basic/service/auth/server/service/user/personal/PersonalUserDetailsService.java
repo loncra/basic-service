@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.auth.server.service.user.personal;
 
-import io.github.loncra.basic.service.auth.api.enumerate.PersonalRoleEnum;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.security.AbstractRegistrationSystemUserDetailsService;
@@ -14,7 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -73,7 +71,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
         user.setPassword(getPasswordEncoder().encode(getCommonsConfig().generateRandomPassword()));
         user.setStatus(UserStatus.Enabled);
         user.setTenantId(snowflakeIdGenerator.generateId());
-        user.setRoles(Arrays.stream(PersonalRoleEnum.values()).map(PersonalRoleEnum::getRoleAuthority).toList());
+        //user.setRoleIds(Arrays.stream(PersonalRoleEnum.values()).map(PersonalRoleEnum::getRoleAuthority).toList());
 
         return user;
     }

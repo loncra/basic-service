@@ -218,14 +218,6 @@ public interface SystemConstants {
     ParameterizedTypeReference<Map<String, Object>> MAP_REFERENCE = new ParameterizedTypeReference<>() {
     };
 
-    String RESOURCE_MENU_TYPE = "menu";
-
-    String RESOURCE_ROOT_TYPE = "root";
-
-    String RESOURCE_DIRECTORY_TYPE = "directory";
-
-    String RESOURCE_TOOL_TYPE = "tool";
-
     String LAST_UPDATE_TIME_KEY = "lastUpdateTime";
 
     String SOURCE_KEY = "source";

@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.auth.server.resolver;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.OidcSecurityUserDetailsInfo;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.merchant.OpenPlatformMerchantClientEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
@@ -18,7 +20,6 @@ import io.github.loncra.framework.commons.page.ScrollPage;
 import io.github.loncra.framework.crypto.algorithm.ByteSource;
 import io.github.loncra.framework.security.entity.SecurityPrincipal;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
 import io.github.loncra.framework.spring.security.oauth2.authentication.oidc.OidcUserInfoAuthenticationResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
@@ -223,10 +224,27 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 更新用户资源
      *
      * @param id        用户 id
-     * @param resources 要更新的资源
+     * @param resourceIds 要更新的资源 id 集合
      */
     void updateResources(
             String id,
-            List<IdResourceAuthorityMetadata> resources
+            List<Long> resourceIds
     );
+
+    /**
+     * 获取当前用户资源
+     *
+     * @param token 认证 token
+     * @param list 资源类型
+     * @param sourceContains 仅包含的资源来源
+     *
+     * @return 用户资源
+     */
+    default List<ResourceEntity> getSystemUserResource(
+            AuditAuthenticationToken token,
+            List<ResourceTypeEnum> list,
+            List<ResourceSourceEnum> sourceContains
+    ) {
+        return new LinkedList<>();
+    }
 }

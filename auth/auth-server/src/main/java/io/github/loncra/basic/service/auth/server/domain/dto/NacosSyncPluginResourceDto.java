@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.auth.server.domain.dto;
 
-import io.github.loncra.basic.service.auth.server.service.plugin.disconvery.NacosPluginInstance;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.disconvery.NacosPluginInstance;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

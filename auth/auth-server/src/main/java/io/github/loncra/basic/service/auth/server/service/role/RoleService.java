@@ -2,35 +2,33 @@ package io.github.loncra.basic.service.auth.server.service.role;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.dao.RoleDao;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
-import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
-import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
-import io.github.loncra.basic.service.auth.server.service.plugin.PluginResourceService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.PluginResourceService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
-import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import io.github.loncra.framework.spring.security.core.plugin.metadata.IdResourceAuthorityMetadata;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * tb_role 的业务逻辑
@@ -48,8 +46,7 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
 
     private final AuthAppConfig authAppConfig;
 
-    @Getter
-    private final RedissonCacheAuthorizationService<AbstractBasicSystemUser> redissonCacheAuthorizationService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Getter
     private final PluginResourceService pluginResourceService;
@@ -57,7 +54,7 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
     @Override
     public int save(RoleEntity entity) {
 
-        List<ResourceMetadata> groupResource = getGroupResource(entity);
+        List<ResourceEntity> groupResource = getGroupResource(entity);
 
         List<String> noneMatchSources = groupResource.stream()
                 .filter(r -> r.getSources().stream().noneMatch(s -> entity.getSources().contains(s)))
@@ -86,27 +83,14 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
      *
      * @return 资源元数据信息
      */
-    public List<ResourceMetadata> getGroupResource(RoleEntity group) {
-        List<ResourceMetadata> result = new LinkedList<>();
+    public List<ResourceEntity> getGroupResource(RoleEntity group) {
+        List<ResourceEntity> result = new LinkedList<>();
 
-        if (CollectionUtils.isEmpty(group.getResources())) {
+        if (CollectionUtils.isEmpty(group.getResourceIds())) {
             return result;
         }
-        Map<String, List<String>> resourceMap = group.getResources()
-                .stream()
-                .collect(Collectors.groupingBy(IdResourceAuthorityMetadata::getApplicationName, Collectors.mapping(IdResourceAuthorityMetadata::getId, Collectors.toList())));
-        for (Map.Entry<String, List<String>> entry : resourceMap.entrySet()) {
-            List<ResourceMetadata> resources = pluginResourceService.getResources(entry.getKey(), group.getSources()
-                    .toArray(new ResourceSourceEnum[0]));
-            List<ResourceMetadata> findResources = resources
-                    .stream()
-                    .filter(r -> entry.getValue().contains(r.getId()))
-                    .toList();
 
-            result.addAll(findResources);
-        }
-
-        return result;
+        return pluginResourceService.getResourcesStream(group.getResourceIds(), group.getSources().toArray(new ResourceSourceEnum[0]));
     }
 
     @Override
@@ -126,8 +110,7 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
         Assert.isTrue(YesOrNo.Yes.equals(exist.getModifiable()), "角色 [" + entity.getName() + "] 被设置为不可修改角色，无法执行操作。");
 
         int result = super.updateById(entity);
-
-        redissonCacheAuthorizationService.postUpdateRole(exist);
+        applicationEventPublisher.publishEvent(new RoleAuthorizationEventListener.UpdatedEvent(exist, entity));
 
         return result;
     }
@@ -174,7 +157,8 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
                 "管理员角色不能删除"
         );
         Assert.isTrue(YesOrNo.Yes.equals(entity.getRemovable()), "角色 [" + entity.getName() + "] 被设置为不可删除角色，无法执行操作");
-        redissonCacheAuthorizationService.postDeleteRole(entity);
+        //redissonCacheAuthorizationService.postDeleteRole(entity);
+        applicationEventPublisher.publishEvent(new RoleAuthorizationEventListener.DeleteEvent(entity));
         return super.deleteByEntity(entity);
     }
 
@@ -211,33 +195,5 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
         group.setSources(sources);
 
         super.insert(group);
-    }
-
-    public List<ResourceMetadata> getSystemUserResource(
-            AuditAuthenticationToken token,
-            List<String> types,
-            List<ResourceSourceEnum> sourceContains
-    ) {
-        AbstractBasicSystemUser user = redissonCacheAuthorizationService
-                .getSystemUserAuthorizationResolver(token.getType(), true)
-                .load(token);
-        List<String> resourceIds = user.getResources()
-                .stream()
-                .map(IdResourceAuthorityMetadata::getId)
-                .toList();
-        List<ResourceMetadata> userResource = pluginResourceService.getResources()
-                .stream()
-                .filter(r -> resourceIds.contains(r.getId()))
-                .toList();
-
-        Stream<ResourceMetadata> stream = userResource
-                .stream()
-                .filter(r -> r.getSources().stream().anyMatch(sourceContains::contains));
-
-        if (Objects.nonNull(token.getType())) {
-            stream = stream.filter(r -> types.contains(r.getType()));
-        }
-
-        return stream.collect(Collectors.toList());
     }
 }
