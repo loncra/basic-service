@@ -5,9 +5,9 @@ import com.fasterxml.jackson.core.util.VersionUtil;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceCastegoryEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
-import io.github.loncra.basic.service.auth.server.domain.dto.AbstractSyncPluginResourceDto;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
+import io.github.loncra.basic.service.auth.server.domain.metdata.SyncPluginResourceMetadata;
 import io.github.loncra.basic.service.auth.server.service.resource.ResourceService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
@@ -16,7 +16,6 @@ import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.number.NumberIdEntity;
-import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import io.github.loncra.framework.security.plugin.PluginInfo;
 import lombok.Getter;
@@ -47,6 +46,8 @@ import java.util.stream.Stream;
 @Setter(onMethod_ = @Autowired)
 public abstract class AbstractPluginResourceService implements PluginResourceService {
 
+    public static final String COMMONS_APPLICATION_NAME = "commons";
+
     private AuthAppConfig authAppConfig;
 
     private ResourceService resourceService;
@@ -60,7 +61,6 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
      */
     protected ResourceMetadata createResource(
             PluginInfo plugin,
-            //ResourceMetadata parent,
             Consumer<ResourceMetadata> consumer
     ) {
         ResourceMetadata target = CastUtils.of(
@@ -85,10 +85,6 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
         if (Strings.CS.equals(plugin.getParent(), PluginInfo.DEFAULT_ROOT_PARENT_NAME)) {
             target.setParentId(null);
         }
-        //else if (Objects.nonNull(parent)) {
-        //resourceService.getByCode(parent.getCode());
-        //target.setParentId(parent.getCode());
-        //}
 
         consumer.accept(target);
 
@@ -109,11 +105,13 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
      * @param newResourceList   新资源
      * @param existingResources 当前资源
      */
-    protected void compareThenUpdateCache(
+    protected List<ResourceEntity> compareThenMerge(
             Version version,
             List<ResourceMetadata> newResourceList,
             List<ResourceEntity> existingResources
     ) {
+        List<ResourceEntity> result = new LinkedList<>();
+        Map<String, Long> codeIdMap = new LinkedHashMap<>();
         for (ResourceMetadata newResource : newResourceList) {
             // 查找是否存在相同 ID 的资源
             Optional<ResourceEntity> optional = existingResources
@@ -135,22 +133,27 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
                     BeanUtils.copyProperties(newResource, existing, IdEntity.ID_FIELD_NAME, VersionEntity.VERSION_FIELD_NAME, NumberIdEntity.CREATION_TIME_FIELD_NAME);
                     resourceService.updateById(existing);
                 }
+                result.add(existing);
+                codeIdMap.put(existing.getCode(), existing.getId());
             } else if (resourceService.getByCode(newResourceEntity.getCode()) == null){
                 // 不存在相同 ID 的资源，直接添加
                 resourceService.insert(newResourceEntity);
+                result.add(newResourceEntity);
+                codeIdMap.put(newResourceEntity.getCode(), newResourceEntity.getId());
             }
 
             if (CollectionUtils.isNotEmpty(newResource.getChildren())) {
                 List<ResourceMetadata> newChildrenResourceList = newResource.getChildren()
                         .stream()
                         .map(c -> CastUtils.cast(c, ResourceMetadata.class))
-                        .peek(c -> c.setParentId(newResourceEntity.getId()))
+                        .peek(c -> c.setParentId(codeIdMap.get(newResource.getCode())))
                         .collect(Collectors.toCollection(LinkedList::new));
 
-                compareThenUpdateCache(version, newChildrenResourceList, existingResources);
+                result.addAll(compareThenMerge(version, newChildrenResourceList, existingResources));
             }
         }
 
+        return result;
     }
 
     private void updateResource(
@@ -206,8 +209,9 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
      */
     private String buildHash(Object target) {
         try {
+            ResourceMetadata metadata = CastUtils.of(target, ResourceMetadata.class, PluginInfo.DEFAULT_CHILDREN_NAME);
             byte[] bytes = CastUtils.getObjectMapper()
-                    .writeValueAsBytes(target);
+                    .writeValueAsBytes(metadata);
             return DigestUtils.md5DigestAsHex(bytes);
         } catch (Exception e) {
             log.warn("计算资源内容哈希失败，将视为内容变化: {}", e.getMessage());
@@ -218,7 +222,7 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
 
     @Override
     public List<ResourceEntity> getResourcesStream(
-            List<Long> resourceIds,
+            Set<Long> resourceIds,
             ResourceSourceEnum... sources
     ) {
 
@@ -233,7 +237,6 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
                 .distinct()
                 .toList();
     }
-
 
     /**
      * 获取资源集合
@@ -283,35 +286,41 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
         return stream.toList();
     }
 
-    protected List<ResourceMetadata> updateResourceMetadata(
+    protected SyncPluginResourceMetadata updateResourceMetadata(
             Version version,
             List<ResourceMetadata> newResourceList,
-            String applicationName
+            String... applicationName
     ) {
-
+        List<String> applicationNames = Arrays.asList(applicationName);
         // 获取现有资源
         List<ResourceEntity> existingResources = getResources().stream()
-                .filter(r -> r.getApplicationName().equals(applicationName))
+                .filter(r -> applicationNames.contains(r.getApplicationName()))
                 .collect(Collectors.toList());
 
         // 比较数据信息，并更新或添加新资源到缓存
-        compareThenUpdateCache(version, newResourceList, existingResources);
-
-        List<ResourceMetadata> unmergeNewResourceList = TreeUtils.unBuildGenericTree(newResourceList);
+        List<ResourceEntity> result = compareThenMerge(version, newResourceList, existingResources);
 
         // 移除该应用的其他旧资源（不在新资源列表中的）
-        List<String> newResourceCodes = unmergeNewResourceList
+        List<String> newResourceCodes = result
                 .stream()
                 .map(ResourceMetadata::getCode)
                 .distinct()
                 .toList();
-        existingResources.stream()
+
+        List<Long> deleteIds = existingResources.stream()
                 .filter(r -> !newResourceCodes.contains(r.getCode()))
                 .map(ResourceEntity::getId)
-                .forEach(resourceService::deleteById);
+                .toList();
 
-        return newResourceList;
+        deleteIds.forEach(resourceService::deleteById);
+
+        SyncPluginResourceMetadata metadata = new SyncPluginResourceMetadata();
+        metadata.setResources(result);
+        metadata.setDeleteIds(deleteIds);
+        metadata.setApplicationNames(applicationNames);
+
+        return metadata;
     }
 
-    public record SyncPluginResourceEvent(AbstractSyncPluginResourceDto dto) {}
+    public record SyncPluginResourceEvent (SyncPluginResourceMetadata dto) {}
 }

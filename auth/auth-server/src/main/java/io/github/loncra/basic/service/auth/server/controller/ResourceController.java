@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 资源管理
@@ -89,7 +90,7 @@ public class ResourceController {
             Long id
     ) {
         List<ResourceEntity> list = delegatingPluginResourceService
-                .getResourcesStream(List.of(id));
+                .getResourcesStream(Set.of(id));
         return CollectionUtils.isNotEmpty(list) ? list.getFirst() : null;
     }
 

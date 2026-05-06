@@ -9,7 +9,7 @@ import java.util.Set;
 public interface PluginResourceService {
 
     List<ResourceEntity> getResourcesStream(
-            List<Long> resourceIds,
+            Set<Long> resourceIds,
             ResourceSourceEnum... sources
     );
 

@@ -2,8 +2,8 @@ package io.github.loncra.basic.service.auth.server.service.resource.plugin.disco
 
 import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.client.naming.listener.NamingChangeEvent;
-import io.github.loncra.basic.service.auth.server.domain.dto.DisabledPluginResourceDto;
-import io.github.loncra.basic.service.auth.server.domain.dto.NacosSyncPluginResourceDto;
+import io.github.loncra.basic.service.auth.server.domain.metdata.DisabledPluginResourceMetadata;
+import io.github.loncra.basic.service.auth.server.domain.metdata.NacosSyncPluginResourceMetadata;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.AbstractPluginResourceService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.nacos.event.NacosInstancesChangeEvent;
@@ -16,6 +16,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 /**
  * 插件的 nacos 事件源监听实现，用于把所有微服务带有插件的数据加载后形成权限资源使用。
@@ -42,13 +44,10 @@ public class PluginNacosEventSourceListener {
     @EventListener
     public void onNacosServiceSubscribeEvent(NacosServiceSubscribeEvent event) {
         NamingEvent namingEvent = CastUtils.cast(event.getSource());
-        NacosSyncPluginResourceDto dto = nacosDiscoveryPluginResourceService.syncPluginResource(namingEvent);
-        applicationEventPublisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(dto));
-        //applicationEventPublisher.publishEvent(new );
-        /*if (CollectionUtils.isNotEmpty(pluginResourceResolver) && CollectionUtils.isNotEmpty(dto.getResources())) {
-            pluginResourceResolver.forEach(i -> i.postSyncPlugin(dto));
-        }*/
-
+        NacosSyncPluginResourceMetadata metadata = nacosDiscoveryPluginResourceService.syncPluginResource(namingEvent);
+        if (Objects.nonNull(metadata)) {
+            applicationEventPublisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(metadata));
+        }
     }
 
     /**
@@ -61,21 +60,16 @@ public class PluginNacosEventSourceListener {
         NamingChangeEvent namingEvent = CastUtils.cast(event.getSource());
 
         if (CollectionUtils.isEmpty(namingEvent.getInstances())) {
-            DisabledPluginResourceDto dto = nacosDiscoveryPluginResourceService.disabledApplicationPlugin(namingEvent);
-            /*if (CollectionUtils.isNotEmpty(pluginResourceResolver)) {
-                pluginResourceResolver.forEach(i -> i.postDisabledApplicationResource(dto));
-            }*/
-            applicationEventPublisher.publishEvent(new DisabledPluginResourceEvent(dto));
+            DisabledPluginResourceMetadata metadata = nacosDiscoveryPluginResourceService.disabledApplicationPlugin(namingEvent);
+            applicationEventPublisher.publishEvent(new DisabledPluginResourceEvent(metadata));
         }
         else {
-            NacosSyncPluginResourceDto dto = nacosDiscoveryPluginResourceService.syncPluginResource(namingEvent);
-            /*if (CollectionUtils.isNotEmpty(pluginResourceResolver) && CollectionUtils.isNotEmpty(dto.getResources())) {
-                pluginResourceResolver.forEach(i -> i.postSyncPlugin(dto));
-            }*/
-
-            applicationEventPublisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(dto));
+            NacosSyncPluginResourceMetadata metadata =  nacosDiscoveryPluginResourceService.syncPluginResource(namingEvent);
+            if (Objects.nonNull(metadata)) {
+                applicationEventPublisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(metadata));
+            }
         }
     }
 
-    public record DisabledPluginResourceEvent(DisabledPluginResourceDto dto) {}
+    public record DisabledPluginResourceEvent(DisabledPluginResourceMetadata dto) {}
 }

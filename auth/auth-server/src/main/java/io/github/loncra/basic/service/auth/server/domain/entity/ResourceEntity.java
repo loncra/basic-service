@@ -8,7 +8,9 @@ import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.apache.ibatis.type.Alias;
+import org.hibernate.validator.constraints.Range;
 
 import java.io.Serial;
 import java.time.Instant;
@@ -24,43 +26,58 @@ import java.time.Instant;
 @Data
 @NoArgsConstructor
 @Alias("resource")
-@TableName("tb_resource")
+@ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
+@TableName(value = "tb_resource", autoResultMap = true)
 public class ResourceEntity extends ResourceMetadata implements VersionEntity<String, Long> {
 
     @Serial
     private static final long serialVersionUID = 4943319370503978271L;
 
+    @ToString.Exclude
     private Long id;
 
     /**
      * 创建时间
      */
+    @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Instant creationTime;
 
     /**
      * 图标
      */
+    @ToString.Exclude
     private String icon;
 
     /**
      * 前端页面路径
      */
+    @ToString.Exclude
     private String page;
-
-    /**
-     * 备注
-     */
-    private String remark;
 
     /**
      * 类别
      */
+    @ToString.Exclude
     private ResourceCastegoryEnum category;
 
     /**
      * 是否禁用
      */
+    @ToString.Exclude
     private YesOrNo enabled;
+
+    /**
+     * 顺序值
+     */
+    @ToString.Exclude
+    @Range(min = 0, max = 999)
+    private Integer sort;
+
+    /**
+     * 备注
+     */
+    @ToString.Exclude
+    private String remark;
 }

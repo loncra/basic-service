@@ -7,8 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 系统用户信息
@@ -41,14 +41,14 @@ public abstract class AbstractBasicSystemUser extends LongIdEntity {
      *
      * @return 角色信息
      */
-    public abstract List<Long> getRoleIds();
+    public abstract Set<Long> getRoleIds();
 
     /**
      * 获取资源信息
      *
      * @return 资源信息
      */
-    public abstract List<Long> getResourceIds();
+    public abstract Set<Long> getResourceIds();
 
     /**
      * 转换当事人元数据信息

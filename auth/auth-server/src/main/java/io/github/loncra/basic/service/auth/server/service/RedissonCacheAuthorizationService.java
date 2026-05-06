@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.auth.server.service;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
-import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.EmailPrincipal;
 import io.github.loncra.basic.service.auth.server.domain.PhoneNumberPrincipal;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
@@ -23,10 +22,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 简单的 RBAC 授权服务实现
@@ -50,7 +49,7 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
      *
      * @param sources 资源来源枚举
      */
-    public void deleteAuthorizationCache(List<ResourceSourceEnum> sources) {
+    public void deleteAuthorizationCache(Set<ResourceSourceEnum> sources) {
         List<TypeAuthenticationToken> tokens = sources.stream()
                 .map(s -> new TypeAuthenticationToken(DesensitizeSerializer.DEFAULT_DESENSITIZE_SYMBOL, null, s.toString()))
                 .toList();
@@ -132,32 +131,5 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
             deleteSystemUserAllCache(result.getSystemName());
         }
         return result;
-    }
-
-    public void postUpdateRole(BasicSystemRole exist) {
-        deleteAuthorizationCache(exist.getSources());
-        syncSystemUserRole(Collections.singletonList(exist), (sue, roles) -> {
-            List<Long> roleId = roles.stream()
-                    .map(BasicSystemRole::getId)
-                    .toList();
-
-            sue.getRoleIds()
-                    .removeIf(roleId::contains);
-
-            sue.getRoleIds()
-                    .addAll(roles.stream().map(BasicSystemRole::getId).toList());
-        });
-    }
-
-    public void postDeleteRole(BasicSystemRole entity) {
-
-        deleteAuthorizationCache(entity.getSources());
-        syncSystemUserRole(Collections.singletonList(entity), (sue, groupEntityList) -> {
-            List<Long> groupIds = groupEntityList.stream()
-                    .map(BasicSystemRole::getId)
-                    .toList();
-            sue.getRoleIds()
-                    .removeIf(groupIds::contains);
-        });
     }
 }

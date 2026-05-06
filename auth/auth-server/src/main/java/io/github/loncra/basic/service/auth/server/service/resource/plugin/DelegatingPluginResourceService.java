@@ -28,7 +28,7 @@ public class DelegatingPluginResourceService implements PluginResourceService {
 
     @Override
     public List<ResourceEntity> getResourcesStream(
-            List<Long> resourceIds,
+            Set<Long> resourceIds,
             ResourceSourceEnum... sources
     ) {
         return getDelegate().getResourcesStream(resourceIds, sources);

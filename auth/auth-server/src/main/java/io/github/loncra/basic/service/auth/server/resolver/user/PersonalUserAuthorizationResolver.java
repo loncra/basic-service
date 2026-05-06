@@ -31,6 +31,7 @@ import org.springframework.util.MultiValueMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 后台用户授权解析器实现
@@ -70,7 +71,7 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
     }
 
     @Override
-    public Collection<PersonalUserEntity> getByRoleId(List<Long> roleIds) {
+    public Collection<PersonalUserEntity> findByRoleId(Set<Long> roleIds) {
         return List.of();
     }
 
@@ -158,11 +159,23 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
 
     @Override
     public void updateResources(
-            String id,
-            List<Long> resourceIds
+            Long id,
+            Set<Long> resourceIds
     ) {
 
         String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(resourceIds));
+        personalUserService.lambdaUpdate()
+                .set(AbstractPlatformUser::getResourceIds, json)
+                .eq(AbstractPlatformUser::getId, id)
+                .update();
+    }
+
+    @Override
+    public void updateRole(
+            Long id,
+            Set<Long> roleIds
+    ) {
+        String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(roleIds));
         personalUserService.lambdaUpdate()
                 .set(AbstractPlatformUser::getResourceIds, json)
                 .eq(AbstractPlatformUser::getId, id)

@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.auth.server.service.user.console;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.dao.user.ConsoleUserDao;
@@ -7,7 +8,6 @@ import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Data;
@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -48,12 +50,13 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
     @Override
     public int deleteByEntity(ConsoleUserEntity entity) {
 
-        Assert.isTrue(!Strings.CS.equals(entity.getUsername(), authAppConfig.getAdminUsername()), "管理员用户不能删除");
-        List<IdNameValueMetadata<String, List<ResourceSourceEnum>>> authorities = authAppConfig.getAutoAssociateAllPermissionsRoleAuthorities();
+        if (Objects.nonNull(ResourceSourceEnum.CONSOLE.getAdminAuthority())) {
+            Assert.isTrue(!Strings.CS.equals(entity.getUsername(), ResourceSourceEnum.CONSOLE.getAdminAuthority().getValue()), "管理员用户不能删除");
+        }
         boolean deletable = entity.getRoleIds()
                 .stream()
                 .map(roleService::get)
-                .noneMatch(r -> authorities.stream().noneMatch(a -> a.getId().equals(r.getAuthority())));
+                .noneMatch(r ->  ResourceSourceEnum.CONSOLE.getAdminAuthority().getId().equals(r.getAuthority()));
         Assert.isTrue(deletable, "管理员角色用户不能删除");
 
         return super.deleteByEntity(entity);
@@ -62,7 +65,9 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int updateById(ConsoleUserEntity entity) {
-        Assert.isTrue(!Strings.CS.equals(entity.getUsername(), authAppConfig.getAdminUsername()), "管理员用户不能修改");
+        if (Objects.nonNull(ResourceSourceEnum.CONSOLE.getAdminAuthority())) {
+            Assert.isTrue(!Strings.CS.equals(entity.getUsername(), ResourceSourceEnum.CONSOLE.getAdminAuthority().getValue()), "管理员用户不能修改");
+        }
         return super.updateById(entity);
     }
 
@@ -130,5 +135,11 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
         }
 
         return stream.toList();
+    }
+
+    public List<ConsoleUserEntity> findByRoleIds(Set<Long> roleIds) {
+        Map<String, Object> filter = Map.of("filter_[role_ids_jin]", roleIds);
+        Wrapper<ConsoleUserEntity> wrapper = getQueryGenerator().createQueryWrapperFromMap(filter);
+        return find(wrapper);
     }
 }

@@ -2,8 +2,8 @@ package io.github.loncra.basic.service.auth.server.service.resource.plugin.scan;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.util.VersionUtil;
-import io.github.loncra.basic.service.auth.server.domain.dto.ScanSyncPluginResourceDto;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
+import io.github.loncra.basic.service.auth.server.domain.metdata.SyncPluginResourceMetadata;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.AbstractPluginResourceService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.tree.TreeUtils;
@@ -14,7 +14,8 @@ import io.github.loncra.framework.spring.web.endpoint.EnumerateEndpoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ import java.util.Set;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ScanModulePluginResourceService extends AbstractPluginResourceService implements InitializingBean {
+public class ScanModulePluginResourceService extends AbstractPluginResourceService implements ApplicationRunner {
 
     private final PluginProperties pluginProperties;
 
@@ -40,7 +41,6 @@ public class ScanModulePluginResourceService extends AbstractPluginResourceServi
      */
     private final List<InfoContributor> infoContributors;
 
-    //private final AmqpTemplate amqpTemplate;
     private final ApplicationEventPublisher publisher;
 
     @Override
@@ -48,14 +48,21 @@ public class ScanModulePluginResourceService extends AbstractPluginResourceServi
         throw new UnsupportedOperationException("单体服务，不支持重新订阅所有服务功能");
     }
 
-    @Override
-    public void afterPropertiesSet() {
+    private void appendModuleInfo(String applicationName, ResourceMetadata metadata) {
+        Map<String, Object> info = EnumerateEndpoint.getInfoContributorsMap(this.infoContributors);
+        String version = info.getOrDefault(PluginInfo.DEFAULT_VERSION_NAME, StringUtils.EMPTY).toString();
+        metadata.setVersion(version);
+        if (StringUtils.isEmpty(metadata.getApplicationName())) {
+            metadata.setApplicationName(applicationName);
+        }
+    }
 
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
         Map<String, Object> info = EnumerateEndpoint.getInfoContributorsMap(this.infoContributors);
         String version = info.getOrDefault(PluginInfo.DEFAULT_VERSION_NAME, StringUtils.EMPTY).toString();
         String groupId = info.getOrDefault(PluginInfo.DEFAULT_GROUP_ID_NAME, StringUtils.EMPTY).toString();
         String artifactId = info.getOrDefault(PluginInfo.DEFAULT_ARTIFACT_ID_NAME, StringUtils.EMPTY).toString();
-
         for (Map.Entry<String, List<String>> entry : getAuthAppConfig().getScanPluginPackages().entrySet()) {
             if (log.isDebugEnabled()) {
                 log.debug("开始绑定 [{}] 应用插件资源信息", entry.getKey());
@@ -75,18 +82,8 @@ public class ScanModulePluginResourceService extends AbstractPluginResourceServi
                     .map(p -> createResource(p, metadata -> this.appendModuleInfo(entry.getKey(), metadata)))
                     .toList();
             Version versionObject = VersionUtil.parseVersion(version, groupId, artifactId);
-            updateResourceMetadata(versionObject, newResourceList, entry.getKey());
-            ScanSyncPluginResourceDto dto = new ScanSyncPluginResourceDto();
-            dto.setServiceName(entry.getKey());
-            dto.setResources(newResourceList);
-            publisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(dto));
+            SyncPluginResourceMetadata metadata = updateResourceMetadata(versionObject, newResourceList, entry.getKey(), COMMONS_APPLICATION_NAME);
+            publisher.publishEvent(new AbstractPluginResourceService.SyncPluginResourceEvent(metadata));
         }
-    }
-
-    private void appendModuleInfo(String applicationName, ResourceMetadata metadata) {
-        Map<String, Object> info = EnumerateEndpoint.getInfoContributorsMap(this.infoContributors);
-        String version = info.getOrDefault(PluginInfo.DEFAULT_VERSION_NAME, StringUtils.EMPTY).toString();
-        metadata.setVersion(version);
-        metadata.setApplicationName(applicationName);
     }
 }

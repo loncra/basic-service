@@ -92,14 +92,14 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
      */
     @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<Long> roleIds = new LinkedList<>();
+    private Set<Long> roleIds = new HashSet<>();
 
     /**
      * 拥有资源
      */
     @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<Long> resourceIds = new LinkedList<>();
+    private Set<Long> resourceIds = new HashSet<>();
 
     /**
      * 密码

@@ -14,8 +14,8 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.time.Instant;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * 基础系统角色
@@ -48,13 +48,13 @@ public class BasicSystemRole extends RoleAuthority implements VersionEntity<Inte
      */
     @JsonCollectionGenericType(ResourceSourceEnum.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<ResourceSourceEnum> sources;
+    private Set<ResourceSourceEnum> sources = new HashSet<>();
 
     /**
      * 资源 id 集合
      */
     @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<Long> resourceIds = new LinkedList<>();
+    private Set<Long> resourceIds = new HashSet<>();
 
 }

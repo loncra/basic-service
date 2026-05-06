@@ -2,10 +2,8 @@ package io.github.loncra.basic.service.auth.server.service;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
-import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
-import io.github.loncra.basic.service.auth.server.resolver.SystemUserRoleSyncResolver;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
@@ -17,14 +15,12 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 授权服务
@@ -56,7 +52,7 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
     }
 
 
-    public void syncSystemUserRole(
+    /*public void syncSystemUserRole(
             List<BasicSystemRole> roles,
             SystemUserRoleSyncResolver systemUserRoleSyncResolver
     ) {
@@ -65,9 +61,9 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
                 .flatMap(g -> g.getSources().stream())
                 .toList();
 
-        List<Long> groupIds = roles.stream()
+        Set<Long> groupIds = roles.stream()
                 .map(BasicSystemRole::getId)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
 
         for (ResourceSourceEnum source : sources) {
             SystemUserAuthorizationResolver<T> userAuthorizationResolver = getSystemUserAuthorizationResolver(source.getValue(), false);
@@ -79,7 +75,7 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
 
             systemUsers.forEach(sue -> systemUserRoleSyncResolver.syncSystemUserGroup(sue, roles));
         }
-    }
+    }*/
 
     public List<IdNameMetadata> getSystemUserTypes() {
         List<IdNameMetadata> result = new ArrayList<>();

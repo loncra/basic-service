@@ -29,6 +29,7 @@ import org.springframework.util.MultiValueMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 后台用户授权解析器实现
@@ -68,8 +69,8 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
     }
 
     @Override
-    public Collection<ConsoleUserEntity> getByRoleId(List<Long> roleIds) {
-        return List.of();
+    public Collection<ConsoleUserEntity> findByRoleId(Set<Long> roleIds) {
+        return consoleUserService.findByRoleIds(roleIds);
     }
 
     @Override
@@ -147,8 +148,8 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
 
     @Override
     public void updateResources(
-            String id,
-            List<Long> resourceIds
+            Long id,
+            Set<Long> resourceIds
     ) {
         String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(resourceIds));
         consoleUserService.lambdaUpdate()
@@ -165,6 +166,18 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
             List<ResourceSourceEnum> sourceContains
     ) {
         return consoleUserService.getResource(token, list, sourceContains);
+    }
+
+    @Override
+    public void updateRole(
+            Long id,
+            Set<Long> roleIds
+    ) {
+        String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(roleIds));
+        consoleUserService.lambdaUpdate()
+                .set(AbstractPlatformUser::getRoleIds, json)
+                .eq(AbstractPlatformUser::getId, id)
+                .update();
     }
 
     @Override

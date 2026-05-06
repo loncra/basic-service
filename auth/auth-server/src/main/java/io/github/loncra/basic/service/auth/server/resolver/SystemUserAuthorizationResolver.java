@@ -69,7 +69,7 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
     ) {
         Set<String> scopes = oAuth2Authorization.getAuthorizedScopes();
         if (Map.class.isAssignableFrom(token.getDetails()
-                                               .getClass())) {
+                .getClass())) {
             return;
         }
 
@@ -135,16 +135,14 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 通过角色 id 信息获取用户集合
      *
      * @param roleIds 角色 id 集合
-     *
      * @return 用户集合
      */
-    Collection<T> getByRoleId(List<Long> roleIds);
+    Collection<T> findByRoleId(Set<Long> roleIds);
 
     /**
      * 加载用户信息
      *
      * @param token 认证 token
-     *
      * @return 用户信息
      */
     T load(AuditAuthenticationToken token);
@@ -153,7 +151,6 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 通过 id 获取用户信息
      *
      * @param id 主键 id
-     *
      * @return 用户信息
      */
     T getByIdentity(String id);
@@ -164,7 +161,6 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * @param token       当前用户
      * @param oldPassword 旧密码
      * @param newPassword 新密码
-     *
      * @return 更新后的用户信息
      */
     T updatePassword(
@@ -177,7 +173,6 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 管理员重置密码
      *
      * @param id 用户 id
-     *
      * @return 新密码
      */
     String adminRestPassword(String id);
@@ -186,7 +181,6 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 根据手机号码创建用户信息
      *
      * @param phoneNumber 手机号码
-     *
      * @return 用户信息
      */
     T createByPhoneNumber(String phoneNumber);
@@ -196,7 +190,6 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      *
      * @param pageRequest 分页请求
      * @param filter      过滤条件
-     *
      * @return 分页信息
      */
     ScrollPage<T> findPage(
@@ -215,7 +208,6 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 根据角色权限获取用户集合
      *
      * @param roleAuthority 角色权限
-     *
      * @return 用户集合
      */
     List<T> findByRoleAuthority(String roleAuthority);
@@ -223,21 +215,20 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
     /**
      * 更新用户资源
      *
-     * @param id        用户 id
+     * @param id          用户 id
      * @param resourceIds 要更新的资源 id 集合
      */
     void updateResources(
-            String id,
-            List<Long> resourceIds
+            Long id,
+            Set<Long> resourceIds
     );
 
     /**
      * 获取当前用户资源
      *
-     * @param token 认证 token
-     * @param list 资源类型
+     * @param token          认证 token
+     * @param list           资源类型
      * @param sourceContains 仅包含的资源来源
-     *
      * @return 用户资源
      */
     default List<ResourceEntity> getSystemUserResource(
@@ -247,4 +238,15 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
     ) {
         return new LinkedList<>();
     }
+
+    /**
+     * 更新橘色
+     *
+     * @param id 用户 id
+     * @param roleIds 要更新的角色 id 集合
+     */
+    void updateRole(
+            Long id,
+            Set<Long> roleIds
+    );
 }

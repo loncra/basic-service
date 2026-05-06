@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.domain.dto;
+package io.github.loncra.basic.service.auth.server.domain.metdata;
 
 import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
@@ -18,7 +18,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor(staticName = "of")
-public class DisabledPluginResourceDto implements Serializable {
+public class DisabledPluginResourceMetadata implements Serializable {
 
     @Serial
     private static final long serialVersionUID = -6894496043422834494L;

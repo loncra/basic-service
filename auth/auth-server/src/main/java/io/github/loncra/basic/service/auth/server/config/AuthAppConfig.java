@@ -1,11 +1,8 @@
 package io.github.loncra.basic.service.auth.server.config;
 
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
-import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.TimeProperties;
-import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -37,18 +34,6 @@ public class AuthAppConfig {
      */
     public static final String DEFAULT_LOGOUT_URL = "/logout";
 
-    /**
-     *
-     */
-    private List<IdNameValueMetadata<String, List<ResourceSourceEnum>>> autoAssociateAllPermissionsRoleAuthorities = List.of(
-            new IdNameValueMetadata<>(
-                    new IdValueMetadata<>(
-                            ResourceSourceEnum.CONSOLE.getAdminAuthority().getId(),
-                            List.of(ResourceSourceEnum.CONSOLE)
-                    ),
-                    ResourceSourceEnum.CONSOLE.getAdminAuthority().getName()
-            )
-    );
 
     /**
      * 允许登录错误次数，当达到峰值时，出现验证码
@@ -66,11 +51,6 @@ public class AuthAppConfig {
     private String appLoginCaptchaType = "tianai";
 
     /**
-     * 超级管理登录账户
-     */
-    private String adminUsername = "admin";
-
-    /**
      * 允许登录失败次数的缓存配置
      */
     private CacheProperties allowableFailureNumberCache = CacheProperties.of(
@@ -79,11 +59,6 @@ public class AuthAppConfig {
     );
 
     private TimeProperties accessTokenExpiresTime = TimeProperties.of(7, TimeUnit.DAYS);
-
-    /**
-     * 创建企业用户时，如果邮箱或手机号码存在值时候，自动认证。
-     */
-    private boolean enterpriseUserVerified = false;
 
     /**
      * 登出连接

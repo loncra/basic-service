@@ -4,10 +4,11 @@ import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.util.VersionUtil;
-import io.github.loncra.basic.service.auth.server.domain.dto.DisabledPluginResourceDto;
-import io.github.loncra.basic.service.auth.server.domain.dto.NacosSyncPluginResourceDto;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
+import io.github.loncra.basic.service.auth.server.domain.metdata.DisabledPluginResourceMetadata;
+import io.github.loncra.basic.service.auth.server.domain.metdata.NacosSyncPluginResourceMetadata;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
+import io.github.loncra.basic.service.auth.server.domain.metdata.SyncPluginResourceMetadata;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.AbstractPluginResourceService;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.scan.ScanModulePluginResourceService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -123,7 +124,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
         return VersionUtil.parseVersion(version, groupId, artifactId);
     }
 
-    public NacosSyncPluginResourceDto syncPluginResource(
+    public NacosSyncPluginResourceMetadata syncPluginResource(
             NamingEvent namingEvent
     ) {
 
@@ -132,7 +133,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
 
         if (optional.isEmpty()) {
             log.warn("找不到服务为 [{}][{}] 的最高版本实例", namingEvent.getGroupName(), namingEvent.getServiceName());
-            return new NacosSyncPluginResourceDto();
+            return null;
         }
 
         Instance instance = optional.get();
@@ -156,9 +157,10 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
             NacosPluginInstance existData = exist.get();
 
             if (existData.getVersion().compareTo(nacosPluginInstance.getVersion()) > 0) {
-                NacosSyncPluginResourceDto nacosSyncPluginResourceDto = new NacosSyncPluginResourceDto();
-                nacosSyncPluginResourceDto.setInstance(nacosPluginInstance);
-                return nacosSyncPluginResourceDto;
+                NacosSyncPluginResourceMetadata metadata = new NacosSyncPluginResourceMetadata();
+                metadata.setInstance(nacosPluginInstance);
+                metadata.getApplicationNames().addAll(List.of(existData.getServiceName(), COMMONS_APPLICATION_NAME));
+                return metadata;
             }
 
             cache.remove(existData);
@@ -169,12 +171,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
 
         cache.add(nacosPluginInstance);
 
-        List<ResourceMetadata> data = enabledPluginResource(nacosPluginInstance);
-
-        NacosSyncPluginResourceDto nacosSyncPluginResourceDto = new NacosSyncPluginResourceDto();
-        nacosSyncPluginResourceDto.setResources(data);
-        nacosSyncPluginResourceDto.setInstance(nacosPluginInstance);
-        return nacosSyncPluginResourceDto;
+        return enabledPluginResource(nacosPluginInstance);
     }
 
     /**
@@ -182,10 +179,10 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
      *
      * @param instance 插件实例
      */
-    public List<ResourceMetadata> enabledPluginResource(NacosPluginInstance instance) {
+    public NacosSyncPluginResourceMetadata enabledPluginResource(NacosPluginInstance instance) {
 
         if (Objects.isNull(instance) || Objects.isNull(instance.getVersion())) {
-            return new LinkedList<>();
+            return null;
         }
 
         // 应用名称
@@ -201,7 +198,10 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
                 .map(p -> createResource(p, metadata -> this.appendInstanceInfo(metadata, instance)))
                 .collect(Collectors.toList());
 
-        return updateResourceMetadata(instance.getVersion(), newResourceList, applicationName);
+        SyncPluginResourceMetadata metadata = updateResourceMetadata(instance.getVersion(), newResourceList, applicationName, COMMONS_APPLICATION_NAME);
+        NacosSyncPluginResourceMetadata result = CastUtils.of(metadata, NacosSyncPluginResourceMetadata.class);
+        result.setInstance(instance);
+        return result;
     }
 
     private void appendInstanceInfo(
@@ -275,7 +275,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
      *
      * @param event 服务变更时间
      */
-    public DisabledPluginResourceDto disabledApplicationPlugin(NamingEvent event) {
+    public DisabledPluginResourceMetadata disabledApplicationPlugin(NamingEvent event) {
 
         // 获取资源
         List<ResourceEntity> resources = getResources(event.getServiceName());
@@ -291,7 +291,7 @@ public class NacosDiscoveryPluginResourceService extends AbstractPluginResourceS
         List<NacosPluginInstance> instances = instanceCache.computeIfAbsent(event.getGroupName(), k -> new LinkedList<>());
         instances.removeIf(p -> p.getServiceName().equals(event.getServiceName()));
         event.setInstances(new LinkedList<>(instances));
-        return DisabledPluginResourceDto.of(event, resources);
+        return DisabledPluginResourceMetadata.of(event, resources);
     }
 
 }

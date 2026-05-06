@@ -4,7 +4,6 @@ import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.WechatAuthenticationEntity;
-import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
 import io.github.loncra.basic.service.auth.server.security.handler.JsonLogoutSuccessHandler;
 import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
@@ -155,7 +154,7 @@ public class AuthRootController {
 
         List<ResourceEntity> result = resourceList
                 .stream()
-                .sorted(Comparator.comparing(ResourceMetadata::getSort).reversed())
+                .sorted(Comparator.comparing(ResourceEntity::getSort).reversed())
                 .toList();
 
         if (mergeTree) {

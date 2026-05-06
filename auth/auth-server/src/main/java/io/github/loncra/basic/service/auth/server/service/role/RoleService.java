@@ -11,24 +11,20 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
+import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * tb_role 的业务逻辑
@@ -42,7 +38,7 @@ import java.util.Objects;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RoleService extends BasicService<RoleDao, RoleEntity> implements InitializingBean {
+public class RoleService extends BasicService<RoleDao, RoleEntity> {
 
     private final AuthAppConfig authAppConfig;
 
@@ -152,8 +148,15 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deleteByEntity(RoleEntity entity) {
+        Set<String> authorities = entity.getSources()
+                .stream()
+                .filter(s -> Objects.nonNull(s.getAdminAuthority()))
+                .filter(s -> entity.getSources().contains(s))
+                .map(ResourceSourceEnum::getAdminAuthority)
+                .map(IdEntity::getId).collect(Collectors.toSet());
+
         Assert.isTrue(
-                authAppConfig.getAutoAssociateAllPermissionsRoleAuthorities().stream().noneMatch(r -> r.getId().equals(entity.getAuthority())),
+                !authorities.contains(entity.getAuthority()),
                 "管理员角色不能删除"
         );
         Assert.isTrue(YesOrNo.Yes.equals(entity.getRemovable()), "角色 [" + entity.getName() + "] 被设置为不可删除角色，无法执行操作");
@@ -165,35 +168,5 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> implements In
     public RoleEntity getByAuthority(String value) {
         return lambdaQuery().eq(RoleEntity::getAuthority, value)
                 .one();
-    }
-
-    @Async
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void afterPropertiesSet() throws Exception {
-
-        for (IdNameValueMetadata<String, List<ResourceSourceEnum>> metadata : authAppConfig.getAutoAssociateAllPermissionsRoleAuthorities()) {
-            RoleEntity entity = getByAuthority(metadata.getId());
-            if (Objects.nonNull(entity)) {
-                continue;
-            }
-            createSystemGroup(metadata.getName(), metadata.getId(), metadata.getValue());
-        }
-    }
-
-    private void createSystemGroup(
-            String name,
-            String authority,
-            List<ResourceSourceEnum> sources
-    ) {
-        RoleEntity group = new RoleEntity();
-
-        group.setRemovable(YesOrNo.No);
-        group.setModifiable(YesOrNo.No);
-        group.setName(name);
-        group.setAuthority(authority);
-        group.setSources(sources);
-
-        super.insert(group);
     }
 }

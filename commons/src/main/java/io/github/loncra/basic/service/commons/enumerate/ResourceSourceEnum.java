@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.commons.enumerate;
 import io.github.loncra.framework.commons.annotation.GetValueStrategy;
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
+import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,12 +25,12 @@ public enum ResourceSourceEnum implements NameValueEnum<String> {
     /**
      * 管理后台用户
      */
-    CONSOLE("管理后台用户", ResourceSourceEnum.CONSOLE_SOURCE_VALUE, "^" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + "|" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + ":\\d+$", IdNameMetadata.of("ADMIN", "超级管理员")),
+    CONSOLE("管理后台用户", ResourceSourceEnum.CONSOLE_SOURCE_VALUE, "^" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + "|" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + ":\\d+$", new IdNameValueMetadata<>("ADMIN", "超高级管理员", "admin")),
 
     /**
      * 个人用户
      */
-    PERSONAL("个人用户", ResourceSourceEnum.PERSONAL_SOURCE_VALUE, "^" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + "|" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + ":\\d+$", IdNameMetadata.of("ADMIN", "超级管理员")),
+    PERSONAL("个人用户", ResourceSourceEnum.PERSONAL_SOURCE_VALUE, "^" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + "|" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + ":\\d+$", null),
 
     ;
 
@@ -52,7 +52,7 @@ public enum ResourceSourceEnum implements NameValueEnum<String> {
     /**
      * 管理员角色信息
      */
-    private final IdNameMetadata adminAuthority;
+    private final IdNameValueMetadata<String, String> adminAuthority;
 
     /**
      * 管理后台用户应用来源值
