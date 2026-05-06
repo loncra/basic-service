@@ -60,6 +60,11 @@ loncra:
             name: "日志查询"
             type: root
             sources: CONSOLE
+          message:
+            application-name: commons
+            name: '消息管理'
+            type: menu
+            sources: CONSOLE
           workbench:
             name: "工作台"
             application-name: commons

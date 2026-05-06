@@ -44,11 +44,25 @@ public abstract class AbstractBasicSystemUser extends LongIdEntity {
     public abstract Set<Long> getRoleIds();
 
     /**
+     * 设置角色信息
+     *
+     * @param roleIds 角色 id 集合
+     */
+    public abstract void setRoleIds(Set<Long> roleIds);
+
+    /**
      * 获取资源信息
      *
      * @return 资源信息
      */
     public abstract Set<Long> getResourceIds();
+
+    /**
+     * 设置资源信息
+     *
+     * @param resourceIds 资源 id 集合
+     */
+    public abstract void setResourceIds(Set<Long> resourceIds);
 
     /**
      * 转换当事人元数据信息

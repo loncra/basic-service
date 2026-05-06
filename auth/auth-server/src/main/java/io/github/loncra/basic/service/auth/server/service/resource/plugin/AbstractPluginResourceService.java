@@ -231,8 +231,7 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
         }
 
         List<ResourceSourceEnum> sourceList = Arrays.asList(sources);
-        return resourceIds.stream()
-                .map(resourceService::get)
+        return resourceService.get(resourceIds).stream()
                 .filter(r -> r.getSources().stream().anyMatch(sourceList::contains))
                 .distinct()
                 .toList();

@@ -49,7 +49,6 @@ import org.springframework.security.oauth2.server.authorization.token.JwtGenerat
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 抽象的系统用户认证类
@@ -147,6 +146,7 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
         if (CollectionUtils.isNotEmpty(user.getRoleIds())) {
             List<RoleAuthority> roles = user.getRoleIds()
                     .stream()
+                    .map(roleService::get)
                     .map(s -> CastUtils.of(s, RoleAuthority.class))
                     .toList();
             details.getMetadata()
@@ -160,7 +160,6 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
                 .registeredClient(registeredClient)
                 .principal(successToken)
                 .authorizationServerContext(AuthorizationServerContextHolder.getContext())
-                .authorizedScopes(grantedAuthorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()))
                 .authorizationGrantType(AuthorizationGrantType.JWT_BEARER)
                 .tokenType(OAuth2TokenType.ACCESS_TOKEN);
 

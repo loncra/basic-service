@@ -80,7 +80,7 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
 
     @Override
     public ConsoleUserEntity getByIdentity(String id) {
-        return consoleUserService.get(id);
+        return consoleUserService.getByIdentity(id);
     }
 
     @Override

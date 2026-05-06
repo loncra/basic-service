@@ -37,8 +37,6 @@ public class RoleAuthorizationEventListener {
 
     private final RedissonCacheAuthorizationService<AbstractBasicSystemUser> redissonCacheAuthorizationService;
 
-    private final AuthAppConfig authAppConfig;
-
     private final RoleService roleService;
 
     public List<AbstractBasicSystemUser> getSystemUsers(
@@ -94,7 +92,11 @@ public class RoleAuthorizationEventListener {
             Set<Long> roleResourceIds = roleResourceIdsMap.computeIfAbsent(roleId, id -> Optional.of(roleService.get(id)).map(BasicSystemRole::getResourceIds).orElse(new HashSet<>()));
             resourceIds.addAll(roleResourceIds);
         }
-        basicSystemUser.getResourceIds().clear();
+        if (CollectionUtils.isEmpty(basicSystemUser.getResourceIds())) {
+            basicSystemUser.setResourceIds(new LinkedHashSet<>());
+        } else {
+            basicSystemUser.getResourceIds().clear();
+        }
         basicSystemUser.getResourceIds().addAll(resourceIds);
         SystemUserAuthorizationResolver<AbstractBasicSystemUser> userAuthorizationResolver = redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(basicSystemUser.getType().getValue(), false);
         userAuthorizationResolver.updateResources(basicSystemUser.getId(), basicSystemUser.getResourceIds());
@@ -141,13 +143,9 @@ public class RoleAuthorizationEventListener {
             after.getResourceIds().addAll(ids);
             after.getResourceIds().removeIf(id -> event.dto().getDeleteIds().contains(id));
 
-            after.getSources().add(source);
-
             String resourceIds = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(after.getResourceIds()));
-            String sourceValues = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(after.getSources()));
             roleService.lambdaUpdate()
                     .set(RoleEntity::getResourceIds, resourceIds)
-                    .set(BasicSystemRole::getSources, sourceValues)
                     .eq(RoleEntity::getId, after.getId())
                     .update();
 
@@ -161,14 +159,29 @@ public class RoleAuthorizationEventListener {
                 );
             }
 
-            if (StringUtils.isNotEmpty(source.getAdminAuthority().getValue())) {
-                SystemUserAuthorizationResolver<AbstractBasicSystemUser> userAuthorizationResolver = redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(source.getValue(), false);
-                AbstractBasicSystemUser user = userAuthorizationResolver.getByIdentity(source.getAdminAuthority().getValue());
-                userAuthorizationResolver.updateRole(user.getId(), Set.of(after.getId()));
-            }
+            syncAdminUser(source, after);
 
             onUpdated(new UpdatedEvent(before, after));
         }
+    }
+
+    private void syncAdminUser(
+            ResourceSourceEnum source,
+            RoleEntity after
+    ) {
+        if (StringUtils.isEmpty(source.getAdminAuthority().getValue())) {
+            return ;
+        }
+
+        SystemUserAuthorizationResolver<AbstractBasicSystemUser> userAuthorizationResolver = redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(source.getValue(), false);
+        if (Objects.isNull(userAuthorizationResolver)) {
+            return ;
+        }
+        AbstractBasicSystemUser user = userAuthorizationResolver.getByIdentity(source.getAdminAuthority().getValue());
+        if  (Objects.isNull(user)) {
+            return ;
+        }
+        userAuthorizationResolver.updateRole(user.getId(), Set.of(after.getId()));
     }
 
     @EventListener
