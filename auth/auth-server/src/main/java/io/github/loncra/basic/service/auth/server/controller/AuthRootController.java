@@ -125,6 +125,7 @@ public class AuthRootController {
      *
      * @return 资源实体集合
      */
+    @ResponseBody
     @PreAuthorize("isAuthenticated()")
     @GetMapping("principalResources")
     public List<ResourceEntity> getPrincipalResources(

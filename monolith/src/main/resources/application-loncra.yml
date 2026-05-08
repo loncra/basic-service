@@ -63,7 +63,7 @@ loncra:
           message:
             application-name: commons
             name: '消息管理'
-            type: menu
+            type: root
             sources: CONSOLE
           workbench:
             name: "工作台"

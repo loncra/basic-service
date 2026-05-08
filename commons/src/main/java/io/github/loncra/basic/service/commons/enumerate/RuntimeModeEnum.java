@@ -12,11 +12,11 @@ import lombok.Getter;
 public enum RuntimeModeEnum implements NameEnum {
 
     /**
-     * 未知类型
+     * 单体服务
      */
     MONOLITH("单体服务"),
     /**
-     * 未知类型
+     * 微服务
      */
     MICROSERVICE("微服务"),
     ;

@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.security.handler;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
+import io.github.loncra.basic.service.commons.config.CommonsConfig;
 import io.github.loncra.basic.service.commons.constants.FrontEndSystemErrorCodeConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.captcha.token.BuildToken;
@@ -18,7 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -44,17 +45,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
 
-
-    @Getter
     private final AuthAppConfig authAppConfig;
+
+    private final CommonsConfig commonsConfig;
 
     private final CaptchaAuthenticationFailureResponse failureHandler;
 
     private final RedissonCacheAuthorizationService<AbstractBasicSystemUser> redissonCacheAuthorizationService;
 
-    @Autowired(required = false)
-    private RememberMeServices rememberMeServices;
-
+    private final ObjectProvider<RememberMeServices> rememberMeServices;
 
     @Override
     public void onLogoutSuccess(
@@ -71,9 +70,7 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
             redissonCacheAuthorizationService.deleteSystemUserAllCache(token.getName());
         }
 
-        if (Objects.nonNull(rememberMeServices)) {
-            rememberMeServices.loginFail(request, response);
-        }
+        rememberMeServices.ifAvailable(services -> services.loginFail(request, response));
 
         RestResult<Map<String, Object>> result = new RestResult<>(
                 httpStatus.getReasonPhrase(),
@@ -86,10 +83,11 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
         if (StringUtils.isNotEmpty(traceId)) {
             result.getMeta().put(SystemConstants.TRACE_ID_FIELD_NAME, traceId);
         }*/
+        String json = CastUtils.getObjectMapper()
+                .writeValueAsString(result);
 
         response.getWriter()
-                .write(CastUtils.getObjectMapper()
-                               .writeValueAsString(result));
+                .write(json);
     }
 
     /**
@@ -114,6 +112,8 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
 
         result.getData()
                 .put(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_PARAM_NAME, deviceId);
+        result.getData()
+                .put(SystemConstants.RUNTIME_MODE_KEY, commonsConfig.getRuntimeMode());
 
         return result;
     }

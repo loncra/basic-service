@@ -80,4 +80,8 @@ public class ResourceEntity extends ResourceMetadata implements VersionEntity<St
      */
     @ToString.Exclude
     private String remark;
+
+    public String getKey() {
+        return getId().toString();
+    }
 }

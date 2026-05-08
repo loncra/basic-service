@@ -31,7 +31,6 @@ import java.util.Objects;
         id = "dictionary_type",
         parent = "dictionary",
         authority = "perms[resource_server_dictionary_type:find]",
-        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor

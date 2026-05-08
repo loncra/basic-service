@@ -19,12 +19,12 @@ public interface SystemConstants {
     /**
      * 默认 rabbitmq 交换机名称
      */
-    String RABBIT_EXCHANGE = "io.github.loncra.basic.service.exchange";
+    String RABBIT_EXCHANGE = "loncra.basic.service.exchange";
 
     /**
      * 默认 rabbitmq 广播交换机名称
      */
-    String RABBIT_FANOUT_EXCHANGE = "io.github.loncra.basic.service.fanout.exchange";
+    String RABBIT_FANOUT_EXCHANGE = "loncra.basic.service.fanout.exchange";
 
     /**
      * 权限系统名称
@@ -101,11 +101,7 @@ public interface SystemConstants {
 
     String YEAR_FORMATTER_PATTERN = "yyyy";
 
-    String LOGIN_TYPE_KEY = "loginType";
-
     String TRACE_ID_FIELD_NAME = "traceId";
-
-    String QUERY_KEY = "query";
 
     /**
      * 电话号码正则表达式(""值不做校验)
@@ -158,10 +154,6 @@ public interface SystemConstants {
 
     String PRINCIPAL_FIELD_NAME = "principal";
 
-    String PARENT_ID_TABLE_FIELD_NAME = "parent_id";
-
-    String TOKEN_FIELD_NAME = "token";
-
     String ACCESS_TOKEN_FIELD_NAME = "accessToken";
 
     String ENABLED_FIELD_NAME = "enabled";
@@ -180,36 +172,20 @@ public interface SystemConstants {
 
     String BASE64_FORMAT_PARMA_NAME = "base64Format";
 
-    String WATERMARK_FIELD_NAME = "watermark";
-
-    String ACCOUNT_FIELD_NAME = "account";
-
-    String SIGN_FIELD_NAME = "sign";
-
-    String START_DATE_FIELD = "startDate";
-
-    String END_DATE_FIELD = "endDate";
-
-    String NUMBER_FIELD_NAME = "number";
-
     String APPEND_PARAM_FIELD_NAME = "appendParam";
 
     String EXPIRATION_TIME_FIELD_NAME = "expirationTime";
 
     String DOWNLOAD_FIELD_NAME = "download";
 
-    String EXCEL_SUFFIX_NAME = ".xlsx";
-
     String ATTACHMENT_FIELD_NAME = "attachment";
 
     String ROLE_FIELD_NAME = "role";
 
-    String CONTENT_FIELD_NAME = "content";
-
     /**
      * 导出的桶信息
      */
-    Bucket EXPORT_BUCKET = Bucket.of("io.github.loncra.basic.service.resource.temp");
+    Bucket EXPORT_BUCKET = Bucket.of("loncra.basic.service.resource.temp");
 
     CacheProperties USER_IMPORT_CACHE = CacheProperties.of("loncra:basic-service:resources:user:import", TimeProperties.of(7, TimeUnit.DAYS));
 
@@ -218,9 +194,6 @@ public interface SystemConstants {
     ParameterizedTypeReference<Map<String, Object>> MAP_REFERENCE = new ParameterizedTypeReference<>() {
     };
 
-    String LAST_UPDATE_TIME_KEY = "lastUpdateTime";
+    String RUNTIME_MODE_KEY = "runtimeMode";
 
-    String SOURCE_KEY = "source";
-
-    String TENANT_ID_KEY = "tenantId";
 }
