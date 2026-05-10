@@ -48,7 +48,7 @@ public class ResourceRootController {
             String service,
             @PathVariable
             String enumerateName,
-            @RequestParam(required = false, defaultValue = "false")
+            @RequestParam(required = false, defaultValue = "true")
             boolean idValueFormat,
             @RequestParam(required = false)
             List<String> ignoreValue
@@ -68,7 +68,7 @@ public class ResourceRootController {
     public Map<String, Map<String, Object>> getServiceEnumerates(
             @RequestBody
             Map<String, List<IdValueMetadata<String, List<String>>>> map,
-            @RequestParam(required = false, defaultValue = "false")
+            @RequestParam(required = false, defaultValue = "true")
             boolean nameValueFormat
     ) {
 

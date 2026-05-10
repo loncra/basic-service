@@ -35,7 +35,7 @@ public class EmailMessageService extends BasicService<EmailMessageDao, EmailMess
     public int deleteById(Collection<? extends Serializable> ids, boolean errorThrow, boolean useFill) {
         int result = ids.stream().mapToInt(id -> deleteById(id, useFill)).sum();
         if (result != ids.size() && errorThrow) {
-            String msg = "删除 id 为 [" + ids + "] 的 [邮箱信息] 数据不成功";
+            String msg = "删除 id 为 [" + ids + "] 的 [邮箱信息] 失败";
             throw new SystemException(msg);
         }
         return result;
@@ -51,7 +51,7 @@ public class EmailMessageService extends BasicService<EmailMessageDao, EmailMess
     public int deleteByEntity(Collection<EmailMessageEntity> entities, boolean errorThrow) {
         int result = entities.stream().mapToInt(this::deleteByEntity).sum();
         if (result != entities.size() && errorThrow) {
-            String msg = "删除 id 为 [" + entities.stream().map(IdEntity::getId).toList() + "] 的 [邮箱信息] 数据不成功";
+            String msg = "删除 id 为 [" + entities.stream().map(IdEntity::getId).toList() + "] 的 [邮箱信息] 失败";
             throw new SystemException(msg);
         }
         return result;

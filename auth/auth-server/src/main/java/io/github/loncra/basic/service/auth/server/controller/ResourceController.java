@@ -44,7 +44,7 @@ public class ResourceController {
      *
      * @return 资源实体集合
      */
-    @PostMapping
+    @PostMapping("find")
     @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:find]')")
     public List<ResourceEntity> find(
             @RequestParam(required = false)

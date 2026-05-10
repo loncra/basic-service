@@ -47,7 +47,7 @@ public class ConsoleUserController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[auth_server_console_user:page]')")
     public Page<ConsoleUserEntity> page(
             PageRequest pageRequest,

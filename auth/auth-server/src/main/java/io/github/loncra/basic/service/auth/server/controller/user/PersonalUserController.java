@@ -54,7 +54,7 @@ public class PersonalUserController {
      *
      * @see PersonalUserEntity
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:page]')")
     public Page<PersonalUserEntity> page(PageRequest pageRequest, HttpServletRequest request) {
         QueryWrapper<PersonalUserEntity> query = personalUserService

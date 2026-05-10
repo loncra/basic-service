@@ -8,6 +8,8 @@ import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Data;
@@ -20,10 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.io.Serializable;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -46,6 +46,49 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
     private final PasswordEncoder passwordEncoder;
 
     private final RoleService roleService;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteById(
+            Collection<? extends Serializable> ids,
+            boolean errorThrow,
+            boolean useFill
+    ) {
+
+        int result = ids.stream().mapToInt(id -> deleteById(id, useFill)).sum();
+        if (result != ids.size() && errorThrow) {
+            String msg = "删除 id 为 [" + ids + "] 的 [" + ResourceSourceEnum.CONSOLE.getName() + "] 失败";
+            throw new SystemException(msg);
+        }
+        return result;
+    }
+
+    @Override
+    public int deleteByEntity(
+            Collection<ConsoleUserEntity> entities,
+            boolean errorThrow
+    ) {
+        int result = entities.stream().mapToInt(this::deleteByEntity).sum();
+        if (result != entities.size() && errorThrow) {
+            String msg = "删除 id 为 [" + entities.stream().map(IdEntity::getId).toList() + "] 的 [" + ResourceSourceEnum.CONSOLE.getName() + "] 失败";
+            throw new SystemException(msg);
+        }
+        return result;
+    }
+
+    @Override
+    public int delete(Wrapper<ConsoleUserEntity> wrapper) {
+        throw new UnsupportedOperationException(ResourceSourceEnum.CONSOLE.getName() + "不支持 delete 操作");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteById(
+            Serializable id,
+            boolean useFill
+    ) {
+        return deleteByEntity(get(id));
+    }
 
     @Override
     public int deleteByEntity(ConsoleUserEntity entity) {

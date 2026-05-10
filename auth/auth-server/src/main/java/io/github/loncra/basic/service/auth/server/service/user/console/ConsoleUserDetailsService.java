@@ -35,7 +35,8 @@ public class ConsoleUserDetailsService extends AbstractSystemUserDetailsService<
         consoleUserService
                 .lambdaUpdate()
                 .set(AbstractPlatformUser::getLastAuthenticationTime, date)
-                .eq(AbstractPlatformUser::getId, id);
+                .eq(AbstractPlatformUser::getId, id)
+                .update();
     }
 
     @Override

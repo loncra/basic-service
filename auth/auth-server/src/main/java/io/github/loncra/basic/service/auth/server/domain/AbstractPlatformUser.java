@@ -29,7 +29,7 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * 用户实体
+ * 平台用户实体
  *
  * @author maurice.chen
  */

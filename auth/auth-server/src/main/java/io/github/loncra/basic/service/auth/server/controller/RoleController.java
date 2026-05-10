@@ -49,7 +49,7 @@ public class RoleController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("find")
     @PreAuthorize("hasAuthority('perms[auth_server_role:find]')")
     public List<Object> find(
             HttpServletRequest request,

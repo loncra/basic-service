@@ -124,7 +124,7 @@ public class SiteMessageService extends BasicService<SiteMessageDao, SiteMessage
     public int deleteById(Collection<? extends Serializable> ids, boolean errorThrow, boolean useFill) {
         int result = ids.stream().mapToInt(id -> deleteById(id, useFill)).sum();
         if (result != ids.size() && errorThrow) {
-            String msg = "删除 id 为 [" + ids + "] 的 [站内信信息] 数据不成功";
+            String msg = "删除 id 为 [" + ids + "] 的 [站内信信息] 失败";
             throw new SystemException(msg);
         }
         return result;
@@ -140,7 +140,7 @@ public class SiteMessageService extends BasicService<SiteMessageDao, SiteMessage
     public int deleteByEntity(Collection<SiteMessageEntity> entities, boolean errorThrow) {
         int result = entities.stream().mapToInt(this::deleteByEntity).sum();
         if (result != entities.size() && errorThrow) {
-            String msg = "删除 id 为 [" + entities.stream().map(IdEntity::getId).toList() + "] 的 [站内信信息] 数据不成功";
+            String msg = "删除 id 为 [" + entities.stream().map(IdEntity::getId).toList() + "] 的 [站内信信息] 失败";
             throw new SystemException(msg);
         }
         return result;

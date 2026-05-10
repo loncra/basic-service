@@ -15,7 +15,7 @@ loncra:
         storage-position:
           prefix: ix_operation_data_trace
           spring-expression:
-            - "T(io.github.loncra.framework.commons.ObjectUtils).getDimension(${loncra.basic.service.commons.app.operation-data-trace-entity-storage-count}, #target, T(java.util.Objects).toString(#entityId))"
+            - "T(io.github.loncra.framework.commons.ObjectUtils).getDimension(${loncra.basic-service.commons.app.operation-data-trace-entity-storage-count}, #target, T(java.util.Objects).toString(#entityId))"
     security:
       audit:
         enabled: true
