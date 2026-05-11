@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.auth.server.dao.user.ConsoleUserDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
+import io.github.loncra.basic.service.commons.config.CommonsConfig;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -46,6 +47,8 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
     private final PasswordEncoder passwordEncoder;
 
     private final RoleService roleService;
+
+    private final CommonsConfig commonsConfig;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -140,7 +143,7 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
             Assert.isTrue(!phoneNumberExist, "手机号码 [" + entity.getPhoneNumber() + "] 已存在");
         }
 
-        entity.setPassword(passwordEncoder.encode(entity.getPassword()));
+        entity.setPassword(passwordEncoder.encode(commonsConfig.generateRandomPassword()));
 
         return super.insert(entity);
     }

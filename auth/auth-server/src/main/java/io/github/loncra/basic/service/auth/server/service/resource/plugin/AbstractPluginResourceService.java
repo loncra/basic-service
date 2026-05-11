@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.auth.server.service.resource.plugin;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.util.VersionUtil;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceCastegoryEnum;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
@@ -121,7 +121,7 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
                     .findFirst();
 
             ResourceEntity newResourceEntity = CastUtils.of(newResource, ResourceEntity.class);
-            newResourceEntity.setCategory(ResourceCastegoryEnum.PLUGIN);
+            newResourceEntity.setCategory(ResourceCategoryEnum.PLUGIN);
             if (optional.isPresent()) {
                 ResourceEntity existing = optional.get();
                 // 比较版本号，只有当新版本大于现有版本时才更新

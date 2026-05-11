@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum ResourceCastegoryEnum implements NameValueEnum<Integer> {
+public enum ResourceCategoryEnum implements NameValueEnum<Integer> {
 
     PLUGIN(10, "插件"),
 

@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClie
 import io.github.loncra.basic.service.auth.server.security.handler.JsonLogoutSuccessHandler;
 import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
 import io.github.loncra.basic.service.auth.server.service.WechatAuthenticationService;
+import io.github.loncra.basic.service.auth.server.service.resource.plugin.DelegatingPluginResourceService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
@@ -66,6 +67,8 @@ public class AuthRootController {
     private final List<JsonAuthenticationSuccessResponse> successResponses;
 
     private final ObjectProvider<WechatAuthenticationService> wechatAuthenticationService;
+
+    private final DelegatingPluginResourceService delegatingPluginResourceService;
 
     /**
      * 登录预处理
@@ -403,5 +406,18 @@ public class AuthRootController {
                 .findFirst()
                 .orElseThrow(() -> new SystemException("当前找不到微信任务服务，请设置 loncra.framework.wechat.enabled = true"))
                 .syncWechatAuthentication(authenticationCode, phoneNumberCode, request, response, securityContext);
+    }
+
+    /**
+     * 同步插件資源
+     *
+     * @return reset 结果集
+     */
+    @PostMapping("plugin/sync")
+    @Plugin(name = "同步插件资源", audit = true, parent = "authority_resource")
+    @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:sync_plugin_resource]')")
+    public RestResult<Void> syncPluginResource() throws Exception {
+        delegatingPluginResourceService.resubscribeAllService();
+        return RestResult.of("同步数据完成");
     }
 }
