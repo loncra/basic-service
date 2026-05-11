@@ -20,12 +20,7 @@ loncra:
         - "/login/**"
         - "/logout/**"
         - "/findDataDictionariesByTypeId/**"
-        - "/findGroupDataDictionariesByTypeIds/**"
-        - "/findGroupDataDictionariesByCodes/**"
-        - "/findDataDictionariesByTypeId/**"
-        - "/findGroupDataDictionariesByTypeId/**"
         - "/findDataDictionaries/**"
-        - "/getDataDictionary/**"
         - "/getDataDictionaryByCode/**"
         - "/enumerate/**"
         - "/captcha/**"
@@ -34,10 +29,6 @@ loncra:
     security:
       web:
         ignore-result-map:
-          signContractParticipantFindByContractId:
-            - "$.data[*].metadata"
-          housingResourceSignContractPage:
-            - "$.data.elements[*].participants[*].metadata"
           user:
             - "$.data.authorities"
             - "$.data.details.requestDetails"

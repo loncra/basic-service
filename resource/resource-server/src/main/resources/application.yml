@@ -36,15 +36,9 @@ loncra:
         base-packages: io.github.loncra.basic.service.resource.server.controller
       permit-uri-ant-matchers:
         - "/findDataDictionariesByTypeId/**"
-        - "/findGroupDataDictionariesByTypeIds/**"
-        - "/findGroupDataDictionariesByCodes/**"
-        - "/findDataDictionariesByTypeId/**"
-        - "/findGroupDataDictionariesByTypeId/**"
         - "/findDataDictionaries/**"
-        - "/getDataDictionary/**"
         - "/getDataDictionaryByCode/**"
-        - "/getServiceEnumerate/**"
-        - "/getServiceEnumerates/**"
+        - "/enumerate/**"
         - "/captcha/**"
         - "/tianai-captcha.css/**"
         - "/carousel/find/**"
