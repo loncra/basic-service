@@ -10,6 +10,7 @@ import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.security.entity.ResourceAuthority;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -43,8 +44,7 @@ public class ResourceMetadata extends ResourceAuthority implements Tree<Long, Re
     /**
      * 类型
      */
-    @NotEmpty
-    @Length(max = 16)
+    @NotNull
     private ResourceTypeEnum type;
 
     /**
@@ -53,7 +53,6 @@ public class ResourceMetadata extends ResourceAuthority implements Tree<Long, Re
      * @see ResourceSourceEnum
      */
     @NotEmpty
-    @Length(max = 16)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     @JsonCollectionGenericType(ResourceSourceEnum.class)
     private List<ResourceSourceEnum> sources;
@@ -61,7 +60,6 @@ public class ResourceMetadata extends ResourceAuthority implements Tree<Long, Re
     /**
      * 版本号
      */
-    @NotEmpty
     @Length(max = 16)
     private String version;
 

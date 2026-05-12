@@ -162,7 +162,14 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> {
         Assert.isTrue(YesOrNo.Yes.equals(entity.getRemovable()), "角色 [" + entity.getName() + "] 被设置为不可删除角色，无法执行操作");
         //redissonCacheAuthorizationService.postDeleteRole(entity);
         applicationEventPublisher.publishEvent(new RoleAuthorizationEventListener.DeleteEvent(entity));
+
+        findByParentId(entity.getId()).forEach(this::deleteByEntity);
+
         return super.deleteByEntity(entity);
+    }
+
+    public List<RoleEntity> findByParentId(Long id) {
+        return lambdaQuery().eq(RoleEntity::getParentId, id).list();
     }
 
     public RoleEntity getByAuthority(String value) {

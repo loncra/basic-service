@@ -53,7 +53,7 @@ public class RoleController {
     @PreAuthorize("hasAuthority('perms[auth_server_role:find]')")
     public List<Object> find(
             HttpServletRequest request,
-            @RequestParam(required = false, defaultValue = "false")
+            @RequestParam(required = false, defaultValue = "true")
             boolean mergeTree,
             @RequestParam(required = false, defaultValue = "false")
             boolean idValueMetadata

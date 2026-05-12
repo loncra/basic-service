@@ -4,10 +4,12 @@ loncra:
       app:
         scan-plugin-packages:
           auth-server:
+            - io.github.loncra.basic.service.auth.api.enumerate
             - io.github.loncra.basic.service.auth.server.enumerate
           resource-server:
             - io.github.loncra.basic.service.commons.enumerate
             - io.github.loncra.basic.service.resource.api.enumerate
+            - io.github.loncra.basic.service.resource.server.enumerate
             - io.github.loncra.framework.security.enumerate
             - io.github.loncra.framework.commons.enumerate
           message-server:
