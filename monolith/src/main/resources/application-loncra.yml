@@ -18,7 +18,6 @@ loncra:
             - "T(io.github.loncra.framework.commons.ObjectUtils).getDimension(${loncra.basic-service.commons.app.operation-data-trace-entity-storage-count}, #target, T(java.util.Objects).toString(#entityId))"
     security:
       audit:
-        enabled: true
         type: elasticsearch
         storage-position:
           prefix: ix_audit_event

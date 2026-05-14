@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.auth.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.service.resource.ResourceService;
@@ -15,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 资源管理
@@ -86,6 +88,9 @@ public class ResourceController {
             @RequestBody
             ResourceEntity entity
     ) {
+        if (Objects.isNull(entity.getId())) {
+            entity.setCategory(ResourceCategoryEnum.CUSTOMIZE);
+        }
         resourceService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());
     }

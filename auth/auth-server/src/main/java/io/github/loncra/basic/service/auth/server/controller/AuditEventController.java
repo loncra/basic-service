@@ -5,6 +5,8 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.DateUtils;
+import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.StringIdEntity;
 import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
@@ -14,16 +16,19 @@ import io.github.loncra.framework.mybatis.config.OperationDataTraceProperties;
 import io.github.loncra.framework.security.audit.ExtendAuditEventRepository;
 import io.github.loncra.framework.security.audit.IdAuditEvent;
 import io.github.loncra.framework.security.plugin.Plugin;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.actuate.audit.AuditEvent;
+import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -36,7 +41,6 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("audit/event")
-@ConditionalOnBean(ExtendAuditEventRepository.class)
 public class AuditEventController {
 
     public static final String OPERATION_DATA_TRACE_PAGE_ID = "operationDataTracePage";
@@ -44,18 +48,18 @@ public class AuditEventController {
 
     private final OperationDataTraceProperties operationDataTraceProperties;
 
-    private final ExtendAuditEventRepository operationDataTraceRepository;
+    private final AuditEventRepository auditEventRepository;
 
-    @PostMapping("login")
-    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:login]')")
+    @PostMapping("authentication/page")
+    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:authentication]')")
     @Plugin(id = "login_log", name = "登录日志查询", parent = "log", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
-    public Page<AuditEvent> authenticationPage(
+    public Object authenticationPage(
             PageRequest pageRequest,
             @RequestParam(required = false)
             String principal,
             @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Instant after
+            Date after
     ) {
         Map<String, Object> query = new LinkedHashMap<>();
         query.put(IdAuditEvent.TYPE_FIELD_NAME, SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
@@ -63,48 +67,42 @@ public class AuditEventController {
             query.put(IdAuditEvent.PRINCIPAL_FIELD_NAME, principal);
         }
         query.put(IdEntity.ID_FIELD_NAME, AUTHENTICATION_PAGE_ID);
-        return operationDataTraceRepository.findPage(pageRequest, after, query);
+        if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
+            return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
+        } else {
+            return auditEventRepository.find(principal, after.toInstant(), SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
+        }
     }
 
-    @PostMapping("operationDataTrace")
+    @PostMapping("operationDataTrace/page")
     @PreAuthorize("hasAuthority('perms[auth_server_audit_event:operation_data_trace]')")
     @Plugin(id = "operation_log", name = "操作日志查询", parent = "log", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
-    public Page<AuditEvent> operationDataTracePage(
+    public Object operationDataTracePage(
             PageRequest pageRequest,
-            @RequestParam(required = false)
-            String target,
             @RequestParam(required = false)
             String type,
             @RequestParam(required = false)
             String principal,
             @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Instant after,
-            @RequestParam(required = false)
-            String entityId
+            Date after,
+            HttpServletRequest request
     ) {
+
         Map<String, Object> query = new LinkedHashMap<>();
         String auditType = operationDataTraceProperties.getAuditPrefixName() + CastUtils.UNDERSCORE;
         if (StringUtils.isNotBlank(type)) {
-            auditType += type + CastUtils.UNDERSCORE + DesensitizeSerializer.DEFAULT_DESENSITIZE_SYMBOL;
-        }
-        else {
-            auditType += DesensitizeSerializer.DEFAULT_DESENSITIZE_SYMBOL;
+            auditType += type;
         }
 
-        query.put(IdAuditEvent.TYPE_FIELD_NAME, auditType);
-        if (StringUtils.isNotBlank(target) && StringUtils.isNotBlank(entityId)) {
-            query.put(SystemConstants.ES_OPERATION_DATE_TARGET_NAME, target);
-            query.put(SystemConstants.ES_OPERATION_DATE_ENTITY_ID_NAME, entityId);
+        if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
+            Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
+            query.putAll(filter);
+            query.put("filter_[type_rlike]", auditType);
+            return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
+        } else {
+            return auditEventRepository.find(principal, after.toInstant(), auditType);
         }
-
-        if (StringUtils.isNotBlank(principal)) {
-            query.put(IdAuditEvent.PRINCIPAL_FIELD_NAME, principal);
-        }
-
-        query.put(IdEntity.ID_FIELD_NAME, OPERATION_DATA_TRACE_PAGE_ID);
-
-        return operationDataTraceRepository.findPage(pageRequest, after, query);
     }
 
     /**
@@ -115,7 +113,7 @@ public class AuditEventController {
      *
      * @return REST 响应结果
      */
-    @GetMapping("{id}")
+    @GetMapping({"authentication/{id}", "operationDataTrace/{id}"})
     @Plugin(name = "查看明细", parent = "log", sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
     @PreAuthorize("hasAuthority('perms[auth_server_audit_event:get]')")
     public AuditEvent get(
@@ -125,10 +123,13 @@ public class AuditEventController {
             @RequestParam
             Instant after
     ) {
+        SystemException.isTrue(ExtendAuditEventRepository.class.isAssignableFrom(auditEventRepository.getClass()), "auditEventRepository 非 ExtendAuditEventRepository 实现，不支持调用此接口");
+
+        ExtendAuditEventRepository extendAuditEventRepository = CastUtils.cast(auditEventRepository);
 
         StringIdEntity stringIdEntity = new StringIdEntity();
         stringIdEntity.setId(id);
         stringIdEntity.setCreationTime(after);
-        return operationDataTraceRepository.get(stringIdEntity);
+        return extendAuditEventRepository.get(stringIdEntity);
     }
 }

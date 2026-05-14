@@ -30,10 +30,6 @@
                     <groupId>io.github.loncra.framework</groupId>
                     <artifactId>spring-boot-starter-alibaba-nacos</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -50,10 +46,6 @@
                     <groupId>io.github.loncra.framework</groupId>
                     <artifactId>spring-boot-starter-alibaba-nacos</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -69,54 +61,6 @@
                 <exclusion>
                     <groupId>io.github.loncra.framework</groupId>
                     <artifactId>spring-boot-starter-alibaba-nacos</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.loncra.basic.service</groupId>
-            <artifactId>video-assembly-server</artifactId>
-            <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.cloud</groupId>
-                    <artifactId>spring-cloud-starter-openfeign</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.github.loncra.framework</groupId>
-                    <artifactId>spring-boot-starter-alibaba-nacos</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.loncra.basic.service</groupId>
-            <artifactId>ai-server</artifactId>
-            <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.cloud</groupId>
-                    <artifactId>spring-cloud-starter-openfeign</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.github.loncra.framework</groupId>
-                    <artifactId>spring-boot-starter-alibaba-nacos</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.alibaba.cloud.ai</groupId>
-                    <artifactId>spring-ai-alibaba-starter-mcp-distributed</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

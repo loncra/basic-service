@@ -11,6 +11,7 @@ loncra:
             - io.github.loncra.basic.service.resource.api.enumerate
             - io.github.loncra.basic.service.resource.server.enumerate
             - io.github.loncra.framework.security.enumerate
+            - io.github.loncra.framework.mybatis.enumerate
             - io.github.loncra.framework.commons.enumerate
           message-server:
             - io.github.loncra.basic.service.message.api.enumerate
