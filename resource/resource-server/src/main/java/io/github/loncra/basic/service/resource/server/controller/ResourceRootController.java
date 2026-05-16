@@ -103,7 +103,6 @@ public class ResourceRootController {
     @PostMapping("enumerate/sync")
     @PreAuthorize("hasAuthority('perms[resource_server_enumerate:sync]')")
     @ConditionalOnProperty(prefix = "loncra.basic-service.commons.app",value = "runtime-mode", havingValue = "MICROSERVICE")
-    @Plugin(name = "同步所有枚举", parent = "enumerate", sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE, audit = true)
     public RestResult<Map<String, Map<String, Map<String, Object>>>> syncEnumerate() throws Exception {
         systemResourceService.syncEnumerate();
         return RestResult.ofSuccess("同步系统枚举成功", systemResourceService.getServiceEnumerate());
@@ -116,7 +115,6 @@ public class ResourceRootController {
      * @return 服务枚举信息
      */
     @GetMapping("enumerate")
-    @Plugin(name = "系统枚举查询", id = "enumerate", parent = "resource", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
     public Map<String, Map<String, Map<String, Object>>> enumerate() {
         return systemResourceService.getServiceEnumerate();
     }

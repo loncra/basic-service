@@ -40,7 +40,7 @@ loncra:
             sources: CONSOLE
           dictionary:
             application-name: resource-server
-            name: "数据字典管理"
+            name: "字典管理"
             parent: config
             type: menu
             sources: CONSOLE

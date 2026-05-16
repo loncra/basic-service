@@ -25,7 +25,7 @@ public enum ValueTypeEnum implements NameValueEnum<Integer> {
     /**
      * 整数类型
      */
-    DOUBLE(20, "浮点类型", Double.class),
+    DOUBLE(20, "浮点数类型", Double.class),
 
     /**
      * 字符串类型
@@ -46,21 +46,6 @@ public enum ValueTypeEnum implements NameValueEnum<Integer> {
      * 时间类型
      */
     TIME(60, "时间类型", LocalTime.class),
-
-    /**
-     * 年份类型
-     */
-    YEAR(70, "年份类型", Year.class),
-
-    /**
-     * 年月类型
-     */
-    YEAR_MONTH(80, "年月类型", YearMonth.class),
-
-    /**
-     * 长整型
-     */
-    LONG(90, "长整型", Long.class),
 
     /**
      * json字符串

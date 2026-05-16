@@ -43,9 +43,6 @@ import java.util.Map;
 @RequestMapping("audit/event")
 public class AuditEventController {
 
-    public static final String OPERATION_DATA_TRACE_PAGE_ID = "operationDataTracePage";
-    public static final String AUTHENTICATION_PAGE_ID = "authenticationPage";
-
     private final OperationDataTraceProperties operationDataTraceProperties;
 
     private final AuditEventRepository auditEventRepository;
@@ -62,12 +59,12 @@ public class AuditEventController {
             Date after
     ) {
         Map<String, Object> query = new LinkedHashMap<>();
-        query.put(IdAuditEvent.TYPE_FIELD_NAME, SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
         if (StringUtils.isNotBlank(principal)) {
             query.put(IdAuditEvent.PRINCIPAL_FIELD_NAME, principal);
         }
-        query.put(IdEntity.ID_FIELD_NAME, AUTHENTICATION_PAGE_ID);
+
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
+            query.put("filter_[type_eq]", SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
             return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
         } else {
             return auditEventRepository.find(principal, after.toInstant(), SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
@@ -121,7 +118,7 @@ public class AuditEventController {
             String id,
             @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Instant after
+            Date after
     ) {
         SystemException.isTrue(ExtendAuditEventRepository.class.isAssignableFrom(auditEventRepository.getClass()), "auditEventRepository 非 ExtendAuditEventRepository 实现，不支持调用此接口");
 
@@ -129,7 +126,7 @@ public class AuditEventController {
 
         StringIdEntity stringIdEntity = new StringIdEntity();
         stringIdEntity.setId(id);
-        stringIdEntity.setCreationTime(after);
+        stringIdEntity.setCreationTime(after.toInstant());
         return extendAuditEventRepository.get(stringIdEntity);
     }
 }

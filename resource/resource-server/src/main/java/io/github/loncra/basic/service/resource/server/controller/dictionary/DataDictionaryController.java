@@ -50,7 +50,7 @@ public class DataDictionaryController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:page]')")
     public Page<DataDictionaryEntity> page(
             PageRequest pageRequest,

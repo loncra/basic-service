@@ -46,11 +46,11 @@ public class DictionaryTypeController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("/find")
     @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:find]')")
     public RestResult<List<DictionaryTypeEntity>> find(
             HttpServletRequest request,
-            @RequestParam(required = false)
+            @RequestParam(required = false, defaultValue = "true")
             boolean mergeTree
     ) {
 

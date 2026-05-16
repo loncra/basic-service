@@ -311,7 +311,7 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
                 .map(ResourceEntity::getId)
                 .toList();
 
-        deleteIds.forEach(resourceService::deleteById);
+        deleteIds.forEach(id -> resourceService.lambdaUpdate().eq(ResourceEntity::getId, id).remove());
 
         SyncPluginResourceMetadata metadata = new SyncPluginResourceMetadata();
         metadata.setResources(result);
