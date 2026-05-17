@@ -4,16 +4,23 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.user.console.ConsoleUserService;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
+import io.github.loncra.basic.service.commons.enumerate.ImportExportTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,6 +45,28 @@ import java.util.List;
 public class ConsoleUserController {
 
     private final ConsoleUserService consoleUserService;
+
+    @PostMapping("export")
+    @Plugin(name = "导出查询结果")
+    @PreAuthorize("hasAuthority('perms[transfer_order:export]')")
+    public RestResult<?> export(
+            HttpServletRequest request,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+
+        ExportDataMetadata dto =  new ExportDataMetadata();
+
+        dto.setFilename(ImportExportTypeEnum.CONSOLE_USER.getName() + CastUtils.UNDERSCORE + System.currentTimeMillis() +  SystemConstants.EXCEL_SUFFIX_NAME);
+        dto.setType(ImportExportTypeEnum.CONSOLE_USER);
+        dto.getMetadata().put(SystemConstants.QUERY_KEY, request.getParameterMap());
+        dto.setPrincipal(token.getName());
+
+        consoleUserService.export(dto);
+
+        return RestResult.of("执行导出成功, 请耐心等待后台导出完成后即可下载导出文件");
+    }
 
     /**
      * 获取分页

@@ -6,6 +6,7 @@ import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.minio.Bucket;
 import org.springframework.core.ParameterizedTypeReference;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -196,4 +197,9 @@ public interface SystemConstants {
 
     String RUNTIME_MODE_KEY = "runtimeMode";
 
+    String QUERY_KEY = "query";
+
+    String EXCEL_SUFFIX_NAME = ".xlsx";
+
+    String SORT_FIELD = "sort";
 }

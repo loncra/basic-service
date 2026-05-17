@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.annotation.Description;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
@@ -58,12 +59,14 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     /**
      * 主键 id
      */
+    @Description(value = "序号", sort = 0)
     private Long id;
 
     /**
      * 创建时间
      */
     @EqualsAndHashCode.Exclude
+    @Description(value = "创建时间", sort = 1)
     private Instant creationTime;
 
     /**
@@ -77,6 +80,7 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
      */
     @Email
     @Length(max = 64)
+    @Description(value = "电子邮箱", sort = 4)
     @JsonSerialize(using = DesensitizeSerializer.class)
     @Decryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
     @Encryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
@@ -111,6 +115,7 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     /**
      * 最后认证(登录)时间
      */
+    @Description(value = "最后登录时间", sort = 5)
     private Instant lastAuthenticationTime;
 
     /**

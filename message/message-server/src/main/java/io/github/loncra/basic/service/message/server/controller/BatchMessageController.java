@@ -49,7 +49,7 @@ public class BatchMessageController {
      *
      * @see BatchMessageEntity
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[message_server_batch_message:page]')")
     public Page<BatchMessageEntity> page(
             PageRequest pageRequest,

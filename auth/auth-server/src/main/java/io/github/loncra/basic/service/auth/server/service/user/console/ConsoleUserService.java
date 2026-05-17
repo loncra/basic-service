@@ -3,11 +3,14 @@ package io.github.loncra.basic.service.auth.server.service.user.console;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
+import io.github.loncra.basic.service.auth.server.consumer.ConsoleUserConsumer;
 import io.github.loncra.basic.service.auth.server.dao.user.ConsoleUserDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
 import io.github.loncra.basic.service.commons.config.CommonsConfig;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -15,9 +18,13 @@ import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +56,11 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
     private final RoleService roleService;
 
     private final CommonsConfig commonsConfig;
+
+    private final AmqpTemplate amqpTemplate;
+
+    @Getter
+    private final RedissonClient redissonClient;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -187,5 +199,15 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
         Map<String, Object> filter = Map.of("filter_[role_ids_jin]", roleIds);
         Wrapper<ConsoleUserEntity> wrapper = getQueryGenerator().createQueryWrapperFromMap(filter);
         return find(wrapper);
+    }
+
+    public void export(ExportDataMetadata dto) {
+        String cacheName = SystemConstants.USER_EXPORT_CACHE.getName(dto.toExportCacheName());
+        RBucket<ExportDataMetadata> bucket = redissonClient.getBucket(cacheName);
+        if (bucket.isExists()) {
+            return ;
+        }
+        bucket.set(dto, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
+        amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, ConsoleUserConsumer.DEFAULT_EXPORT_QUEUE_NAME, dto.toExportCacheName());
     }
 }

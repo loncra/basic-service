@@ -13,14 +13,19 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum ImportExportTypeEnum implements NameValueEnum<String> {
+
+    /**
+     * 系统类型
+     */
+    SYSTEM("SYSTEM", "系统类型"),
     /**
      * 未知类型
      */
-    SYSTEM("UNKNOWN", "系统类型"),
+    UNKNOWN("UNKNOWN", "未知类型"),
     /**
-     * 未知类型
+     * 后台用户数据
      */
-    UNKNOWN("UNKNOWN", "未知类型")
+    CONSOLE_USER(ResourceSourceEnum.CONSOLE.getValue(), ResourceSourceEnum.CONSOLE.getName())
     ;
 
     private final String value;

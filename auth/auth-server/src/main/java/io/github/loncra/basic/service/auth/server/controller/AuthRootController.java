@@ -156,16 +156,11 @@ public class AuthRootController {
                 sourceContains
         );
 
-        List<ResourceEntity> result = resourceList
-                .stream()
-                .sorted(Comparator.comparing(ResourceEntity::getSort).reversed())
-                .toList();
-
         if (mergeTree) {
-            return TreeUtils.buildGenericTree(result);
+            return TreeUtils.buildGenericTree(resourceList);
         }
         else {
-            return result;
+            return resourceList;
         }
     }
 

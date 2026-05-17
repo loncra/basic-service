@@ -55,7 +55,7 @@ public class EmailMessageController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[message_server_email:page]')")
     public Page<EmailMessageEntity> page(
             PageRequest pageRequest,

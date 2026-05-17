@@ -27,7 +27,7 @@ import java.util.List;
         name = "短信模版管理",
         id = "sms_template",
         parent = "sms",
-        authority = "perms[message_server_sms_template:list]",
+        authority = "perms[message_server_sms_template:find]",
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -36,9 +36,9 @@ public class SmsTemplateController {
     private final SmsMessageSenderResolver smsMessageSender;
 
     @Plugin(name = "查看模版列表")
-    @GetMapping("/{channel}")
-    @PreAuthorize("hasAuthority('perms[message_server_sms_template:list]')")
-    public List<SmsTemplateResponseBody> list(
+    @GetMapping("/{channel}/find")
+    @PreAuthorize("hasAuthority('perms[message_server_sms_template:find]')")
+    public List<SmsTemplateResponseBody> find(
             @PathVariable(required = false)
             String channel
     ) {
@@ -54,7 +54,7 @@ public class SmsTemplateController {
         }
     }
 
-    @Plugin(name = "编辑签名", operationDataTrace = true)
+    @Plugin(name = "查看明细", operationDataTrace = true)
     @GetMapping("/{channel}/{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[message_server_sms_template:get]')")
     public SmsTemplateResponseBody get(

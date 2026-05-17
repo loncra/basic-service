@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.auth.api.domain;
 
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.annotation.Description;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.id.number.LongIdEntity;
 import lombok.Data;
@@ -22,11 +23,13 @@ public abstract class AbstractBasicSystemUser extends LongIdEntity {
     @Serial
     private static final long serialVersionUID = 6199203924933850902L;
 
+    @Description(value = "登录账户", sort = 2)
     private String username;
 
     /**
      * 状态:1.启用、2.禁用、3.锁定
      */
+    @Description(value = "状态", sort = 3)
     private UserStatus status;
 
     /**

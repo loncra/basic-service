@@ -57,7 +57,7 @@ public class SiteMessageController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[message_server_site:page]')")
     public Page<SiteMessageEntity> page(
             PageRequest pageRequest,

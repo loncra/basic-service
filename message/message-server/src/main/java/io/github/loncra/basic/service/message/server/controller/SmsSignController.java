@@ -28,7 +28,7 @@ import java.util.List;
         name = "短信签名管理",
         id = "sms_sign",
         parent = "sms",
-        authority = "perms[message_server_sms_sign:list]",
+        authority = "perms[message_server_sms_sign:find]",
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
@@ -37,8 +37,8 @@ public class SmsSignController {
     private final SmsMessageSenderResolver smsMessageSender;
 
     @Plugin(name = "查看签名列表")
-    @GetMapping("/{channel}")
-    @PreAuthorize("hasAuthority('perms[message_server_sms_sign:list]')")
+    @GetMapping("/{channel}/find")
+    @PreAuthorize("hasAuthority('perms[message_server_sms_sign:find]')")
     public List<SmsSignResponseBody> list(
             @PathVariable(required = false)
             String channel
@@ -55,7 +55,7 @@ public class SmsSignController {
         }
     }
 
-    @Plugin(name = "编辑签名", operationDataTrace = true)
+    @Plugin(name = "查看明细", operationDataTrace = true)
     @PreAuthorize("hasAuthority('perms[message_server_sms:get]')")
     @GetMapping("/{channel}/{id:\\d+}")
     public SmsSignResponseBody get(

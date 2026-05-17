@@ -2,16 +2,19 @@ package io.github.loncra.basic.service.resource.server.service.dictionary;
 
 import com.alibaba.nacos.api.common.Constants;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.basic.service.resource.server.dao.dictionary.DataDictionaryDao;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DataDictionaryEntity;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.DisabledOrEnabled;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -103,5 +106,15 @@ public class DataDictionaryService extends BasicService<DataDictionaryDao, DataD
                 .getClassType())));
 
         return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void sort(List<TreeSortMetadata<Long>> sorts) {
+        for (TreeSortMetadata<Long> sort : sorts) {
+            lambdaUpdate().set(DataDictionaryEntity::getSort, sort.getSort())
+                    .set(DataDictionaryEntity::getParentId, sort.getParentId())
+                    .eq(DataDictionaryEntity::getId, sort.getId())
+                    .update();
+        }
     }
 }

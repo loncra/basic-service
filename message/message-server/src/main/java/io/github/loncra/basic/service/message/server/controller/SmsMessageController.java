@@ -54,7 +54,7 @@ public class SmsMessageController {
      *
      * @return REST 响应结果
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[message_server_sms:page]')")
     public Page<SmsMessageEntity> page(
             PageRequest pageRequest,

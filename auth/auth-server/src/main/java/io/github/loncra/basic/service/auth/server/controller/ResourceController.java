@@ -5,6 +5,8 @@ import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.service.resource.ResourceService;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.tree.TreeUtils;
@@ -54,6 +56,7 @@ public class ResourceController {
     ) {
         QueryWrapper<ResourceEntity> query = resourceService.getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
+        query.orderByAsc(SystemConstants.SORT_FIELD);
         List<ResourceEntity> resourceList = resourceService.find(query);
         if (mergeTree) {
             return TreeUtils.buildGenericTree(resourceList);
@@ -104,6 +107,18 @@ public class ResourceController {
     ) {
         resourceService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
+    }
+
+    @PutMapping("sort")
+    @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:sort]')")
+    @Plugin(name = "排序", operationDataTrace = true)
+    public RestResult<Void> sort(
+            @Valid
+            @RequestBody
+            List<TreeSortMetadata<Long>> sorts
+    ) {
+        resourceService.sort(sorts);
+        return RestResult.of("排序成功");
     }
 
 }

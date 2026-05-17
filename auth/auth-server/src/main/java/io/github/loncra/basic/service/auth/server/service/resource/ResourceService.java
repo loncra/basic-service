@@ -5,12 +5,15 @@ import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.server.dao.ResourceDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
+import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
 import io.github.loncra.basic.service.auth.server.service.role.RoleAuthorizationEventListener;
+import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -108,5 +111,15 @@ public class ResourceService extends BasicService<ResourceDao, ResourceEntity> {
 
     private List<ResourceEntity> findByParentId(Long id) {
         return lambdaQuery().eq(ResourceEntity::getParentId, id).list();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void sort(List<TreeSortMetadata<Long>> sorts) {
+        for (TreeSortMetadata<Long> sort : sorts) {
+            lambdaUpdate().set(ResourceEntity::getSort, sort.getSort())
+                    .set(ResourceMetadata::getParentId, sort.getParentId())
+                    .eq(ResourceEntity::getId, sort.getId())
+                    .update();
+        }
     }
 }

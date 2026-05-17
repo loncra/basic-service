@@ -3,9 +3,12 @@ package io.github.loncra.basic.service.resource.server.controller.dictionary;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DataDictionaryEntity;
+import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DictionaryTypeEntity;
 import io.github.loncra.basic.service.resource.server.service.dictionary.DictionaryService;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -59,7 +62,7 @@ public class DataDictionaryController {
         QueryWrapper<DataDictionaryEntity> query = dictionaryService.getDataDictionaryService()
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
-        query.orderByDesc(IdEntity.ID_FIELD_NAME);
+        query.orderByAsc(SystemConstants.SORT_FIELD);
 
         return dictionaryService.getDataDictionaryService()
                 .findTotalPage(pageRequest, query);
@@ -145,5 +148,17 @@ public class DataDictionaryController {
             List<Long> typeIds
     ) {
         return dictionaryService.findGroupDataDictionariesByTypeIds(typeIds);
+    }
+
+    @PutMapping("sort")
+    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:sort]')")
+    @Plugin(name = "排序", operationDataTrace = true)
+    public RestResult<Void> sort(
+            @Valid
+            @RequestBody
+            List<TreeSortMetadata<Long>> sorts
+    ) {
+        dictionaryService.getDataDictionaryService().sort(sorts);
+        return RestResult.of("排序成功");
     }
 }
