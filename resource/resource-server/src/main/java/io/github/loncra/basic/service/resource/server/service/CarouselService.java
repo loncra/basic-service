@@ -48,9 +48,4 @@ public class CarouselService extends BasicService<CarouselDao, CarouselEntity> {
         }
     }
 
-    @Override
-    public int insert(CarouselEntity entity) {
-        entity.getCover().getSetting().put()
-        return super.insert(entity);
-    }
 }
