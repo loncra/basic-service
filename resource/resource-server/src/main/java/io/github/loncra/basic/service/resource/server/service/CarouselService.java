@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.resource.server.service;
 
-import io.github.loncra.basic.service.commons.enumerate.DataRecordStatusEnum;
+import io.github.loncra.basic.service.commons.domain.metadata.FlatSortMetadata;
+import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.resource.server.dao.CarouselDao;
 import io.github.loncra.basic.service.resource.server.domain.entity.CarouselEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -26,14 +28,29 @@ public class CarouselService extends BasicService<CarouselDao, CarouselEntity> {
     @Transactional(rollbackFor = Exception.class)
     public void publish(List<Integer> ids) {
         get(ids).stream()
-                .peek(entity -> entity.setStatus(DataRecordStatusEnum.PUBLISH))
+                .peek(entity -> entity.setStatus(DataStatusEnum.RELEASE))
                 .forEach(this::updateById);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void deactivate(List<Integer> ids) {
+    public void revoke(List<Integer> ids) {
         get(ids).stream()
-                .peek(entity -> entity.setStatus(DataRecordStatusEnum.UPDATE))
+                .peek(entity -> entity.setStatus(DataStatusEnum.REVOKE))
                 .forEach(this::updateById);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void sort(List<FlatSortMetadata<Long>> sorts) {
+        for (FlatSortMetadata<Long> sort : sorts) {
+            lambdaUpdate().set(CarouselEntity::getSort, sort.getSort())
+                    .eq(CarouselEntity::getId, sort.getId())
+                    .update();
+        }
+    }
+
+    @Override
+    public int insert(CarouselEntity entity) {
+        entity.getCover().getSetting().put()
+        return super.insert(entity);
     }
 }

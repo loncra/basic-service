@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.resource.server.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.commons.enumerate.DataRecordStatusEnum;
+import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.resource.api.enumerate.CarouselTypeEnum;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.time.Instant;
 
 
 /**
@@ -51,13 +52,28 @@ public class CarouselEntity extends LongVersionEntity<Integer> {
     /**
      * 状态
      */
-    private DataRecordStatusEnum status = DataRecordStatusEnum.NEW;
+    private DataStatusEnum status = DataStatusEnum.NEW;
 
     /**
      * 封面图片
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private ObjectWriteResult cover;
+
+    /**
+     * 顺序值
+     */
+    private Integer sort;
+
+    /**
+     * 过期时间
+     */
+    private Instant expirationTime;
+
+    /**
+     * 展示时间
+     */
+    private Instant showtime;
 
     /**
      * 备注

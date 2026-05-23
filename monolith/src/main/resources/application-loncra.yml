@@ -74,6 +74,16 @@ loncra:
             application-name: commons
             sources: CONSOLE
             type: profile
+          export:
+            name: "导出结果"
+            application-name: commons
+            sources: CONSOLE
+            type: tool
+          site_message:
+            name: "站内消息"
+            application-name: commons
+            sources: CONSOLE
+            type: tool
       ignore-audit-types:
         - AUTHENTICATION_FAILURE
         - AUTHORIZATION_FAILURE

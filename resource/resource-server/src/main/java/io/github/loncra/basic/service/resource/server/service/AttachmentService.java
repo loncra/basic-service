@@ -32,6 +32,9 @@ import io.github.loncra.framework.spring.security.core.authentication.service.fe
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import io.minio.*;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.XmlParserException;
 import io.minio.http.Method;
 import io.minio.messages.InitiateMultipartUploadResult;
 import io.minio.messages.Item;
@@ -59,9 +62,12 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -352,10 +358,10 @@ public class AttachmentService implements InitializingBean {
             return null;
         }
 
-        ObjectWriteResponse response = minioAsyncTemplate.completeMultipartUploadAsync(filenameObject, parts.toArray(Part[]::new), body.getUploadId())
+        minioAsyncTemplate.completeMultipartUploadAsync(filenameObject, parts.toArray(Part[]::new), body.getUploadId())
                 .get();
 
-        ObjectWriteResult objectWriteResult = createObjectWriteResponseResult(response, filenameObject);
+        ObjectWriteResult objectWriteResult = createObjectWriteResponseResult(filenameObject);
 
         executeVoidAttachmentResolver(filenameObject, resolver -> resolver.postCompleteMultipartUpload(filenameObject, body.getUploadId(), parts, objectWriteResult));
 
@@ -363,28 +369,34 @@ public class AttachmentService implements InitializingBean {
     }
 
     private ObjectWriteResult createObjectWriteResponseResult(
-            ObjectWriteResponse response,
             FileObject fileObject
-    ) {
+    ) throws Exception {
         ObjectWriteResult result = CastUtils.of(fileObject, ObjectWriteResult.class);
-        result.setEtag(response.etag());
         if (fileObject instanceof UserMetadataFileObject userMetadataFileObject && MapUtils.isNotEmpty(userMetadataFileObject.getUserMetadata())) {
             result.getExtraHeaders()
                     .putAll(userMetadataFileObject.getUserMetadata());
         }
+        StatObjectResponse stat = minioAsyncTemplate.statObject(
+                StatObjectArgs.builder()
+                        .bucket(result.getBucketName())
+                        .object(result.getObjectName())
+                        .build()
+        ).get();
+        result.setSize(stat.size());
+        result.setEtag(stat.etag());
         return result;
     }
 
     public ObjectWriteResult moveObject(MoveFileObject object) throws Exception {
-        ObjectWriteResponse response = minioAsyncTemplate.moveObject(object)
+        minioAsyncTemplate.moveObject(object)
                 .get();
-        return createObjectWriteResponseResult(response, object.getTarget());
+        return createObjectWriteResponseResult(object.getTarget());
     }
 
     public ObjectWriteResult copyObject(CopyFileObject object) throws Exception {
-        ObjectWriteResponse response = minioAsyncTemplate.copyObject(object.getSource(), object.getTarget())
+        minioAsyncTemplate.copyObject(object.getSource(), object.getTarget())
                 .get();
-        return createObjectWriteResponseResult(response, object.getTarget());
+        return createObjectWriteResponseResult(object.getTarget());
     }
 
     @Override
@@ -717,8 +729,9 @@ public class AttachmentService implements InitializingBean {
             return null;
         }
 
-        minioAsyncTemplate.putObject(userMetadataFileObject, file.getInputStream(), file.getSize(), file.getContentType())
+        ObjectWriteResponse response = minioAsyncTemplate.putObject(userMetadataFileObject, file.getInputStream(), file.getSize(), file.getContentType())
                 .get();
+
         if (StringUtils.isNotEmpty(file.getContentType())) {
             userMetadataFileObject.getUserMetadata()
                     .put(HttpHeaders.CONTENT_TYPE, file.getContentType());
@@ -733,7 +746,8 @@ public class AttachmentService implements InitializingBean {
             objectWriteResult.getExtraHeaders()
                     .putAll(userMetadataFileObject.getUserMetadata());
         }
-
+        objectWriteResult.setSize(file.getSize());
+        objectWriteResult.setEtag(response.etag());
         executeVoidAttachmentResolver(fileObject, r -> r.postUpload(userMetadataFileObject, objectWriteResult, token, appendParam));
 
         return objectWriteResult;

@@ -27,7 +27,7 @@ public enum DataStatusEnum implements NameValueEnum<Integer> {
     /**
      * 已撤销
      */
-    revoke(30, "已撤销"),
+    REVOKE(30, "已撤销"),
 
     ;
 

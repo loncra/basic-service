@@ -292,8 +292,7 @@ public class AttachmentController {
     ) throws Exception {
 
         AuditAuthenticationToken token = null;
-        if (AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication()
-                                                                    .getClass())) {
+        if (AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass())) {
             token = CastUtils.cast(securityContext.getAuthentication());
         }
 
@@ -413,7 +412,7 @@ public class AttachmentController {
      *
      * @return 用户导出数据集合
      */
-    @GetMapping("user/export")
+    @PostMapping("user/export/find")
     @PreAuthorize("isAuthenticated()")
     public List<ExportDataMetadata> userExport(
             @CurrentSecurityContext

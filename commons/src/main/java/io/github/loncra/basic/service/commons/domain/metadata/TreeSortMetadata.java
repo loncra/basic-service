@@ -1,8 +1,7 @@
 package io.github.loncra.basic.service.commons.domain.metadata;
 
-import io.github.loncra.framework.commons.id.BasicIdentification;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 树形排序元数据信息
@@ -10,13 +9,8 @@ import lombok.Data;
  * @author maurice.chen
  */
 @Data
-public class TreeSortMetadata<T> implements BasicIdentification<T> {
-
-    @NotNull
-    private T id;
+@EqualsAndHashCode(callSuper = true)
+public class TreeSortMetadata<T> extends FlatSortMetadata<T> {
 
     private T parentId;
-
-    @NotNull
-    private Integer sort;
 }

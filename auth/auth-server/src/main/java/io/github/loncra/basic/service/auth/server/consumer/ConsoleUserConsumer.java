@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,6 +67,7 @@ public class ConsoleUserConsumer {
         }
 
         ExportDataMetadata exportDataMetadata = bucket.get();
+        exportDataMetadata.setExpiresTime(exportDataMetadata.getCreationTime().plus(SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration()));
         Map<String, String[]> queryParams = CastUtils.cast(exportDataMetadata.getMetadata().get(SystemConstants.QUERY_KEY));
         MultiValueMap<String, String> param = HttpRequestParameterMapUtils.castMapToMultiValueMap(queryParams);
         QueryWrapper<ConsoleUserEntity> query = consoleUserService.getQueryGenerator()
@@ -72,10 +75,11 @@ public class ConsoleUserConsumer {
         List<ConsoleUserEntity> data = consoleUserService.find(query);
 
         exportDataMetadata.setExecuteStatus(ExecuteStatus.Processing);
-        bucket.set(exportDataMetadata, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
+        bucket.set(exportDataMetadata, Duration.between(Instant.EPOCH, exportDataMetadata.getExpiresTime()));
         TreeDescriptionMetadata descriptionMetadata = MetadataUtils.convertDescriptionMetadata(ConsoleUserEntity.class);
         attachmentServiceClient.export(descriptionMetadata, new LinkedList<>(data), exportDataMetadata, IdValueMetadata::getValue);
-        bucket.set(exportDataMetadata, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
+        exportDataMetadata.setSuccessTime(Instant.now());
+        bucket.set(exportDataMetadata, Duration.between(Instant.EPOCH, exportDataMetadata.getExpiresTime()));
 
         channel.basicNack(tag, false, false);
     }

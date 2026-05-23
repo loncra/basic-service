@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -128,14 +127,13 @@ public interface AttachmentServiceClient {
      * @param dto      导出元数据信息
      * @param function 映射数据内容
      *
-     * @throws FileNotFoundException 找不到文件时抛出
      */
     default void export(
             TreeDescriptionMetadata metadata,
             List<Object> data,
             ExportDataMetadata dto,
             Function<IdValueRecordMetadata<String, Object>, Object> function
-    ) throws FileNotFoundException {
+    )  {
 
         List<Map<String, Object>> convert = new LinkedList<>();
 

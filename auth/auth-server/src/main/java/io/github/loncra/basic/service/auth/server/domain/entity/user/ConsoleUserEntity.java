@@ -42,6 +42,7 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 @Alias("consoleUser")
+@Description("员工管理")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_console_user", autoResultMap = true)
 public class ConsoleUserEntity extends AbstractPlatformUser implements PhoneNumberPrincipal, UserInitialization {

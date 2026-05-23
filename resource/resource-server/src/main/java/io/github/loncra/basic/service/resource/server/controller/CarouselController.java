@@ -2,11 +2,12 @@ package io.github.loncra.basic.service.resource.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.FlatSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.server.domain.entity.CarouselEntity;
 import io.github.loncra.basic.service.resource.server.service.CarouselService;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
@@ -51,7 +52,7 @@ public class CarouselController {
      *
      * @see CarouselEntity
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:page]')")
     public Page<CarouselEntity> page(
             PageRequest pageRequest,
@@ -59,7 +60,7 @@ public class CarouselController {
     ) {
         QueryWrapper<CarouselEntity> query = carouselService.getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
-        query.orderByDesc(IdEntity.ID_FIELD_NAME);
+        query.orderByAsc(SystemConstants.SORT_FIELD);
         return carouselService.findTotalPage(pageRequest, query);
     }
 
@@ -76,7 +77,7 @@ public class CarouselController {
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:get]')")
     @Plugin(name = "查看明细")
     public CarouselEntity get(
-            @RequestParam
+            @PathVariable
             Integer id
     ) {
         return carouselService.get(id);
@@ -126,10 +127,10 @@ public class CarouselController {
      *
      * @return REST 响应结果
      */
-    @PostMapping("publish")
-    @PreAuthorize("hasAuthority('perms[resource_server_carousel:publish]')")
+    @PostMapping("release")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:release]')")
     @Plugin(name = "发布信息", operationDataTrace = true)
-    public RestResult<Void> publish(
+    public RestResult<Void> release(
             @RequestParam
             List<Integer> ids
     ) {
@@ -144,15 +145,26 @@ public class CarouselController {
      *
      * @return REST 响应结果
      */
-    @PostMapping("deactivate")
-    @PreAuthorize("hasAuthority('perms[resource_server_carousel:deactivate]')")
+    @PostMapping("revoke")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:revoke]')")
     @Plugin(name = "下架信息", operationDataTrace = true)
     public RestResult<Void> deactivate(
             @RequestParam
             List<Integer> ids
     ) {
-        carouselService.deactivate(ids);
+        carouselService.revoke(ids);
         return RestResult.of("下架 " + ids.size() + " 条记录成功");
     }
 
+    @PutMapping("sort")
+    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:sort]')")
+    @Plugin(name = "排序", operationDataTrace = true)
+    public RestResult<Void> sort(
+            @Valid
+            @RequestBody
+            List<FlatSortMetadata<Long>> sorts
+    ) {
+        carouselService.sort(sorts);
+        return RestResult.of("排序成功");
+    }
 }

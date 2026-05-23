@@ -48,7 +48,7 @@ public class ConsoleUserController {
 
     @PostMapping("export")
     @Plugin(name = "导出查询结果")
-    @PreAuthorize("hasAuthority('perms[transfer_order:export]')")
+    @PreAuthorize("hasAuthority('perms[auth_server_console_user:export]')")
     public RestResult<?> export(
             HttpServletRequest request,
             @CurrentSecurityContext

@@ -39,7 +39,7 @@ public class ExportDataMetadata implements BasicIdentification<String>, ExecuteS
      * 创建时间
      */
     @EqualsAndHashCode.Exclude
-    private Instant creationTime;
+    private Instant creationTime = Instant.now();
 
     /**
      * 文件名称
@@ -65,6 +65,11 @@ public class ExportDataMetadata implements BasicIdentification<String>, ExecuteS
      * 最后导出时间
      */
     private Instant retryTime = Instant.now();
+
+    /**
+     * 过期时间
+     */
+    private Instant expiresTime;
 
     /**
      * 重试次数
