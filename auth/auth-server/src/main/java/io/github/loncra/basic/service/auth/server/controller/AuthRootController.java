@@ -6,7 +6,7 @@ import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.WechatAuthenticationEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
 import io.github.loncra.basic.service.auth.server.security.handler.JsonLogoutSuccessHandler;
-import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthorizationService;
+import io.github.loncra.basic.service.auth.server.service.AbstractAuthorizationService;
 import io.github.loncra.basic.service.auth.server.service.WechatAuthenticationService;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.DelegatingPluginResourceService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -21,8 +21,10 @@ import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.commons.tree.TreeUtils;
+import io.github.loncra.framework.security.audit.Auditable;
 import io.github.loncra.framework.security.audit.IdAuditEvent;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.handler.JsonAuthenticationSuccessResponse;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.wechat.domain.WechatUserDetails;
@@ -62,7 +64,7 @@ public class AuthRootController {
 
     private final RegisteredClientRepository registeredClientRepository;
 
-    private final RedissonCacheAuthorizationService<AbstractBasicSystemUser> redissonCacheAuthorizationService;
+    private final AbstractAuthorizationService<AbstractBasicSystemUser> authorizationService;
 
     private final List<JsonAuthenticationSuccessResponse> successResponses;
 
@@ -150,7 +152,7 @@ public class AuthRootController {
                 NameEnum.ofEnum(ResourceSourceEnum.class, token.getType())
         );
 
-        List<ResourceEntity> resourceList = redissonCacheAuthorizationService.getSystemUserResource(
+        List<ResourceEntity> resourceList = authorizationService.getSystemUserResource(
                 token,
                 types.stream().map(v -> ValueEnum.ofEnum(ResourceTypeEnum.class, v)).toList(),
                 sourceContains
@@ -206,9 +208,10 @@ public class AuthRootController {
      * @param newPassword     新密码
      */
     @ResponseBody
+    @OperationDataTrace
     @PutMapping("user/password/update")
     @PreAuthorize("isFullyAuthenticated()")
-    @Plugin(name = "修改个人登录密码", operationDataTrace = true, parent = "authority")
+    @Plugin(name = "修改个人登录密码", parent = "authority")
     public RestResult<Void> updatePassword(
             @CurrentSecurityContext
             SecurityContext securityContext,
@@ -223,7 +226,7 @@ public class AuthRootController {
                 "当前 Authentication 非 AuditAuthenticationToken 实例，无法需改个人登录密码"
         );
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        redissonCacheAuthorizationService.updatePassword(token, oldPassword, newPassword);
+        authorizationService.updatePassword(token, oldPassword, newPassword);
         return RestResult.of("修改密码成功");
     }
 
@@ -234,14 +237,15 @@ public class AuthRootController {
      * @param id   用户 id
      */
     @ResponseBody
+    @OperationDataTrace
     @PutMapping("user/password/admin/reset")
+    @Plugin(name = "重置用户密码", parent = "authority")
     @PreAuthorize("hasAuthority('perms[auth_server_system_user:admin_reset_password]')")
-    @Plugin(name = "重置用户密码", operationDataTrace = true, parent = "authority")
     public RestResult<Object> adminRestPassword(
             String type,
             String id
     ) {
-        String newPassword = redissonCacheAuthorizationService.adminRestPassword(type, id);
+        String newPassword = authorizationService.adminRestPassword(type, id);
         return RestResult.ofSuccess("重置密码成功", (Object) newPassword);
     }
 
@@ -259,7 +263,7 @@ public class AuthRootController {
             @RequestBody
             TypeIdNameMetadata metadata
     ) {
-        return redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(metadata.getType(), true)
+        return authorizationService.getSystemUserAuthorizationResolver(metadata.getType(), true)
                 .getByIdentity(metadata.getId());
     }
 
@@ -280,7 +284,7 @@ public class AuthRootController {
             @RequestParam
             String type
     ) {
-        return redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(type, true)
+        return authorizationService.getSystemUserAuthorizationResolver(type, true)
                 .createByPhoneNumber(phoneNumber);
     }
 
@@ -306,7 +310,7 @@ public class AuthRootController {
         if (CollectionUtils.isEmpty(ignoreTypes)) {
             ignoreTypes = new LinkedList<>();
         }
-        Map<IdNameMetadata, List<AbstractBasicSystemUser>> result = redissonCacheAuthorizationService.findSystemUser(pageRequest, ignoreTypes, request);
+        Map<IdNameMetadata, List<AbstractBasicSystemUser>> result = authorizationService.findSystemUser(pageRequest, ignoreTypes, request);
         if (idNameValueMetadata) {
             List<IdNameValueMetadata<String, List<AbstractBasicSystemUser>>> metadataList = new LinkedList<>();
             result.forEach((k, v) -> metadataList.add(new IdNameValueMetadata<>(k.getId(), k.getName(), v)));
@@ -330,13 +334,13 @@ public class AuthRootController {
         HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap())
                 .forEach(filter::add);
         if (StringUtils.isEmpty(type)) {
-            return redissonCacheAuthorizationService.getSystemUserAuthorizationResolvers()
+            return authorizationService.getSystemUserAuthorizationResolvers()
                     .stream()
                     .flatMap(s -> s.findPage(PageRequest.of(-1), filter).getElements().stream())
                     .toList();
         }
         else {
-            return redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(type, true)
+            return authorizationService.getSystemUserAuthorizationResolver(type, true)
                     .findPage(PageRequest.of(-1), filter)
                     .getElements();
         }
@@ -350,7 +354,7 @@ public class AuthRootController {
             @PathVariable Long id
     ) {
 
-        return redissonCacheAuthorizationService.getSystemUserAuthorizationResolver(type, true)
+        return authorizationService.getSystemUserAuthorizationResolver(type, true)
                 .getByIdentity(id.toString());
     }
 
@@ -358,7 +362,7 @@ public class AuthRootController {
     @GetMapping("systemUserTypes")
     @PreAuthorize("isAuthenticated()")
     public List<IdNameMetadata> getSystemUserTypes() {
-        return redissonCacheAuthorizationService.getSystemUserTypes();
+        return authorizationService.getSystemUserTypes();
     }
 
     @ResponseBody
@@ -408,8 +412,9 @@ public class AuthRootController {
      *
      * @return reset 结果集
      */
+    @Auditable
     @PostMapping("plugin/sync")
-    @Plugin(name = "同步插件资源", audit = true, parent = "authority_resource")
+    @Plugin(name = "同步插件资源", parent = "authority_resource")
     @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:sync_plugin_resource]')")
     public RestResult<Void> syncPluginResource() throws Exception {
         delegatingPluginResourceService.resubscribeAllService();

@@ -12,6 +12,7 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.commons.page.ScrollPage;
 import io.github.loncra.framework.crypto.algorithm.ByteSource;
@@ -28,10 +29,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 后台用户授权解析器实现
@@ -172,12 +170,27 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
 
     @Override
     public void updateRole(
-            Long id,
+            String id,
             Set<Long> roleIds
     ) {
         String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(roleIds));
         personalUserService.lambdaUpdate()
                 .set(AbstractPlatformUser::getResourceIds, json)
+                .eq(AbstractPlatformUser::getId, id)
+                .update();
+    }
+
+    @Override
+    public void updateAvatar(
+            String id,
+            ObjectWriteResult avatar
+    ) {
+        String json = null;
+        if (Objects.nonNull(avatar)) {
+            json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(avatar));
+        }
+        personalUserService.lambdaUpdate()
+                .set(AbstractPlatformUser::getAvatar, json)
                 .eq(AbstractPlatformUser::getId, id)
                 .update();
     }

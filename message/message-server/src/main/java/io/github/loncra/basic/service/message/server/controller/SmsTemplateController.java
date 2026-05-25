@@ -4,6 +4,7 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.server.domain.body.sms.SmsTemplateResponseBody;
 import io.github.loncra.basic.service.message.server.resolver.support.SmsMessageSenderResolver;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -54,7 +55,8 @@ public class SmsTemplateController {
         }
     }
 
-    @Plugin(name = "查看明细", operationDataTrace = true)
+    @OperationDataTrace
+    @Plugin(name = "查看明细")
     @GetMapping("/{channel}/{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[message_server_sms_template:get]')")
     public SmsTemplateResponseBody get(

@@ -61,6 +61,11 @@ public interface PrincipalDetailsConstants {
     String GENDER_KEY = "gender";
 
     /**
+     * 头像
+     */
+    String AVATAR_KEY = "avatar";
+
+    /**
      * 备注
      */
     String REMARK_KEY = "remark";

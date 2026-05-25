@@ -12,6 +12,7 @@ import io.github.loncra.framework.commons.annotation.Description;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
+import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.CryptoProperties;
 import io.github.loncra.framework.mybatis.plus.annotation.Decryption;
@@ -87,6 +88,12 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     private String email;
 
     /**
+     * 头像
+     */
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private ObjectWriteResult avatar;
+
+    /**
      * 是否已验证码邮箱
      */
     private YesOrNo emailVerified = YesOrNo.No;
@@ -150,6 +157,9 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
 
         if (Objects.nonNull(getCreationTime())) {
             result.put(IntegerVersionEntity.CREATION_TIME_FIELD_NAME, getCreationTime());
+        }
+        if (Objects.nonNull(getAvatar())) {
+            result.put(PrincipalDetailsConstants.AVATAR_KEY, getAvatar());
         }
 
         return result;

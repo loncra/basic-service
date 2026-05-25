@@ -15,6 +15,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
+import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.commons.page.ScrollPage;
 import io.github.loncra.framework.crypto.algorithm.ByteSource;
@@ -246,7 +247,18 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * @param roleIds 要更新的角色 id 集合
      */
     void updateRole(
-            Long id,
+            String id,
             Set<Long> roleIds
+    );
+
+    /**
+     * 更新头像
+     *
+     * @param id 用户 id
+     * @param avatar 头像信息
+     */
+    void updateAvatar(
+            String id,
+            ObjectWriteResult avatar
     );
 }

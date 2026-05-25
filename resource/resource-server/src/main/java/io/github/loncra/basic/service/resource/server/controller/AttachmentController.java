@@ -14,8 +14,10 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.minio.*;
 import io.github.loncra.framework.crypto.algorithm.Base64;
 import io.github.loncra.framework.crypto.algorithm.CodecUtils;
+import io.github.loncra.framework.minio.MinioAsyncTemplate;
 import io.github.loncra.framework.minio.ObjectItem;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import io.minio.GetObjectResponse;
@@ -81,14 +83,16 @@ public class AttachmentController {
      *
      * @return 对象集合
      */
-    @GetMapping
+    @GetMapping("{type}")
     @PreAuthorize("isAuthenticated()")
-    public List<ObjectItem> list(
-            @RequestParam
+    public Object list(
+            @PathVariable
             String type,
             @CurrentSecurityContext
             SecurityContext securityContext,
-            String filename
+            String filename,
+            @RequestParam(required = false, defaultValue = "false")
+            boolean formatObjectWriteResult
     ) throws Exception {
         Assert.isTrue(
                 AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass()),
@@ -96,7 +100,11 @@ public class AttachmentController {
         );
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         FileObject fileObject = attachmentService.getFileObject(type, filename);
-        return attachmentService.list(fileObject, token);
+        List<ObjectItem> items = attachmentService.list(fileObject, token);
+        if (formatObjectWriteResult) {
+            return MinioAsyncTemplate.convertObjectWriteResult(items, fileObject.getBucketName());
+        }
+        return items;
 
     }
 
@@ -108,9 +116,10 @@ public class AttachmentController {
      *
      * @return reset 结果集
      */
+    @OperationDataTrace
     @PutMapping("delete")
+    @Plugin(name = "删除信息")
     @PreAuthorize("isFullyAuthenticated()")
-    @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<?> delete(
             @RequestBody
             List<FileObject> fileObjects,

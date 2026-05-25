@@ -5,6 +5,7 @@ import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformM
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,8 +60,9 @@ public class OpenPlatformMerchantClientController {
      * @see OpenPlatformMerchantClientEntity
      */
     @PutMapping
+    @OperationDataTrace
+    @Plugin(name = "保存或添加信息")
     @PreAuthorize("hasAuthority('perms[auth_server_open_platform_merchant_client:save]')")
-    @Plugin(name = "保存或添加信息", operationDataTrace = true)
     public RestResult<String> save(
             @Valid
             @RequestBody

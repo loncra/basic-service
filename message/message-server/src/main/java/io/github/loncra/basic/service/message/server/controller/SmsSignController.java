@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.message.server.resolver.support.SmsMessage
 import io.github.loncra.basic.service.message.server.resolver.support.sms.SmsChannelSender;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -55,7 +56,7 @@ public class SmsSignController {
         }
     }
 
-    @Plugin(name = "查看明细", operationDataTrace = true)
+    @Plugin(name = "查看明细")
     @PreAuthorize("hasAuthority('perms[message_server_sms:get]')")
     @GetMapping("/{channel}/{id:\\d+}")
     public SmsSignResponseBody get(
@@ -68,7 +69,8 @@ public class SmsSignController {
     }
 
     @PostMapping
-    @Plugin(name = "保存签名", operationDataTrace = true)
+    @OperationDataTrace
+    @Plugin(name = "保存签名")
     @PreAuthorize("hasAuthority('perms[message_server_sms:save]')")
     public SmsSignResponseBody save(
             @RequestBody
@@ -77,8 +79,9 @@ public class SmsSignController {
         return smsMessageSender.getSmsChannelSender(body.getChannel().getValue()).saveSign(body);
     }
 
+    @OperationDataTrace
     @DeleteMapping("/{channel}")
-    @Plugin(name = "删除签名", operationDataTrace = true)
+    @Plugin(name = "删除签名")
     @PreAuthorize("hasAuthority('perms[message_server_sms:delete]')")
     public RestResult<Void> delete(
             @PathVariable

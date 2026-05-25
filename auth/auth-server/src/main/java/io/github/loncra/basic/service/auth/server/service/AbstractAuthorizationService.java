@@ -4,14 +4,19 @@ import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
+import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.commons.page.ScrollPage;
+import io.github.loncra.framework.spring.security.core.authentication.AccessTokenContextRepository;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,6 +39,8 @@ import java.util.*;
 public abstract class AbstractAuthorizationService<T extends AbstractBasicSystemUser> {
 
     private List<SystemUserAuthorizationResolver<T>> systemUserAuthorizationResolvers;
+
+    private AccessTokenContextRepository accessTokenContextRepository;
 
     public SystemUserAuthorizationResolver<T> getSystemUserAuthorizationResolver(
             String type,
@@ -100,7 +107,8 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
             String oldPassword,
             String newPassword
     ) {
-        return getSystemUserAuthorizationResolver(token.getType(), true).updatePassword(token, oldPassword, newPassword);
+        return getSystemUserAuthorizationResolver(token.getType(), true)
+                .updatePassword(token, oldPassword, newPassword);
     }
 
     public Map<IdNameMetadata, List<T>> findSystemUser(
@@ -157,6 +165,24 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
                         token,
                         list,
                         sourceContains
+                );
+    }
+
+    public void uploadAvatar(
+            AuditAuthenticationToken token,
+            ObjectWriteResult avatar
+    ) {
+        AuditAuthenticationSuccessDetails details = Objects.requireNonNull(CastUtils.cast(token.getDetails()));
+        if (Objects.nonNull(avatar)) {
+            details.getMetadata().put(PrincipalDetailsConstants.AVATAR_KEY, avatar);
+        } else {
+            details.getMetadata().remove(PrincipalDetailsConstants.AVATAR_KEY);
+        }
+        accessTokenContextRepository.saveAuthentication(token);
+        getSystemUserAuthorizationResolver(token.getType(), true)
+                .updateAvatar(
+                        token.getSecurityPrincipal().getId().toString(),
+                        avatar
                 );
     }
 }

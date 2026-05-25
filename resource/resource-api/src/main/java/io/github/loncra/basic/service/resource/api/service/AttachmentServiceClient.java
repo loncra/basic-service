@@ -18,6 +18,8 @@ import io.github.loncra.framework.commons.minio.MoveFileObject;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.minio.MinioAsyncTemplate;
+import io.github.loncra.framework.spring.security.core.authentication.service.feign.FeignAuthenticationConfiguration;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -212,5 +214,28 @@ public interface AttachmentServiceClient {
         else {
             ExecuteStatus.failure(dto, "上传文件错误");
         }
+    }
+
+
+    static boolean isInaccessible(
+            AuditAuthenticationToken token,
+            Map<String, String> userMetadata
+    ) {
+        if (FeignAuthenticationConfiguration.DEFAULT_TYPE.equals(token.getType())) {
+            return true;
+        }
+        if (MapUtils.isEmpty(userMetadata)) {
+            return true;
+        }
+        Map<String, String> metadata = new LinkedHashMap<>();
+        userMetadata.forEach((k,v) -> metadata.put(k.toLowerCase(), v));
+        String uploaderId = Objects.toString(metadata.get(MinioAsyncTemplate.AMZ_META_UPLOADER_ID), StringUtils.EMPTY);
+
+        if (StringUtils.isEmpty(uploaderId)) {
+            uploaderId = Objects.toString(metadata.get(MinioAsyncTemplate.UPLOADER_ID), StringUtils.EMPTY);
+        }
+
+        return token.getName()
+                .equals(uploaderId);
     }
 }

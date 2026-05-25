@@ -13,6 +13,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,8 +92,9 @@ public class SmsMessageController {
      * @param ids 短信消息主键 ID 集合
      */
     @DeleteMapping
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[message_server_sms:delete]')")
-    @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids
@@ -124,8 +126,9 @@ public class SmsMessageController {
      *
      * @return REST 响应结果
      */
+    @OperationDataTrace
     @PostMapping("send")
-    @Plugin(name = "发送短信", operationDataTrace = true)
+    @Plugin(name = "发送短信")
     @PreAuthorize("hasAuthority('perms[message_server_sms:send]')")
     public RestResult<Object> send(
             @RequestBody

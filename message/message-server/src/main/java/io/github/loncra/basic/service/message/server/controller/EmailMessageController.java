@@ -14,6 +14,7 @@ import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.idempotent.annotation.Idempotent;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -94,8 +95,9 @@ public class EmailMessageController {
      * @param ids 邮件消息主键 ID 集合
      */
     @DeleteMapping
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[message_server_email:delete]')")
-    @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids,
@@ -113,9 +115,10 @@ public class EmailMessageController {
      *
      * @return REST 响应结果
      */
+    @OperationDataTrace
     @PostMapping("send")
+    @Plugin(name = "发送信息")
     @PreAuthorize("hasAuthority('perms[message_server_email:send]')")
-    @Plugin(name = "发送信息", operationDataTrace = true)
     @Idempotent(key = "net:hxaj:message:idempotent:email:send:[#body.principal]")
     public RestResult<Object> send(
             @RequestBody

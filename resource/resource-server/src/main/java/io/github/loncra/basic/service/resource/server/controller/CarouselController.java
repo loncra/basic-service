@@ -11,6 +11,7 @@ import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -91,8 +92,9 @@ public class CarouselController {
      * @see CarouselEntity
      */
     @PutMapping
+    @OperationDataTrace
+    @Plugin(name = "保存或添加信息")
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:save]')")
-    @Plugin(name = "保存或添加信息", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
             @RequestBody
@@ -110,8 +112,9 @@ public class CarouselController {
      * @see CarouselEntity
      */
     @DeleteMapping
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:delete]')")
-    @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam
             List<Integer> ids
@@ -127,9 +130,10 @@ public class CarouselController {
      *
      * @return REST 响应结果
      */
+    @OperationDataTrace
+    @Plugin(name = "发布信息")
     @PostMapping("release")
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:release]')")
-    @Plugin(name = "发布信息", operationDataTrace = true)
     public RestResult<Void> release(
             @RequestParam
             List<Integer> ids
@@ -145,9 +149,10 @@ public class CarouselController {
      *
      * @return REST 响应结果
      */
+    @OperationDataTrace
+    @Plugin(name = "下架信息")
     @PostMapping("revoke")
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:revoke]')")
-    @Plugin(name = "下架信息", operationDataTrace = true)
     public RestResult<Void> deactivate(
             @RequestParam
             List<Integer> ids
@@ -156,9 +161,10 @@ public class CarouselController {
         return RestResult.of("下架 " + ids.size() + " 条记录成功");
     }
 
+    @OperationDataTrace
+    @Plugin(name = "排序")
     @PutMapping("sort")
     @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:sort]')")
-    @Plugin(name = "排序", operationDataTrace = true)
     public RestResult<Void> sort(
             @Valid
             @RequestBody

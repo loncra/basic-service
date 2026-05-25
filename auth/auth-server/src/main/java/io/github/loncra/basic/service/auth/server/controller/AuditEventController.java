@@ -7,27 +7,22 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.DateUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.StringIdEntity;
-import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
-import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
-import io.github.loncra.framework.mybatis.config.OperationDataTraceProperties;
 import io.github.loncra.framework.security.audit.ExtendAuditEventRepository;
 import io.github.loncra.framework.security.audit.IdAuditEvent;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.config.ControllerAuditProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.actuate.audit.AuditEvent;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,7 +38,7 @@ import java.util.Map;
 @RequestMapping("audit/event")
 public class AuditEventController {
 
-    private final OperationDataTraceProperties operationDataTraceProperties;
+    private final ControllerAuditProperties operationDataTraceProperties;
 
     private final AuditEventRepository auditEventRepository;
 
@@ -77,8 +72,6 @@ public class AuditEventController {
     public Object operationDataTracePage(
             PageRequest pageRequest,
             @RequestParam(required = false)
-            String type,
-            @RequestParam(required = false)
             String principal,
             @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
@@ -86,19 +79,13 @@ public class AuditEventController {
             HttpServletRequest request
     ) {
 
-        Map<String, Object> query = new LinkedHashMap<>();
-        String auditType = operationDataTraceProperties.getAuditPrefixName() + CastUtils.UNDERSCORE;
-        if (StringUtils.isNotBlank(type)) {
-            auditType += type;
-        }
-
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
             Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
-            query.putAll(filter);
-            query.put("filter_[type_rlike]", auditType);
+            Map<String, Object> query = new LinkedHashMap<>(filter);
+            query.put("filter_[type_eq]", operationDataTraceProperties.getOperationDataTraceAuditName());
             return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
         } else {
-            return auditEventRepository.find(principal, after.toInstant(), auditType);
+            return auditEventRepository.find(principal, after.toInstant(), operationDataTraceProperties.getOperationDataTraceAuditName());
         }
     }
 

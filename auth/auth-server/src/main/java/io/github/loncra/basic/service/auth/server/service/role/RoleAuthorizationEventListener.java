@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.auth.server.service.role;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
-import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
@@ -181,7 +180,7 @@ public class RoleAuthorizationEventListener {
         if  (Objects.isNull(user)) {
             return ;
         }
-        userAuthorizationResolver.updateRole(user.getId(), Set.of(after.getId()));
+        userAuthorizationResolver.updateRole(user.getId().toString(), Set.of(after.getId()));
     }
 
     @EventListener

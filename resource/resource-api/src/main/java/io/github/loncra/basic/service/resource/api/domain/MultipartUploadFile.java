@@ -45,6 +45,10 @@ public class MultipartUploadFile implements MultipartFile {
         this(name, "", null, content);
     }
 
+    public MultipartUploadFile(MultipartFile file) throws IOException {
+        this(file.getName(), file.getOriginalFilename(), file.getContentType(), file.getBytes());
+    }
+
     /**
      * Create a new MultipartUploadFile with the given content.
      *

@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.resource.server.controller.dictionary;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DictionaryTypeEntity;
 import io.github.loncra.basic.service.resource.server.service.dictionary.DictionaryService;
@@ -9,6 +8,7 @@ import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -94,8 +94,9 @@ public class DictionaryTypeController {
      * @param entity 数据字典类型实体
      */
     @PutMapping
+    @OperationDataTrace
+    @Plugin(name = "添加或保存字典类型")
     @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:save]')")
-    @Plugin(name = "添加或保存字典类型", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
             @RequestBody
@@ -111,7 +112,8 @@ public class DictionaryTypeController {
      * @param ids 主键值集合
      */
     @DeleteMapping
-    @Plugin(name = "删除字典类型", operationDataTrace = true)
+    @OperationDataTrace
+    @Plugin(name = "删除字典类型")
     @PreAuthorize("hasAuthority('perms[resource_server_dictionary_type:delete]')")
     public RestResult<Void> delete(
             @RequestParam

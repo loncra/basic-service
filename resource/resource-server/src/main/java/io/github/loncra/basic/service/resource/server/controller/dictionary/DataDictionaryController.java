@@ -2,19 +2,17 @@ package io.github.loncra.basic.service.resource.server.controller.dictionary;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DataDictionaryEntity;
-import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DictionaryTypeEntity;
 import io.github.loncra.basic.service.resource.server.service.dictionary.DictionaryService;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -92,8 +90,9 @@ public class DataDictionaryController {
      * @param entity 数据字典实体
      */
     @PutMapping
+    @OperationDataTrace
+    @Plugin(name = "添加或保存数据字典")
     @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:save]')")
-    @Plugin(name = "添加或保存数据字典", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
             @RequestBody
@@ -109,8 +108,9 @@ public class DataDictionaryController {
      * @param ids 主键值集合
      */
     @DeleteMapping
+    @OperationDataTrace
+    @Plugin(name = "删除数据字典实体")
     @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:delete]')")
-    @Plugin(name = "删除数据字典实体", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids
@@ -150,9 +150,10 @@ public class DataDictionaryController {
         return dictionaryService.findGroupDataDictionariesByTypeIds(typeIds);
     }
 
+    @OperationDataTrace
+    @Plugin(name = "排序")
     @PutMapping("sort")
     @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:sort]')")
-    @Plugin(name = "排序", operationDataTrace = true)
     public RestResult<Void> sort(
             @Valid
             @RequestBody

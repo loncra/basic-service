@@ -6,7 +6,6 @@ import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.minio.Bucket;
 import org.springframework.core.ParameterizedTypeReference;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -160,12 +159,6 @@ public interface SystemConstants {
     String ENABLED_FIELD_NAME = "enabled";
 
     String AUDIT_EVENT_AUTHENTICATION_TYPE_NAME = "AUTHENTICATION_SUCCESS";
-
-    String ES_OPERATION_DATE_TARGET_NAME = "data.operationDataTrace.target";
-
-    String ES_OPERATION_DATE_ENTITY_ID_NAME = "data.operationDataTrace.entityId";
-
-    String IDENTITY_FIELD_NAME = "identity";
 
     String AUTHENTICATED_FIELD_NAME = "authenticated";
 

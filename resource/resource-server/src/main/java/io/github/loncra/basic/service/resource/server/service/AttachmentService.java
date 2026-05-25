@@ -6,6 +6,7 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.resource.api.domain.metadata.AttachmentTypeFileObjectMetadata;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
+import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.basic.service.resource.server.domain.body.CompleteUploadRequestBody;
 import io.github.loncra.basic.service.resource.server.domain.body.PresignedUrlRequestBody;
 import io.github.loncra.basic.service.resource.server.reslover.AttachmentResolver;
@@ -27,14 +28,9 @@ import io.github.loncra.framework.crypto.algorithm.CodecUtils;
 import io.github.loncra.framework.minio.MinioAsyncTemplate;
 import io.github.loncra.framework.minio.ObjectItem;
 import io.github.loncra.framework.minio.UserMetadataFileObject;
-import io.github.loncra.framework.spring.security.core.audit.config.ControllerAuditProperties;
-import io.github.loncra.framework.spring.security.core.authentication.service.feign.FeignAuthenticationConfiguration;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import io.minio.*;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.XmlParserException;
 import io.minio.http.Method;
 import io.minio.messages.InitiateMultipartUploadResult;
 import io.minio.messages.Item;
@@ -62,12 +58,9 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.Consumer;
@@ -302,7 +295,7 @@ public class AttachmentService implements InitializingBean {
                 .put(HttpHeaders.CONTENT_TYPE, contentType);
 
         result.putAll(CastUtils.convertValue(filenameObject, CastUtils.MAP_TYPE_REFERENCE));
-        result.put(ControllerAuditProperties.DEFAULT_PARAM_KEY, appendParam);
+        result.put(SystemConstants.APPEND_PARAM_FIELD_NAME, appendParam);
         result.put(attachmentConfig.getUploadBlockSizeParamName(), attachmentConfig.getUploadBlockSize());
 
         double chunkSize = Math.ceil((double) size / (double) attachmentConfig.getUploadBlockSize());
@@ -312,7 +305,6 @@ public class AttachmentService implements InitializingBean {
                 .result();
 
         result.put(attachmentConfig.getUploadIdParamName(), uploadResult.uploadId());
-
         result.put(attachmentConfig.getChunkParamName(), chunkSize);
 
         String key = attachmentConfig.getMultipartUploadCache()
@@ -486,7 +478,7 @@ public class AttachmentService implements InitializingBean {
                 .stream();
 
         if (Objects.nonNull(token)) {
-            streamed = streamed.filter(o -> isInaccessible(token, o.getUserMetadata()));
+            streamed = streamed.filter(o -> AttachmentServiceClient.isInaccessible(token, o.getUserMetadata()));
         }
 
         return streamed.toList();
@@ -523,7 +515,7 @@ public class AttachmentService implements InitializingBean {
                         .statObject(args)
                         .get();
 
-                if (Objects.nonNull(token) && isInaccessible(token, statObjectResponse.userMetadata())) {
+                if (Objects.nonNull(token) && !AttachmentServiceClient.isInaccessible(token, statObjectResponse.userMetadata())) {
                     continue;
                 }
 
@@ -534,7 +526,7 @@ public class AttachmentService implements InitializingBean {
                     continue;
                 }
 
-                minioAsyncTemplate.deleteObject(object, true);
+                minioAsyncTemplate.deleteObject(object, false);
 
                 executeVoidAttachmentResolver(object, r -> r.postDelete(object, appendParam));
                 if (MapUtils.isNotEmpty(item)) {
@@ -544,28 +536,6 @@ public class AttachmentService implements InitializingBean {
         }
 
         return result;
-    }
-
-    public static boolean isInaccessible(
-            AuditAuthenticationToken token,
-            Map<String, String> userMetadata
-    ) {
-        if (FeignAuthenticationConfiguration.DEFAULT_TYPE.equals(token.getType())) {
-            return false;
-        }
-
-        String uploaderId = Objects.toString(userMetadata.get(MinioAsyncTemplate.AMZ_META_UPLOADER_ID), StringUtils.EMPTY);
-
-        if (StringUtils.isEmpty(uploaderId)) {
-            uploaderId = Objects.toString(userMetadata.get(MinioAsyncTemplate.UPLOADER_ID), StringUtils.EMPTY);
-        }
-
-        if (StringUtils.isEmpty(uploaderId)) {
-            return false;
-        }
-
-        return !token.getName()
-                .equals(uploaderId);
     }
 
     public ResponseEntity<byte[]> getObjectResponseEntity(

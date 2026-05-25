@@ -10,6 +10,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -89,7 +90,8 @@ public class BatchMessageController {
      * @see BatchMessageEntity
      */
     @DeleteMapping
-    @Plugin(name = "删除信息", operationDataTrace = true)
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[message_server_batch_message:delete]')")
     public RestResult<Void> delete(
             @RequestParam

@@ -10,6 +10,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -113,8 +114,9 @@ public class RoleController {
      * @return REST 响应结果
      */
     @PutMapping
+    @OperationDataTrace
     @PreAuthorize("hasAuthority('perms[auth_server_role:save]')")
-    @Plugin(name = "添加或保存信息", operationDataTrace = true)
+    @Plugin(name = "添加或保存信息")
     public RestResult<Long> save(
             @Valid
             @RequestBody
@@ -132,8 +134,9 @@ public class RoleController {
      * @return REST 响应结果
      */
     @DeleteMapping
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[auth_server_role:delete]')")
-    @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids

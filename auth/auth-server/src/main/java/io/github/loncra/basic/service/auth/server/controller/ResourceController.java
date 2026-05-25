@@ -11,6 +11,7 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -84,8 +85,9 @@ public class ResourceController {
     }
 
     @PutMapping
+    @OperationDataTrace
+    @Plugin(name = "添加或保存信息")
     @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:save]')")
-    @Plugin(name = "添加或保存信息", operationDataTrace = true)
     public RestResult<Long> save(
             @Valid
             @RequestBody
@@ -99,8 +101,9 @@ public class ResourceController {
     }
 
     @DeleteMapping
+    @OperationDataTrace
     @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:delete]')")
-    @Plugin(name = "删除信息", operationDataTrace = true)
+    @Plugin(name = "删除信息")
     public RestResult<Void> delete(
             @RequestParam
             List<Long> ids
@@ -109,9 +112,10 @@ public class ResourceController {
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 
+    @OperationDataTrace
     @PutMapping("sort")
+    @Plugin(name = "排序")
     @PreAuthorize("hasAuthority('perms[auth_server_authority_resource:sort]')")
-    @Plugin(name = "排序", operationDataTrace = true)
     public RestResult<Void> sort(
             @Valid
             @RequestBody

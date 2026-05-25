@@ -14,6 +14,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -117,7 +118,8 @@ public class ConsoleUserController {
      * @return REST 响应结果
      */
     @PutMapping
-    @Plugin(name = "添加或保存信息", operationDataTrace = true)
+    @OperationDataTrace
+    @Plugin(name = "添加或保存信息")
     @PreAuthorize("hasAuthority('perms[auth_server_console_user:save]')")
     public RestResult<Long> save(
             @Valid
@@ -137,7 +139,8 @@ public class ConsoleUserController {
      * @return REST 响应结果
      */
     @DeleteMapping
-    @Plugin(name = "删除信息", operationDataTrace = true)
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[auth_server_console_user:delete]')")
     public RestResult<Void> delete(
             @RequestParam

@@ -10,6 +10,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -88,8 +89,9 @@ public class PersonalUserController {
      * @see PersonalUserEntity
      */
     @PutMapping
+    @OperationDataTrace
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:save]')")
-    @Plugin(name = "保存或添加信息", operationDataTrace = true)
+    @Plugin(name = "保存或添加信息")
     public RestResult<Long> save(@Valid @RequestBody PersonalUserEntity entity) {
         personalUserService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());
@@ -103,8 +105,9 @@ public class PersonalUserController {
      * @see PersonalUserEntity
      */
     @DeleteMapping
+    @OperationDataTrace
+    @Plugin(name = "删除信息")
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:delete]')")
-    @Plugin(name = "删除信息", operationDataTrace = true)
     public RestResult<Void> delete(@RequestParam List<Long> ids) {
         personalUserService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
