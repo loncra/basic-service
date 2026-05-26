@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.auth.server.domain.metdata;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
@@ -66,13 +67,14 @@ public class ResourceMetadata extends ResourceAuthority implements Tree<Long, Re
     /**
      * 父类 id
      */
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long parentId;
 
     /**
      * 子节点
      */
-    @TableField(exist = false)
     @ToString.Exclude
+    @TableField(exist = false)
     private List<Tree<Long, ResourceMetadata>> children = new LinkedList<>();
 
     @Override

@@ -74,7 +74,7 @@ public class UserAvatarController {
             SystemException.isTrue(AttachmentServiceClient.isInaccessible(token, objectWriteResult.getExtraHeaders()), "该头像不是当前用户可用的头像");
         }
         authorizationService.uploadAvatar(token, objectWriteResult);
-        return RestResult.of("上传头像成功");
+        return RestResult.of("更换个人头像");
     }
 
 }

@@ -425,7 +425,7 @@ public class AttachmentService implements InitializingBean {
             AttachmentTypeEnum a
     ) {
         bucket.put(NameEnum.FIELD_NAME, a.getName());
-        bucket.put(IdNameValueMetadata.VALUE_FIELD_NAME, a.getValue());
+        bucket.put(IdNameValueMetadata.VALUE_FIELD_NAME, attachmentConfig.getBucketName(a.getValue()));
     }
 
     public String getObjectResponseFilename(
@@ -457,7 +457,7 @@ public class AttachmentService implements InitializingBean {
             filename = StringUtils.substringAfterLast(filename, AntPathMatcher.DEFAULT_PATH_SEPARATOR);
         }
 
-        return filename;
+        return System.currentTimeMillis() + CastUtils.UNDERSCORE + filename;
     }
 
     public List<ObjectItem> list(
@@ -470,6 +470,7 @@ public class AttachmentService implements InitializingBean {
                 .fetchOwner(true)
                 .prefix(fileObject.getObjectName())
                 .includeUserMetadata(true)
+                .recursive(true)
                 .build();
 
         Iterable<Result<Item>> iterable = minioAsyncTemplate.listObjects(args);

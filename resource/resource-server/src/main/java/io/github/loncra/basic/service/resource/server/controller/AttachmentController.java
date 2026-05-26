@@ -16,6 +16,7 @@ import io.github.loncra.framework.crypto.algorithm.Base64;
 import io.github.loncra.framework.crypto.algorithm.CodecUtils;
 import io.github.loncra.framework.minio.MinioAsyncTemplate;
 import io.github.loncra.framework.minio.ObjectItem;
+import io.github.loncra.framework.security.audit.Auditable;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -56,13 +57,6 @@ import java.util.zip.ZipOutputStream;
 @Slf4j
 @RestController
 @RequestMapping("attachment")
-@Plugin(
-        name = "文件管理",
-        id = "attachment",
-        parent = "resource",
-        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-        sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
-)
 @RequiredArgsConstructor
 public class AttachmentController {
 
@@ -74,22 +68,79 @@ public class AttachmentController {
         return attachmentService.buckets();
     }
 
+    @PostMapping("/find")
+    @Plugin(
+            name = "文件管理",
+            id = "attachment_manager",
+            parent = "resource",
+            type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+            sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+    )
+    @PreAuthorize("hasAuthority('perms[resource_server_attachment:find]')")
+    public Object find(
+            @RequestParam
+            String type,
+            String filename,
+            @RequestParam(required = false, defaultValue = "false")
+            boolean formatObjectWriteResult
+    ) throws Exception {
+        FileObject fileObject = attachmentService.getFileObject(type, filename);
+        List<ObjectItem> items = attachmentService.list(fileObject, null);
+        if (formatObjectWriteResult) {
+            return MinioAsyncTemplate.convertObjectWriteResult(items, fileObject.getBucketName());
+        }
+        return items;
+
+    }
+
     /**
-     * 获取当前用户上传的文件内容
+     * 删除文件
      *
-     * @param type            附件类型
+     * @param fileObjects 文件对象集合
+     * @param appendParam 附加参数
+     *
+     * @return reset 结果集
+     */
+    @Auditable("文件管理_删除文件")
+    @PutMapping("delete")
+    @Plugin(name = "删除文件", parent = "attachment_manager", sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE})
+    @PreAuthorize("hasAuthority('perms[resource_server_attachment:delete]')")
+    public RestResult<?> delete(
+            @RequestBody
+            List<FileObject> fileObjects,
+            @RequestParam
+            Map<String, Object> appendParam
+    ) throws Exception {
+        List<FileObject> convertList = fileObjects.stream()
+                .map(f -> attachmentService.getFileObject(f.getBucketName(), f.getObjectName()))
+                .toList();
+        List<Map<String, Object>> data = attachmentService.delete(convertList, null, appendParam);
+        String message = getDeleteMessage(fileObjects);
+        return RestResult.ofSuccess(message, data);
+    }
+
+    /**
+     * 我的资源
+     *
      * @param securityContext spring security 上下文
      * @param filename        文件名称
      *
      * @return 对象集合
      */
-    @GetMapping("{type}")
+    @Plugin(
+            name = "我的资源",
+            id = "my_resource",
+            parent = "resource",
+            type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
+    )
+    @PostMapping("/my/find")
     @PreAuthorize("isAuthenticated()")
-    public Object list(
-            @PathVariable
-            String type,
+    public Object my(
             @CurrentSecurityContext
             SecurityContext securityContext,
+            @RequestParam(required = false, defaultValue = "user.file")
+            String type,
             String filename,
             @RequestParam(required = false, defaultValue = "false")
             boolean formatObjectWriteResult
@@ -109,20 +160,20 @@ public class AttachmentController {
     }
 
     /**
-     * 删除文件
+     * 删除资源
      *
-     * @param fileObjects 文件对象集合
+     * @param ids 对象名称
      * @param appendParam 附加参数
      *
      * @return reset 结果集
      */
-    @OperationDataTrace
-    @PutMapping("delete")
-    @Plugin(name = "删除信息")
+    @Auditable("我的资源_删除信息")
+    @PutMapping("my")
+    @Plugin(name = "删除信息", parent = "my_resource")
     @PreAuthorize("isFullyAuthenticated()")
     public RestResult<?> delete(
             @RequestBody
-            List<FileObject> fileObjects,
+            List<String> ids,
             @CurrentSecurityContext
             SecurityContext securityContext,
             @RequestParam
@@ -132,12 +183,10 @@ public class AttachmentController {
                 AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass()),
                 "当前 Authentication 非 AuditAuthenticationToken 实例，不支持获取附件信息"
         );
+        List<FileObject> files = ids.stream().map(id -> attachmentService.getFileObject(AttachmentTypeEnum.USER_FILE.getValue(), id)).toList();
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        List<FileObject> convertList = fileObjects.stream()
-                .map(f -> attachmentService.getFileObject(f.getBucketName(), f.getObjectName()))
-                .toList();
-        List<Map<String, Object>> data = attachmentService.delete(convertList, token, appendParam);
-        String message = getDeleteMessage(fileObjects);
+        List<Map<String, Object>> data = attachmentService.delete(files, token, appendParam);
+        String message = getDeleteMessage(files);
         return RestResult.ofSuccess(message, data);
     }
 
@@ -147,6 +196,54 @@ public class AttachmentController {
             message = "删除 " + fileObjects.getFirst().getObjectName() + "文件成功";
         }
         return message;
+    }
+
+
+
+    /**
+     * 查找用户导出数据
+     *
+     * @param securityContext 安全上下文
+     *
+     * @return 用户导出数据集合
+     */
+    @Plugin(
+            id = "user_export",
+            name = "导出数据",
+            type = ResourceTypeEnum.RESOURCE_TOOL_TYPE
+    )
+    @PostMapping("user/export/find")
+    @PreAuthorize("isAuthenticated()")
+    public List<ExportDataMetadata> userExport(
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return attachmentService.findUserExport(token);
+    }
+
+    /**
+     * 删除用户导出数据
+     *
+     * @param securityContext 安全上下文
+     * @param ids             导出数据 id 集合
+     *
+     * @return rest 结果集
+     */
+    @Auditable("导出数据_删除信息")
+    @DeleteMapping("user/export")
+    @PreAuthorize("isAuthenticated()")
+    @Plugin(name = "删除信息", parent = "user_export")
+    public RestResult<Void> deleteUserExport(
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            @RequestParam
+            List<String> ids
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        attachmentService.deleteUserExport(token, ids);
+
+        return RestResult.of("删除 " + ids.size() + "数据成功");
     }
 
     /**
@@ -346,18 +443,18 @@ public class AttachmentController {
     /**
      * 获取文件
      *
-     * @param bucketName 桶名称
+     * @param type 桶名称
      * @param objectName 文件名称
      *
      * @return 文件流字节
      *
      * @throws Exception 获取失败时抛出
      */
-    @GetMapping("{bucketName}/{objectName}")
+    @GetMapping("{type}")
     public Object get(
             @PathVariable
-            String bucketName,
-            @PathVariable
+            String type,
+            @RequestParam
             String objectName,
             @RequestParam(required = false, defaultValue = "false")
             boolean base64,
@@ -371,7 +468,7 @@ public class AttachmentController {
             token = CastUtils.cast(securityContext.getAuthentication());
         }
 
-        FileObject fileObject = attachmentService.getFileObject(bucketName, objectName);
+        FileObject fileObject = attachmentService.getFileObject(type, objectName);
 
         ResponseEntity<byte[]> response = attachmentService.getObject(fileObject, token, appendParam);
 
@@ -412,44 +509,5 @@ public class AttachmentController {
             CopyFileObject object
     ) throws Exception {
         return attachmentService.copyObject(object);
-    }
-
-    /**
-     * 查找用户导出数据
-     *
-     * @param securityContext 安全上下文
-     *
-     * @return 用户导出数据集合
-     */
-    @PostMapping("user/export/find")
-    @PreAuthorize("isAuthenticated()")
-    public List<ExportDataMetadata> userExport(
-            @CurrentSecurityContext
-            SecurityContext securityContext
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return attachmentService.findUserExport(token);
-    }
-
-    /**
-     * 删除用户导出数据
-     *
-     * @param securityContext 安全上下文
-     * @param ids             导出数据 id 集合
-     *
-     * @return rest 结果集
-     */
-    @DeleteMapping("user/export")
-    @PreAuthorize("isAuthenticated()")
-    public RestResult<Void> deleteUserExport(
-            @CurrentSecurityContext
-            SecurityContext securityContext,
-            @RequestParam
-            List<String> ids
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        attachmentService.deleteUserExport(token, ids);
-
-        return RestResult.of("删除 " + ids.size() + "数据成功");
     }
 }

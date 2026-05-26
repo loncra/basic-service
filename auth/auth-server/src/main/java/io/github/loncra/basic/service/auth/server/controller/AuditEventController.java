@@ -21,10 +21,16 @@ import org.springframework.boot.actuate.audit.AuditEvent;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,7 +44,7 @@ import java.util.Map;
 @RequestMapping("audit/event")
 public class AuditEventController {
 
-    private final ControllerAuditProperties operationDataTraceProperties;
+    private final ControllerAuditProperties controllerAuditProperties;
 
     private final AuditEventRepository auditEventRepository;
 
@@ -66,9 +72,45 @@ public class AuditEventController {
         }
     }
 
+    @PostMapping("audit/page")
+    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:audit]')")
+    @Plugin(
+            id = "audit_log",
+            name = "审计日志查询",
+            parent = "log",
+            remark = "非数据库操作数据留痕",
+            type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+            sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+    )
+    public Object auditPage(
+            PageRequest pageRequest,
+            @RequestParam(required = false)
+            String principal,
+            @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
+            @RequestParam
+            Date after,
+            HttpServletRequest request
+    ) {
+        if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
+            Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
+            Map<String, Object> query = new LinkedHashMap<>(filter);
+            query.put("filter_[type_eq]", controllerAuditProperties.getControllerAuditName());
+            return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
+        } else {
+            return auditEventRepository.find(principal, after.toInstant(), controllerAuditProperties.getOperationDataTraceAuditName());
+        }
+    }
+
     @PostMapping("operationDataTrace/page")
     @PreAuthorize("hasAuthority('perms[auth_server_audit_event:operation_data_trace]')")
-    @Plugin(id = "operation_log", name = "操作日志查询", parent = "log", type = ResourceTypeEnum.RESOURCE_MENU_TYPE, sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE)
+    @Plugin(
+            id = "operation_log",
+            name = "操作日志查询",
+            parent = "log",
+            remark = "数据库操作数据留痕",
+            type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+            sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+    )
     public Object operationDataTracePage(
             PageRequest pageRequest,
             @RequestParam(required = false)
@@ -82,10 +124,10 @@ public class AuditEventController {
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
             Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
             Map<String, Object> query = new LinkedHashMap<>(filter);
-            query.put("filter_[type_eq]", operationDataTraceProperties.getOperationDataTraceAuditName());
+            query.put("filter_[type_eq]", controllerAuditProperties.getOperationDataTraceAuditName());
             return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
         } else {
-            return auditEventRepository.find(principal, after.toInstant(), operationDataTraceProperties.getOperationDataTraceAuditName());
+            return auditEventRepository.find(principal, after.toInstant(), controllerAuditProperties.getOperationDataTraceAuditName());
         }
     }
 
@@ -115,5 +157,24 @@ public class AuditEventController {
         stringIdEntity.setId(id);
         stringIdEntity.setCreationTime(after.toInstant());
         return extendAuditEventRepository.get(stringIdEntity);
+    }
+
+    @GetMapping("principal/activity")
+    @PreAuthorize("isAuthenticated()")
+    public Object principalActivity(
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+
+        String principal = securityContext.getAuthentication().getName();
+        Instant after = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
+            Map<String, Object> query = new LinkedHashMap<>();
+            query.put("filter_[principal_eq]", principal);
+            query.put("filter_[type_in]", List.of(controllerAuditProperties.getOperationDataTraceAuditName(), controllerAuditProperties.getControllerAuditName()));
+            return extendAuditEventRepository.findPage(PageRequest.of(1000), LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant(), query);
+        } else {
+            return auditEventRepository.find(principal, after, controllerAuditProperties.getOperationDataTraceAuditName());
+        }
     }
 }

@@ -181,9 +181,9 @@ public interface SystemConstants {
      */
     Bucket EXPORT_BUCKET = Bucket.of("loncra.basic.service.resource.temp");
 
-    CacheProperties USER_IMPORT_CACHE = CacheProperties.of("loncra:basic-service:resources:user:import", TimeProperties.of(7, TimeUnit.DAYS));
+    CacheProperties USER_IMPORT_CACHE = CacheProperties.of("loncra:basic-service:resource:user:import", TimeProperties.of(7, TimeUnit.DAYS));
 
-    CacheProperties USER_EXPORT_CACHE = CacheProperties.of("loncra:basic-service:resources:user:export:", TimeProperties.of(7, TimeUnit.DAYS));
+    CacheProperties USER_EXPORT_CACHE = CacheProperties.of("loncra:basic-service:resource:user:export:", TimeProperties.of(7, TimeUnit.DAYS));
 
     ParameterizedTypeReference<Map<String, Object>> MAP_REFERENCE = new ParameterizedTypeReference<>() {
     };
