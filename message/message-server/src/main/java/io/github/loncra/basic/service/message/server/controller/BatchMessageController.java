@@ -76,7 +76,7 @@ public class BatchMessageController {
     @Plugin(name = "查看明细")
     @PreAuthorize("hasAuthority('perms[message_server_batch_message:get]')")
     public BatchMessageEntity get(
-            @RequestParam("id")
+            @PathVariable
             Long id
     ) {
         return batchMessageService.get(id);

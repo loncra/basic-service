@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.message.server.domain.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.commons.domain.AttachmentMessage;
+import io.github.loncra.basic.service.message.api.enumerate.SiteMessagePushableChannelEnum;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
@@ -42,23 +43,17 @@ public class SiteMessageEntity extends BasicMessageEntity implements AttachmentM
      * 标题
      */
     private String title;
+
     /**
-     * 渠道商
+     * 推送渠道
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<String> channel;
+    private List<SiteMessagePushableChannelEnum> channel;
 
     /**
      * 收信用户
      */
     private String toUser;
-
-    /**
-     * 操作人
-     * @deprecated 通过系统审计去记录发送者就好
-     */
-    @Deprecated
-    private String principal;
 
     /**
      * 是否可推送的消息：0.否，1.是

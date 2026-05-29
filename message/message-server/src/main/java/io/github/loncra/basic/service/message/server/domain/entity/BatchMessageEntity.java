@@ -62,15 +62,6 @@ public class BatchMessageEntity extends LongVersionEntity<Integer> {
     private BatchMessageTypeEnum type;
 
     /**
-     * 获取发送重的数量
-     *
-     * @return 数量
-     */
-    public Integer getSendingNumber() {
-        return count - successNumber - failNumber;
-    }
-
-    /**
      * 批量消息接口，用于统一规范使用
      *
      * @author maurice.chen

@@ -122,12 +122,12 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
 
         Map<IdNameMetadata, List<T>> result = new LinkedHashMap<>();
         for (SystemUserAuthorizationResolver<T> resolver : getSystemUserAuthorizationResolvers()) {
-            if (ignoreTypes.contains(resolver.getSource().getName())) {
+            if (ignoreTypes.contains(resolver.getSource().getValue())) {
                 continue;
             }
 
             MultiValueMap<String, Object> resolverFilter = new LinkedMultiValueMap<>(filter);
-            String prefix = resolver.getSource().getName() + CacheProperties.DEFAULT_SEPARATOR;
+            String prefix = resolver.getSource().getValue() + CacheProperties.DEFAULT_SEPARATOR;
             List<String> keys = filter
                     .keySet()
                     .stream()

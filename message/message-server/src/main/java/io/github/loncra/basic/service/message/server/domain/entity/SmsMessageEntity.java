@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.message.server.domain.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.enumerate.CloudChannelEnum;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.CryptoProperties;
 import io.github.loncra.framework.mybatis.plus.annotation.Decryption;
@@ -38,7 +39,7 @@ public class SmsMessageEntity extends BasicMessageEntity implements BatchMessage
     /**
      * 渠道名称
      */
-    private String channel;
+    private CloudChannelEnum channel;
 
     /**
      * 手机号码
@@ -59,10 +60,5 @@ public class SmsMessageEntity extends BasicMessageEntity implements BatchMessage
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();
-
-    /**
-     * 收信人
-     */
-    private String principal;
 
 }

@@ -118,7 +118,7 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
 
         List<SiteMessageChannelSender> siteMessageChannelSenders = getSiteMessageChannelSender(config.getChannel());
 
-        entity.setChannel(config.getChannel());
+        //entity.setChannel(config.getChannel());
 
         try {
             Map<String, RestResult<Map<String, Object>>> restResults = new LinkedHashMap<>();

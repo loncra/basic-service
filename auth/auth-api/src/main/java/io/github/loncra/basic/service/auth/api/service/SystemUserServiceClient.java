@@ -22,26 +22,13 @@ public interface SystemUserServiceClient {
     /**
      * 获取系统用户
      *
-     * @param metadata 带名称的 id 元数据
+     * @param systemName 系统名称
      *
      * @return 系统用户
      */
-    <T extends AbstractBasicSystemUser> T getSystemUser(
-            TypeIdNameMetadata metadata
+    Map<String, Object> getSystemUser(
+            String systemName
     );
-
-    /**
-     * 获取系统用户
-     *
-     * @param principal 用户表达式 (用户类型:用户主键 id)
-     *
-     * @return 系统用户
-     */
-    default <T extends AbstractBasicSystemUser> T getSystemUserByPrincipalString(
-            String principal
-    ) {
-        return getSystemUser(TypeIdNameMetadata.ofPrincipalString(principal));
-    }
 
     /**
      * 通过类型和 id 获取系统用户
@@ -51,7 +38,7 @@ public interface SystemUserServiceClient {
      *
      * @return 系统用户
      */
-    <T extends AbstractBasicSystemUser> T getSystemUserByPathVariable(
+    Map<String, Object> getSystemUserByPathVariable(
             String type,
             Object id
     );
@@ -64,7 +51,7 @@ public interface SystemUserServiceClient {
      *
      * @return 系统用户集合
      */
-    <T extends AbstractBasicSystemUser> List<Map<String, T>> findSystemUser(
+    List<Map<String, Map<String, Object>>> findSystemUser(
             @PathVariable(required = false)
             String type,
             Map<String, Object> filter

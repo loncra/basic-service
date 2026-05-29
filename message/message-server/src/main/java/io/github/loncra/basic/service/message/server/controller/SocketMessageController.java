@@ -59,7 +59,6 @@ public class SocketMessageController {
      * @return REST 响应结果
      */
     @PostMapping("broadcast")
-    @PreAuthorize("hasRole('FEIGN')")
     public List<RestResult<?>> broadcast(
             @RequestBody
             List<BroadcastMessageMetadata<?>> messageList
@@ -81,7 +80,6 @@ public class SocketMessageController {
      * @return 发送结果集合
      */
     @PostMapping("unicast/multiple")
-    @PreAuthorize("hasRole('FEIGN')")
     public List<RestResult<?>> multipleUnicast(
             @RequestBody
             List<MultipleUnicastMessageMetadata<?>> messageList
@@ -105,7 +103,6 @@ public class SocketMessageController {
      * @return 发送结果集合
      */
     @PostMapping("unicast")
-    @PreAuthorize("hasRole('FEIGN')")
     public List<RestResult<?>> unicast(
             @RequestBody
             List<UnicastMessageMetadata<?>> messageList
@@ -123,7 +120,6 @@ public class SocketMessageController {
      * @return ACK 回执结果集合
      */
     @PostMapping("unicast/ack")
-    @PreAuthorize("hasRole('FEIGN')")
     public List<RestResult<?>> ackUnicast(
             @RequestBody
             List<UnicastMessageMetadata<?>> messageList
@@ -144,7 +140,6 @@ public class SocketMessageController {
      * @param messageList 批量单播消息元数据集合
      * @return ACK 回执结果集合
      */
-    @PreAuthorize("hasRole('FEIGN')")
     @PostMapping("unicast/multiple/ack")
     public List<RestResult<?>> ackMultipleUnicast(
             @RequestBody
@@ -167,7 +162,6 @@ public class SocketMessageController {
      * @return ACK 回执结果集合
      */
     @PostMapping("broadcast/ack")
-    @PreAuthorize("hasRole('FEIGN')")
     public List<RestResult<?>> ackBroadcast(
             @RequestBody
             List<BroadcastMessageMetadata<?>> messageList

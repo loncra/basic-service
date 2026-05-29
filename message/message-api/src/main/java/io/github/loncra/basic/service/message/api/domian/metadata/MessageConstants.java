@@ -27,7 +27,7 @@ public interface MessageConstants {
 
     String DEFAULT_CONTENT_KEY = "content";
 
-    String VARIABLE_FIELD = "variable";
+    String VARIABLES_FIELD = "variables";
 
     /**
      * 站内信常量

@@ -73,7 +73,7 @@ loncra:
             - "$.data.details.metadata.realName"
             - "$.data.details.metadata.email"
             - "$.data.details.metadata.phoneNumber"
-          findSystemUsers:
+          systemUsers:
             - "$.data[*].value[*].realName"
             - "$.data[*].value[*].email"
             - "$.data[*].value[*].phoneNumber"

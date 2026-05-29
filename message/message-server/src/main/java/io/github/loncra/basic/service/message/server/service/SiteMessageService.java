@@ -148,7 +148,9 @@ public class SiteMessageService extends BasicService<SiteMessageDao, SiteMessage
 
     @Override
     public int deleteByEntity(SiteMessageEntity entity) {
-        attachmentServiceClient.deleteAttachment(new LinkedList<>(entity.getAttachmentList()), new LinkedHashMap<>());
+        if (CollectionUtils.isNotEmpty(entity.getAttachmentList())) {
+            attachmentServiceClient.deleteAttachment(new LinkedList<>(entity.getAttachmentList()), new LinkedHashMap<>());
+        }
         return super.deleteByEntity(entity);
     }
 

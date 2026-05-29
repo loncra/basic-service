@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.message.server.resolver.support;
 
 import com.rabbitmq.client.Channel;
+import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -22,6 +23,7 @@ import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
@@ -120,7 +122,7 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
 
         SmsChannelSender smsChannelSender = getSmsChannelSender(config.getChannel());
 
-        entity.setChannel(smsChannelSender.getType().getValue());
+        entity.setChannel(smsChannelSender.getType());
 
         try {
 
@@ -207,19 +209,15 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
             SmsMessageEntity entity = CastUtils.of(body, SmsMessageEntity.class);
             entity.setPhoneNumber(phoneNumber);
             if (Strings.CS.contains(phoneNumber, CacheProperties.DEFAULT_SEPARATOR) && ResourceSourceEnum.validate(phoneNumber)) {
-                TypeIdNameMetadata principal = TypeIdNameMetadata.ofPrincipalString(phoneNumber);
-                Map<String, Object> user = systemUserServiceClient.getSystemUser(principal);
-                Long userId = CastUtils.cast(user.get(IdEntity.ID_FIELD_NAME), Long.class);
+                Map<String, Object> user = systemUserServiceClient.getSystemUser(phoneNumber);
                 String phone = Objects.toString(user.get(PrincipalDetailsConstants.PHONE_NUMBER_KEY), StringUtils.EMPTY);
                 if(StringUtils.isEmpty(phone)) {
                     continue;
                 }
                 entity.setPhoneNumber(phone);
-                IdNameValueMetadata<Long, String> metadata = new IdNameValueMetadata<>(
-                        IdValueMetadata.of(userId, PrincipalDetailsConstants.getPrincipalName(user)),
-                        principal.getType()
-                );
-                entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, metadata);
+                String systemName = Objects.toString(user.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY));
+                String name = PrincipalDetailsConstants.getPrincipalName(user);
+                entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, IdNameMetadata.of(systemName,name));
             } else if (Arrays.stream(ResourceSourceEnum.values()).anyMatch(r -> r.toString().equals(phoneNumber))) {
                 Map<String, Object> filter = new LinkedHashMap<>();
                 filter.put("filter_[phone_number_nen]", true);

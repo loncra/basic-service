@@ -487,7 +487,6 @@ public class AttachmentController {
      * @return rest 结果集
      */
     @PostMapping("move")
-    @PreAuthorize("hasRole('FEIGN')")
     public ObjectWriteResult move(
             @RequestBody
             MoveFileObject object
@@ -503,7 +502,6 @@ public class AttachmentController {
      * @return rest 结果集
      */
     @PostMapping("copy")
-    @PreAuthorize("hasRole('FEIGN')")
     public ObjectWriteResult copy(
             @RequestBody
             CopyFileObject object

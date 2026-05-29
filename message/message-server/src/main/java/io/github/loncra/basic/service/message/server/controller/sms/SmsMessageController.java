@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.controller;
+package io.github.loncra.basic.service.message.server.controller.sms;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
@@ -126,8 +126,8 @@ public class SmsMessageController {
      *
      * @return REST 响应结果
      */
+    @PutMapping
     @OperationDataTrace
-    @PostMapping("send")
     @Plugin(name = "发送短信")
     @PreAuthorize("hasAuthority('perms[message_server_sms:send]')")
     public RestResult<Object> send(

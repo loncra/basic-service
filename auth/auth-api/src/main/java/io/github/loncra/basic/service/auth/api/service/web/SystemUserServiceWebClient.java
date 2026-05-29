@@ -28,32 +28,15 @@ public interface SystemUserServiceWebClient extends SystemUserServiceClient {
     /**
      * 获取系统用户
      *
-     * @param metadata 带名称的 id 元数据
+     * @param systemName 用户系统名称
      *
      * @return 系统用户
      */
     @Override
-    @PostExchange("getSystemUser")
-    <T extends AbstractBasicSystemUser> T getSystemUser(
-            @RequestBody
-            TypeIdNameMetadata metadata
-    );
-
-    /**
-     * 通过类型和 id 获取系统用户
-     *
-     * @param type 用户类型，参考 {@link ResourceSourceEnum}
-     * @param id   主键 id
-     *
-     * @return 系统用户
-     */
-    @Override
-    @GetExchange("getSystemUserByPathVariable/{type}/{id}")
-    <T extends AbstractBasicSystemUser> T getSystemUserByPathVariable(
+    @PostExchange("system/user/{systemName}")
+    Map<String, Object> getSystemUser(
             @PathVariable
-            String type,
-            @PathVariable
-            Object id
+            String systemName
     );
 
     /**
@@ -65,8 +48,8 @@ public interface SystemUserServiceWebClient extends SystemUserServiceClient {
      * @return 系统用户集合
      */
     @Override
-    @PostExchange("findSystemUserByPathVariable/{type}")
-    <T extends AbstractBasicSystemUser> List<Map<String, T>> findSystemUser(
+    @PostExchange("system/user/find/{type}")
+    List<Map<String, Map<String, Object>>> findSystemUser(
             @PathVariable(required = false)
             String type,
             Map<String, Object> filter

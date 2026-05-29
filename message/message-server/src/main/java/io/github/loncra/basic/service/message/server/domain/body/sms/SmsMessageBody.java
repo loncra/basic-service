@@ -23,7 +23,7 @@ import java.util.Map;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SmsMessageBody extends BasicMessageEntity implements AuditPrincipal {
+public class SmsMessageBody extends BasicMessageEntity {
 
     @Serial
     private static final long serialVersionUID = -6678810630364920364L;
@@ -41,9 +41,4 @@ public class SmsMessageBody extends BasicMessageEntity implements AuditPrincipal
      * 元数据信息
      */
     private Map<String, Object> metadata = new LinkedHashMap<>();
-
-    /**
-     * 操作人信息
-     */
-    private String principal;
 }

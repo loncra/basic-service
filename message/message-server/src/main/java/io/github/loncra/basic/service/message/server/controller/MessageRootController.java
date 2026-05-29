@@ -78,7 +78,6 @@ public class MessageRootController {
      *
      * @return 消息结果集
      */
-    @PreAuthorize("hasRole('FEIGN')")
     @PostMapping(value = "send", consumes = MediaType.APPLICATION_JSON_VALUE)
     public RestResult<Object> send(
             @RequestBody

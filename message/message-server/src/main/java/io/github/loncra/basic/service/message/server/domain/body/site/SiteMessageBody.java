@@ -22,7 +22,7 @@ import java.util.*;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class SiteMessageBody extends BasicMessageEntity implements AttachmentMessage, AuditPrincipal {
+public class SiteMessageBody extends BasicMessageEntity implements AttachmentMessage {
 
     @Serial
     private static final long serialVersionUID = 4341146261560926962L;
@@ -48,11 +48,6 @@ public class SiteMessageBody extends BasicMessageEntity implements AttachmentMes
      */
     @NotNull
     private YesOrNo pushable;
-
-    /**
-     * 操作人信息
-     */
-    private String principal;
 
     /**
      * 元数据信息

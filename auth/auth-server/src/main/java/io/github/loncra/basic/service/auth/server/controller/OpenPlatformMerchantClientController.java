@@ -80,7 +80,7 @@ public class OpenPlatformMerchantClientController {
      * @return REST 响应结果
      */
     @GetMapping("{id:\\d+}")
-    @PreAuthorize("hasRole('FEIGN') or hasAuthority('perms[auth_server_open_platform_merchant_client:get]')")
+    @PreAuthorize("hasAuthority('perms[auth_server_open_platform_merchant_client:get]')")
     @Plugin(name = "查看明细")
     public OpenPlatformMerchantClientEntity get(
             @PathVariable

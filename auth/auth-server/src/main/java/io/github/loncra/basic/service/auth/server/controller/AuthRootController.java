@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.auth.server.controller;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.WechatAuthenticationEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
@@ -250,24 +251,6 @@ public class AuthRootController {
     }
 
     /**
-     * 获取系统用户
-     *
-     * @param metadata 带名称的 id 元数据
-     *
-     * @return REST 响应结果
-     */
-    @ResponseBody
-    @PostMapping("systemUser")
-    @PreAuthorize("hasRole('FEIGN')")
-    public AbstractBasicSystemUser systemUser(
-            @RequestBody
-            TypeIdNameMetadata metadata
-    ) {
-        return authorizationService.getSystemUserAuthorizationResolver(metadata.getType(), true)
-                .getByIdentity(metadata.getId());
-    }
-
-    /**
      * 更具手机号码创建系统用户
      *
      * @param phoneNumber 手机号码
@@ -276,8 +259,7 @@ public class AuthRootController {
      * @return REST 响应结果
      */
     @ResponseBody
-    @PostMapping("createByPhoneNumber")
-    @PreAuthorize("hasRole('FEIGN')")
+    @PostMapping("system/user/phone/create")
     public AbstractBasicSystemUser createSystemUserByPhoneNumber(
             @RequestParam
             String phoneNumber,
@@ -289,6 +271,27 @@ public class AuthRootController {
     }
 
     /**
+     * 获取系统用户
+     *
+     * @param systemName 用户系统形成
+     *
+     * @see AbstractPlatformUser#getSystemName()
+     *
+     * @return REST 响应结果
+     */
+    @ResponseBody
+    @PostMapping("system/user/{systemName}")
+    public AbstractBasicSystemUser systemUser(
+            @PathVariable
+            String systemName
+    ) {
+        TypeIdNameMetadata metadata = TypeIdNameMetadata.ofPrincipalString(systemName);
+        return authorizationService.getSystemUserAuthorizationResolver(metadata.getType(), true)
+                .getByIdentity(metadata.getId());
+    }
+
+
+    /**
      * 查询系统用户
      *
      * @param pageRequest 分页请求
@@ -297,7 +300,7 @@ public class AuthRootController {
      * @return REST 响应结果
      */
     @ResponseBody
-    @PostMapping("systemUsers")
+    @PostMapping("system/users")
     @PreAuthorize("isAuthenticated()")
     public Object systemUsers(
             PageRequest pageRequest,
@@ -325,7 +328,7 @@ public class AuthRootController {
 
     @ResponseBody
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("systemUsers/{type}")
+    @GetMapping("system/users/{type}")
     public List<AbstractBasicSystemUser> findSystemUser(
             @PathVariable(required = false) String type,
             HttpServletRequest request
@@ -366,7 +369,6 @@ public class AuthRootController {
     }
 
     @ResponseBody
-    @PreAuthorize("hasRole('FEIGN')")
     @GetMapping("wechatAuthentication")
     @ConditionalOnProperty(prefix = "loncra.framework.wechat", value = "enabled", matchIfMissing = true)
     public WechatAuthenticationEntity getWechatAuthentication(String principal) {

@@ -45,7 +45,7 @@ public class SmsCaptchaService extends AbstractMessageCaptchaService<SmsRequestB
     ) {
         Map<String, Object> metadata = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(entry.getValue().toString(), CastUtils.MAP_TYPE_REFERENCE));
 
-        metadata.put(MessageConstants.VARIABLE_FIELD, Map.of(captchaConfig.getCodeVariableName(), captcha));
+        metadata.put(MessageConstants.VARIABLES_FIELD, Map.of(captchaConfig.getCodeVariableName(), captcha));
 
         return MessageServiceClient.createSmsMessage(
                 Collections.singletonList(entity.getPhoneNumber()),

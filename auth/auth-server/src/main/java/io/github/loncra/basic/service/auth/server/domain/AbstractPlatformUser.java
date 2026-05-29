@@ -166,7 +166,6 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     }
 
     @Override
-    @JsonIgnore
     public String getSystemName() {
         return getType().getValue() + CacheProperties.DEFAULT_SEPARATOR + getId();
     }

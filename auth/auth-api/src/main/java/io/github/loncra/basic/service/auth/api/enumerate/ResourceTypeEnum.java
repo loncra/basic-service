@@ -20,8 +20,9 @@ public enum ResourceTypeEnum  implements NameValueEnum<String> {
 
     SECURITY(ResourceTypeEnum.SECURITY_TYPE,"安全类型"),
 
-    PROFILE(ResourceTypeEnum.RESOURCE_PROFILE_TYPE, "个人设置类型")
+    PROFILE(ResourceTypeEnum.RESOURCE_PROFILE_TYPE, "个人设置类型"),
 
+    NAVIGATION_DATA(ResourceTypeEnum.NAVIGATION_DATA_TYPE, "导航数据"),
     ;
 
     private final String value;
@@ -38,6 +39,8 @@ public enum ResourceTypeEnum  implements NameValueEnum<String> {
     public static final String RESOURCE_TOOL_TYPE = "tool";
 
     public static final String RESOURCE_PROFILE_TYPE = "profile";
+
+    public static final String NAVIGATION_DATA_TYPE = "navigationData";
 
     public static final String SECURITY_TYPE = PluginInfo.DEFAULT_TYPE_VALUE;
 }
