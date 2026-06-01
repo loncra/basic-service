@@ -6,9 +6,12 @@ import io.github.loncra.basic.service.message.server.enumerate.BatchMessageTypeE
 import io.github.loncra.basic.service.message.server.service.BatchMessageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.retry.Retryable;
+import io.github.loncra.framework.idempotent.ConcurrentConfig;
+import io.github.loncra.framework.idempotent.advisor.concurrent.ConcurrentInterceptor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -38,6 +41,10 @@ public abstract class AbstractBatchMessageSenderResolver<T extends BasicMessageE
 
     public static final String DEFAULT_BATCH_MESSAGE_ID_KEY = "batchId";
 
+    public static final String BATCH_UPDATE_CONCURRENT_KEY = "loncra:basic-service:message:concurrent:batch-update:";
+
+    protected final Class<S> sendEntityClass;
+
     /**
      * 批量消息无服务
      */
@@ -48,7 +55,7 @@ public abstract class AbstractBatchMessageSenderResolver<T extends BasicMessageE
      */
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
-    protected final Class<S> sendEntityClass;
+    private ConcurrentInterceptor concurrentInterceptor;
 
     public AbstractBatchMessageSenderResolver() {
         this.sendEntityClass = getGenericClass(getClass(), 1);
@@ -147,12 +154,21 @@ public abstract class AbstractBatchMessageSenderResolver<T extends BasicMessageE
      *
      * @param body 批量消息接口实现类
      */
-    public void updateBatchMessage(BatchMessageEntity.Body body) {
+    public void syncBatchMessage(BatchMessageEntity.Body body) {
 
+        ConcurrentConfig properties = new ConcurrentConfig();
+        properties.setKey(BATCH_UPDATE_CONCURRENT_KEY + body.getBatchId());
+        properties.setWaitTime(TimeProperties.ofSeconds(3));
+        properties.setLeaseTime(TimeProperties.ofSeconds(5));
+
+        concurrentInterceptor.invoke(properties, () -> updateBatchMessage(body));
+    }
+
+    private void updateBatchMessage(BatchMessageEntity.Body body) {
         BatchMessageEntity batchMessage = batchMessageService.get(body.getBatchId());
 
         if (ExecuteStatus.Success.equals(body.getExecuteStatus())) {
-            batchMessage.setSuccessNumber(batchMessage.getSuccessNumber() - 1);
+            batchMessage.setSuccessNumber(batchMessage.getSuccessNumber() + 1);
         } else if (ExecuteStatus.Failure.equals(body.getExecuteStatus())) {
             batchMessage.setFailNumber(batchMessage.getFailNumber() + 1);
         }
@@ -165,7 +181,6 @@ public abstract class AbstractBatchMessageSenderResolver<T extends BasicMessageE
         }
 
         batchMessageService.save(batchMessage);
-
     }
 
     /**

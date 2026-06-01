@@ -1,12 +1,8 @@
 package io.github.loncra.basic.service.auth.api.service;
 
 
-import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.domain.AbstractWechatAuthentication;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
@@ -31,19 +27,6 @@ public interface SystemUserServiceClient {
     );
 
     /**
-     * 通过类型和 id 获取系统用户
-     *
-     * @param type 用户类型，参考 {@link ResourceSourceEnum}
-     * @param id   主键 id
-     *
-     * @return 系统用户
-     */
-    Map<String, Object> getSystemUserByPathVariable(
-            String type,
-            Object id
-    );
-
-    /**
      * 查找系统用户
      *
      * @param type   用户类型，参考 {@link ResourceSourceEnum}
@@ -51,8 +34,7 @@ public interface SystemUserServiceClient {
      *
      * @return 系统用户集合
      */
-    List<Map<String, Map<String, Object>>> findSystemUser(
-            @PathVariable(required = false)
+    List<Map<String, Object>> findSystemUser(
             String type,
             Map<String, Object> filter
     );
@@ -65,10 +47,8 @@ public interface SystemUserServiceClient {
      *
      * @return 系统用户
      */
-    <T extends AbstractBasicSystemUser> T createSystemUserByPhoneNumber(
-            @RequestParam
+    Map<String, Object> createSystemUserByPhoneNumber(
             String phoneNumber,
-            @RequestParam
             String type
     );
 
@@ -80,7 +60,6 @@ public interface SystemUserServiceClient {
      * @return 微信认证信息
      */
     <T extends AbstractWechatAuthentication> T getWechatAuthentication(
-            @RequestParam
             String principal
     );
 }

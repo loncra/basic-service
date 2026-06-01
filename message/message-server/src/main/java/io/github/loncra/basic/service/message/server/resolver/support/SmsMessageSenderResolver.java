@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.message.server.resolver.support;
 
 import com.rabbitmq.client.Channel;
-import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -22,12 +21,7 @@ import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
-import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
-import io.github.loncra.framework.idempotent.advisor.concurrent.ConcurrentInterceptor;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -59,8 +53,6 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver<SmsMessageBody, SmsMessageEntity> implements MessageTypeResolver {
 
-    public static final String BATCH_UPDATE_CONCURRENT_KEY = "loncra:basic-service:message:sms:batch-update:";
-
     public static final String DEFAULT_QUEUE_NAME = "message.sms.queue";
 
     @Getter
@@ -72,8 +64,6 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
     private final SystemUserServiceClient systemUserServiceClient;
 
     private final SmsConfig config;
-
-    private final ConcurrentInterceptor concurrentInterceptor;
 
     private final AmqpTemplate amqpTemplate;
 
@@ -150,7 +140,7 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
 
 
         if (Objects.nonNull(entity.getBatchId())) {
-            concurrentInterceptor.invoke(BATCH_UPDATE_CONCURRENT_KEY + entity.getId(), () -> updateBatchMessage(entity));
+            syncBatchMessage(entity);
         }
 
         return entity;

@@ -22,12 +22,12 @@ public enum SiteMessagePushableChannelEnum implements NameValueEnum<Integer> {
     /**
      * 微信公众号
      */
-    WECHAT_OFFICIAL(10, "微信公众号"),
+    WECHAT_OFFICIAL(20, "微信公众号"),
 
     /**
      * 警告
      */
-    APP(10, "app 应用"),
+    APP(30, "app 应用"),
 
     ;
     /**

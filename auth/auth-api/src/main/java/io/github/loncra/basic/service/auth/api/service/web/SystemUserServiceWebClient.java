@@ -1,13 +1,10 @@
 package io.github.loncra.basic.service.auth.api.service.web;
 
 
-import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.domain.AbstractWechatAuthentication;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
@@ -48,10 +45,11 @@ public interface SystemUserServiceWebClient extends SystemUserServiceClient {
      * @return 系统用户集合
      */
     @Override
-    @PostExchange("system/user/find/{type}")
-    List<Map<String, Map<String, Object>>> findSystemUser(
+    @PostExchange("system/users/find/{type}")
+    List<Map<String, Object>> findSystemUser(
             @PathVariable(required = false)
             String type,
+            @RequestParam(required = false)
             Map<String, Object> filter
     );
 
@@ -64,8 +62,8 @@ public interface SystemUserServiceWebClient extends SystemUserServiceClient {
      * @return 系统用户
      */
     @Override
-    @PostExchange("createSystemUserByPhoneNumber")
-    <T extends AbstractBasicSystemUser> T createSystemUserByPhoneNumber(
+    @PostExchange("system/user/create/phone")
+    Map<String, Object> createSystemUserByPhoneNumber(
             @RequestParam
             String phoneNumber,
             @RequestParam

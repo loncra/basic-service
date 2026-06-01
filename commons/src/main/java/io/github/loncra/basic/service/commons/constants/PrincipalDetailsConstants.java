@@ -144,22 +144,23 @@ public interface PrincipalDetailsConstants {
             String message
     ) {
         SystemException.isTrue(
-                sources.stream()
-                        .anyMatch(t -> Strings.CS.equals(t.getPrincipal(), target.getPrincipal())),
+                sources.stream().anyMatch(t -> Strings.CS.equals(t.getPrincipal(), target.getPrincipal())),
                 message
         );
     }
 
     static String getPrincipalName(Map<String, Object> principal) {
-        return Objects.toString(principal.get(REAL_NAME_KEY), principal.getOrDefault(NICKNAME_KEY, StringUtils.EMPTY)
-                .toString());
+        return Objects.toString(
+                principal.get(REAL_NAME_KEY),
+                principal.getOrDefault(NICKNAME_KEY,principal.getOrDefault(USERNAME_KEY, StringUtils.EMPTY)).toString());
     }
 
     static String getPrincipalName(AuditAuthenticationToken token) {
         AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
-        return Objects.toString(details.getMetadata()
-                                        .get(REAL_NAME_KEY), Objects.toString(details.getMetadata()
-                                                                                      .get(NICKNAME_KEY), token.getName()));
+        return Objects.toString(
+                details.getMetadata().get(REAL_NAME_KEY),
+                Objects.toString(details.getMetadata().get(NICKNAME_KEY), token.getName())
+        );
     }
 
 }

@@ -60,28 +60,15 @@ public interface AttachmentServiceClient {
     /**
      * 获取文件
      *
-     * @param bucketName 桶名称
+     * @param type 桶类型
      * @param objectName 对象名称
      *
      * @return 字节流
      */
     byte[] getAttachmentFile(
-            String bucketName,
+            String type,
             String objectName
     );
-
-    /**
-     * 判断文件是否存在
-     *
-     * @param bucketName 同名称
-     * @param objectName 对象名称
-     *
-     * @return true 存在，否则 false
-     */
-    /*boolean isAttachmentFileExist(
-            String bucketName,
-            String objectName
-    );*/
 
     /**
      * 删除附件

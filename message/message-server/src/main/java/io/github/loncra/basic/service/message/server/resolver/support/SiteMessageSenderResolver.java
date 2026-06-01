@@ -22,7 +22,6 @@ import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.minio.FileObject;
-import io.github.loncra.framework.idempotent.advisor.concurrent.ConcurrentInterceptor;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -55,8 +54,6 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
 
     public static final String DEFAULT_QUEUE_NAME = "message.site.queue";
 
-    public static final String BATCH_UPDATE_CONCURRENT_KEY = "loncra:basic-service:message:site:batch-update:";
-
     private final SystemUserServiceClient systemUserServiceClient;
 
     @Getter
@@ -65,8 +62,6 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
     private final List<SiteMessageChannelSender> siteMessageChannelSenderList;
 
     private final AmqpTemplate amqpTemplate;
-
-    private final ConcurrentInterceptor concurrentInterceptor;
 
     private final SiteConfig config;
 
@@ -151,7 +146,7 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
         }
 
         if (Objects.nonNull(entity.getBatchId())) {
-            concurrentInterceptor.invoke(BATCH_UPDATE_CONCURRENT_KEY + entity.getId(), () -> updateBatchMessage(entity));
+            syncBatchMessage(entity);
         }
 
         return entity;

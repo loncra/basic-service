@@ -1,17 +1,18 @@
 package io.github.loncra.basic.service.auth.api.service.feign;
 
 
-import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.domain.AbstractWechatAuthentication;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.service.feign.FeignAuthenticationConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.cloud.openfeign.FeignClientsConfiguration;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
@@ -40,23 +41,6 @@ public interface SystemUserServiceFeignClient extends SystemUserServiceClient {
     );
 
     /**
-     * 通过类型和 id 获取系统用户
-     *
-     * @param type 用户类型，参考 {@link ResourceSourceEnum}
-     * @param id   主键 id
-     *
-     * @return 系统用户
-     */
-    @Override
-    @GetMapping("getSystemUserByPathVariable/{type}/{id}")
-    Map<String, Object> getSystemUserByPathVariable(
-            @PathVariable
-            String type,
-            @PathVariable
-            Object id
-    );
-
-    /**
      * 查找系统用户
      *
      * @param type   用户类型，参考 {@link ResourceSourceEnum}
@@ -65,10 +49,11 @@ public interface SystemUserServiceFeignClient extends SystemUserServiceClient {
      * @return 系统用户集合
      */
     @Override
-    @PostMapping("findSystemUserByPathVariable/{type}")
-    List<Map<String, Map<String, Object>>> findSystemUser(
+    @PostMapping("system/users/find/{type}")
+    List<Map<String, Object>> findSystemUser(
             @PathVariable(required = false)
             String type,
+            @RequestParam(required = false)
             Map<String, Object> filter
     );
 
@@ -81,8 +66,8 @@ public interface SystemUserServiceFeignClient extends SystemUserServiceClient {
      * @return 系统用户
      */
     @Override
-    @PostMapping("createSystemUserByPhoneNumber")
-    <T extends AbstractBasicSystemUser> T createSystemUserByPhoneNumber(
+    @PostMapping("system/user/create/phone")
+    Map<String, Object> createSystemUserByPhoneNumber(
             @RequestParam
             String phoneNumber,
             @RequestParam

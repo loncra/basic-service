@@ -16,7 +16,6 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,11 +57,6 @@ public class EmailMessageEntity extends BasicMessageEntity implements Attachment
     @Decryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
     @Encryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
     private String toEmail;
-
-    /**
-     * 最后发送时间
-     */
-    private Instant lastSendTime;
 
     /**
      * 批量消息 id

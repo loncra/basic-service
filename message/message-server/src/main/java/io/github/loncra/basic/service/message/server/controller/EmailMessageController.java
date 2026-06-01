@@ -12,7 +12,6 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
-import io.github.loncra.framework.idempotent.annotation.Idempotent;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -115,11 +114,10 @@ public class EmailMessageController {
      *
      * @return REST 响应结果
      */
+    @PutMapping
     @OperationDataTrace
-    @PostMapping("send")
     @Plugin(name = "发送信息")
     @PreAuthorize("hasAuthority('perms[message_server_email:send]')")
-    @Idempotent(key = "net:hxaj:message:idempotent:email:send:[#body.principal]")
     public RestResult<Object> send(
             @RequestBody
             EmailMessageBody body

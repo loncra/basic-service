@@ -259,7 +259,7 @@ public class AuthRootController {
      * @return REST 响应结果
      */
     @ResponseBody
-    @PostMapping("system/user/phone/create")
+    @PutMapping("system/user/create/phone")
     public AbstractBasicSystemUser createSystemUserByPhoneNumber(
             @RequestParam
             String phoneNumber,
@@ -328,14 +328,14 @@ public class AuthRootController {
 
     @ResponseBody
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("system/users/{type}")
+    @PostMapping("system/users/find/{type}")
     public List<AbstractBasicSystemUser> findSystemUser(
             @PathVariable(required = false) String type,
             HttpServletRequest request
     ) {
         MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
         HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap())
-                .forEach(filter::add);
+                .forEach((k, v) -> filter.put(k, new LinkedList<>(v)));
         if (StringUtils.isEmpty(type)) {
             return authorizationService.getSystemUserAuthorizationResolvers()
                     .stream()
@@ -344,21 +344,9 @@ public class AuthRootController {
         }
         else {
             return authorizationService.getSystemUserAuthorizationResolver(type, true)
-                    .findPage(PageRequest.of(-1), filter)
+                    .findPage(PageRequest.of(-1), new LinkedMultiValueMap<>(filter))
                     .getElements();
         }
-    }
-
-    @ResponseBody
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("systemUser/{type}/{id:\\d+}")
-    public AbstractBasicSystemUser getSystemUser(
-            @PathVariable String type,
-            @PathVariable Long id
-    ) {
-
-        return authorizationService.getSystemUserAuthorizationResolver(type, true)
-                .getByIdentity(id.toString());
     }
 
     @ResponseBody

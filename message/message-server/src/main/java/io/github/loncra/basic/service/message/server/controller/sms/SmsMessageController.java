@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.controller.sms;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.api.domian.metadata.SmsBalanceMetadata;
 import io.github.loncra.basic.service.message.server.domain.body.sms.SmsMessageBody;
@@ -9,6 +10,7 @@ import io.github.loncra.basic.service.message.server.domain.entity.SmsMessageEnt
 import io.github.loncra.basic.service.message.server.resolver.support.SmsMessageSenderResolver;
 import io.github.loncra.basic.service.message.server.resolver.support.sms.SmsChannelSender;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -134,6 +137,12 @@ public class SmsMessageController {
             @RequestBody
             SmsMessageBody body
     ) {
+        List<String> nonValidate = body
+                .getPhoneNumbers()
+                .stream()
+                .filter(phoneNumber -> !ResourceSourceEnum.validate(phoneNumber) && !Pattern.matches(SystemConstants.PHONE_NUMBER_REGULAR_EXPRESSION, phoneNumber))
+                .toList();
+        SystemException.isTrue(nonValidate.isEmpty(), "手机号码存在不规范内容 " + nonValidate + "修改正确后再提交数据");
         return smsMessageSender.sendMessage(Collections.singletonList(body));
     }
 

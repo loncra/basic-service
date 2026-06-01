@@ -50,17 +50,17 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
     /**
      * 获取文件
      *
-     * @param bucketName 桶名称
+     * @param type 桶类型
      * @param objectName 对象名称
      *
      * @return 字节流
      */
     @Override
-    @GetExchange("{bucketName}/{objectName}")
+    @GetExchange("{type}")
     byte[] getAttachmentFile(
             @PathVariable
-            String bucketName,
-            @PathVariable
+            String type,
+            @RequestParam
             String objectName
     );
 

@@ -13,7 +13,6 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
-import io.github.loncra.framework.idempotent.annotation.Idempotent;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -108,11 +107,10 @@ public class SiteMessageController {
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 
+    @PutMapping
     @OperationDataTrace
-    @PostMapping("send")
     @Plugin(name = "发送站内信")
     @PreAuthorize("hasAuthority('perms[message_server_site:send]')")
-    @Idempotent(key = "net:hxaj:message:idempotent:site:send:[#body.principal]")
     public RestResult<Object> send(
             @RequestBody
             SiteMessageBody body

@@ -23,11 +23,9 @@ import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
-import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
-import io.github.loncra.framework.idempotent.advisor.concurrent.ConcurrentInterceptor;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -58,7 +56,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,14 +72,10 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
 
     public static final String DEFAULT_QUEUE_NAME = "message.email.queue";
 
-    public static final String BATCH_UPDATE_CONCURRENT_KEY = "loncra:basic-service:message:concurrent:email:batch-update:";
-
     private final Map<String, JavaMailSenderImpl> mailSenderMap = new LinkedHashMap<>();
 
     @Getter
     private final EmailMessageService emailMessageService;
-
-    private final ConcurrentInterceptor concurrentInterceptor;
 
     private final SystemUserServiceClient systemUserServiceClient;
 
@@ -144,8 +137,6 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
             return entity;
         }
 
-        entity.setLastSendTime(Instant.now());
-
         JavaMailSenderImpl mailSender = mailSenderMap.get(entity.getType().toString().toLowerCase());
 
         try {
@@ -186,7 +177,7 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
         }
 
         if (Objects.nonNull(entity.getBatchId())) {
-            concurrentInterceptor.invoke(BATCH_UPDATE_CONCURRENT_KEY + entity.getId(), () -> updateBatchMessage(entity));
+            syncBatchMessage(entity);
         }
 
         return entity;
@@ -214,23 +205,15 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
             entity.setToEmail(toEmail);
 
             if (Strings.CS.contains(toEmail, CacheProperties.DEFAULT_SEPARATOR) && ResourceSourceEnum.validate(toEmail)) {
-                AuditAuthenticationToken token = AuditAuthenticationToken.ofString(toEmail, null);
-                Long userId = CastUtils.cast(token.getSecurityPrincipal().getId(), Long.class);
-                Map<String, Object> user = systemUserServiceClient.getSystemUserByPathVariable(
-                        token.getType(),
-                        userId
-                );
-
-                String email = Objects.toString(user.get(PrincipalDetailsConstants.EMAIL_KEY), StringUtils.EMPTY);
-                if(StringUtils.isEmpty(email)) {
+                Map<String, Object> user = systemUserServiceClient.getSystemUser(toEmail);
+                String phone = Objects.toString(user.get(PrincipalDetailsConstants.EMAIL_KEY), StringUtils.EMPTY);
+                if(StringUtils.isEmpty(phone)) {
                     continue;
                 }
-                entity.setToEmail(email);
-                IdNameValueMetadata<Long, String> metadata = new IdNameValueMetadata<>(
-                        IdValueMetadata.of(userId, token.getSecurityPrincipal().getUsername()),
-                        token.getType()
-                );
-                entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, metadata);
+                entity.setToEmail(phone);
+                String systemName = Objects.toString(user.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY));
+                String name = PrincipalDetailsConstants.getPrincipalName(user);
+                entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, IdNameMetadata.of(systemName,name));
             } else if (Arrays.stream(ResourceSourceEnum.values()).anyMatch(r -> r.toString().equals(toEmail))) {
                 Map<String, Object> filter = new LinkedHashMap<>();
                 filter.put("filter_[email_nen]", true);

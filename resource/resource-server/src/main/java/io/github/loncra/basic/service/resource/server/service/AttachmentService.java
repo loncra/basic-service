@@ -133,6 +133,7 @@ public class AttachmentService implements InitializingBean {
             Field field
     ) {
 
+        field.setAccessible(true);
         Object value = ReflectionUtils.getField(field, target);
 
         if (Objects.isNull(value)) {
