@@ -74,8 +74,8 @@ loncra:
             application-name: commons
             sources: CONSOLE
             type: profile
-          site_message:
-            name: "站内消息"
+          my_message:
+            name: "我的消息"
             application-name: commons
             sources: CONSOLE
             type: tool

@@ -71,6 +71,23 @@ public class SiteMessageController {
         return siteMessageSender.getSiteMessageService().findTotalPage(pageRequest, query);
     }
 
+    @PostMapping("my")
+    @PreAuthorize("isAuthenticated()")
+    public Page<SiteMessageEntity> my(
+            PageRequest pageRequest,
+            HttpServletRequest request,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        QueryWrapper<SiteMessageEntity> query = siteMessageSender
+                .getSiteMessageService()
+                .getQueryGenerator()
+                .getQueryWrapperByHttpRequest(request);
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        query.eq(SiteMessageEntity.TO_USER_TABLE_FIELD, token.getName());
+        query.orderByDesc(IdEntity.ID_FIELD_NAME);
+        return siteMessageSender.getSiteMessageService().findTotalPage(pageRequest, query);
+    }
+
     /**
      * 获取站内信消息
      *
@@ -192,20 +209,5 @@ public class SiteMessageController {
                 .count();
 
         return RestResult.ofSuccess(count);
-    }
-
-    /**
-     * 按类型分组获取站内信未读数量
-     *
-     * @return REST 响应结果
-     */
-    @GetMapping("unreadQuantity")
-    @PreAuthorize("isAuthenticated()")
-    public Map<Integer, Long> unreadQuantity(
-            @CurrentSecurityContext
-            SecurityContext securityContext
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return siteMessageSender.getSiteMessageService().countUnreadQuantity(token);
     }
 }

@@ -44,10 +44,10 @@ public class MessageRootController {
      *
      * @return 带名称的 id 元数据集合
      */
-    @GetMapping("messageTypes")
+    @GetMapping("types/{category}")
     @PreAuthorize("isAuthenticated()")
     public List<IdNameMetadata> getMessageTypes(
-            @RequestParam
+            @PathVariable
             String category,
             @CurrentSecurityContext
             SecurityContext securityContext
