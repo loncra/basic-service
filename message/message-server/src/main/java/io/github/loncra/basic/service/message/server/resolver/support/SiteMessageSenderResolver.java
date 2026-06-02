@@ -21,6 +21,7 @@ import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Getter;
@@ -179,14 +180,19 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
             if (Arrays.stream(ResourceSourceEnum.values()).anyMatch(r -> r.toString().equals(user))) {
                 Map<String, Object> filter = new LinkedHashMap<>();
                 filter.put("filter_[status_eq]", YesOrNo.Yes.getValue());
-                List<String> phoneNumbers = systemUserServiceClient
-                        .findSystemUser(user, filter)
-                        .stream()
-                        .map(m -> Objects.toString(m.get(PrincipalDetailsConstants.PHONE_NUMBER_KEY), StringUtils.EMPTY))
-                        .toList();
-                for (String u : phoneNumbers) {
+                List<Map<String, Object>> users = systemUserServiceClient.findSystemUser(user, filter);
+                for (Map<String, Object> u : users) {
+                    String toUsers = Objects.toString(u.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY), StringUtils.EMPTY);
+                    if (StringUtils.isEmpty(toUsers)) {
+                        continue;
+                    }
                     SiteMessageEntity entity = ofEntity(body);
-                    entity.setToUser(u);
+                    entity.setToUser(toUsers);
+
+                    String systemName = Objects.toString(u.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY));
+                    String name = PrincipalDetailsConstants.getPrincipalName(u);
+                    entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, IdNameMetadata.of(systemName,name));
+
                     result.add(entity);
                 }
             } else {

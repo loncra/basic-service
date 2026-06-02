@@ -218,14 +218,19 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
                 Map<String, Object> filter = new LinkedHashMap<>();
                 filter.put("filter_[email_nen]", true);
                 filter.put("filter_[status_eq]", YesOrNo.Yes.getValue());
-                List<String> emails = systemUserServiceClient
-                        .findSystemUser(toEmail, filter)
-                        .stream()
-                        .map(m -> Objects.toString(m.get(PrincipalDetailsConstants.EMAIL_KEY), StringUtils.EMPTY))
-                        .toList();
-                for (String email : emails) {
+                List<Map<String, Object>> users = systemUserServiceClient.findSystemUser(toEmail, filter);
+                for (Map<String, Object> user : users) {
+                    String email =  Objects.toString(user.get(PrincipalDetailsConstants.EMAIL_KEY), StringUtils.EMPTY);
+                    if (StringUtils.isEmpty(email)) {
+                        continue;
+                    }
                     entity = ofEntity(body);
                     entity.setToEmail(email);
+
+                    String systemName = Objects.toString(user.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY));
+                    String name = PrincipalDetailsConstants.getPrincipalName(user);
+                    entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, IdNameMetadata.of(systemName,name));
+
                     result.add(entity);
                 }
                 continue;

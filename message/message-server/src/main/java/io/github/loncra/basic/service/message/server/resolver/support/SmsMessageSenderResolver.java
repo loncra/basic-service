@@ -212,14 +212,21 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
                 Map<String, Object> filter = new LinkedHashMap<>();
                 filter.put("filter_[phone_number_nen]", true);
                 filter.put("filter_[status_eq]", YesOrNo.Yes.getValue());
-                List<String> phoneNumbers = systemUserServiceClient
-                        .findSystemUser(phoneNumber, filter)
-                        .stream()
-                        .map(m -> Objects.toString(m.get(PrincipalDetailsConstants.PHONE_NUMBER_KEY), StringUtils.EMPTY))
-                        .toList();
-                for (String phone : phoneNumbers) {
+                List<Map<String, Object>> users = systemUserServiceClient
+                        .findSystemUser(phoneNumber, filter);
+                for (Map<String, Object> user : users) {
+                    String phone = Objects.toString(user.get(PrincipalDetailsConstants.PHONE_NUMBER_KEY), StringUtils.EMPTY);
+                    if (StringUtils.isEmpty(phone)) {
+                        continue;
+                    }
+
                     entity = CastUtils.of(body, SmsMessageEntity.class);
                     entity.setPhoneNumber(phone);
+
+                    String systemName = Objects.toString(user.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY));
+                    String name = PrincipalDetailsConstants.getPrincipalName(user);
+                    entity.getMetadata().put(BasicMessageEntity.TO_PRINCIPAL_METADATA_KEY, IdNameMetadata.of(systemName,name));
+
                     result.add(entity);
                 }
             }

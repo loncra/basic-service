@@ -178,10 +178,10 @@ public class SiteMessageController {
 
     }
 
-    @GetMapping("read/count")
+    @GetMapping("read/count/{batchId}")
     @PreAuthorize("isAuthenticated()")
     public RestResult<Long> countRead(
-            @RequestParam
+            @PathVariable
             String batchId
     ) {
         long count = siteMessageSender

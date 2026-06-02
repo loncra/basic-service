@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.message.server.domain.body.site;
 
 import io.github.loncra.basic.service.commons.domain.AttachmentMessage;
+import io.github.loncra.basic.service.message.api.enumerate.SiteMessagePushableChannelEnum;
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
+import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
@@ -33,6 +35,12 @@ public class SiteMessageBody extends BasicMessageEntity implements AttachmentMes
     private String title;
 
     /**
+     * 推送渠道
+     */
+    @JsonCollectionGenericType(SiteMessagePushableChannelEnum.class)
+    private List<SiteMessagePushableChannelEnum> channels = new LinkedList<>();
+
+    /**
      * 接收方用户
      */
     @NotEmpty
@@ -53,4 +61,9 @@ public class SiteMessageBody extends BasicMessageEntity implements AttachmentMes
      * 元数据信息
      */
     private Map<String, Object> metadata = new LinkedHashMap<>();
+
+    /**
+     * 封面
+     */
+    private ObjectWriteResult cover;
 }

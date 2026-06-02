@@ -28,7 +28,6 @@ public enum SiteMessagePushableChannelEnum implements NameValueEnum<Integer> {
      * 警告
      */
     APP(30, "app 应用"),
-
     ;
     /**
      * 值

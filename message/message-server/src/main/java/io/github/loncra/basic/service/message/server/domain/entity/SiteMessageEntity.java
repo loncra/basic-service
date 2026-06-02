@@ -48,7 +48,8 @@ public class SiteMessageEntity extends BasicMessageEntity implements AttachmentM
      * 推送渠道
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<SiteMessagePushableChannelEnum> channel;
+    @JsonCollectionGenericType(SiteMessagePushableChannelEnum.class)
+    private List<SiteMessagePushableChannelEnum> channels;
 
     /**
      * 收信用户
