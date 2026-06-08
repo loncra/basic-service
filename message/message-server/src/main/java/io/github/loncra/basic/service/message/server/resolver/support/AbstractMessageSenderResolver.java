@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.message.server.resolver.support;
 
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
+import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
 import io.github.loncra.basic.service.message.server.resolver.MessageSenderResolver;
+import io.github.loncra.basic.service.message.server.resolver.UnreadQuantityMessageResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -106,8 +108,4 @@ public abstract class AbstractMessageSenderResolver<T extends BasicMessageEntity
 
     }
 
-    @Override
-    public Map<Integer, Long> countUnreadQuantity(AuditAuthenticationToken token) {
-        return Map.of();
-    }
 }

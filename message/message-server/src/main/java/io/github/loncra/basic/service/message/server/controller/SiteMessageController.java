@@ -73,6 +73,7 @@ public class SiteMessageController {
 
     @PostMapping("my")
     @PreAuthorize("isAuthenticated()")
+    @Plugin(name = "我的站内信", id = "my_site_message",parent = "my_message", type = ResourceTypeEnum.NAVIGATION_DATA_TYPE)
     public Page<SiteMessageEntity> my(
             PageRequest pageRequest,
             HttpServletRequest request,

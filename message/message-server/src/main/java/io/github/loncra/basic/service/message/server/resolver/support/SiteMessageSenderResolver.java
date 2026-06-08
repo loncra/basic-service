@@ -10,8 +10,10 @@ import io.github.loncra.basic.service.message.server.config.SiteConfig;
 import io.github.loncra.basic.service.message.server.domain.body.site.SiteMessageBody;
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.SiteMessageEntity;
+import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
 import io.github.loncra.basic.service.message.server.resolver.AttachmentResolver;
 import io.github.loncra.basic.service.message.server.resolver.MessageTypeResolver;
+import io.github.loncra.basic.service.message.server.resolver.UnreadQuantityMessageResolver;
 import io.github.loncra.basic.service.message.server.resolver.support.site.SiteMessageChannelSender;
 import io.github.loncra.basic.service.message.server.service.SiteMessageService;
 import io.github.loncra.framework.commons.CacheProperties;
@@ -51,7 +53,7 @@ import java.util.stream.Stream;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolver<SiteMessageBody, SiteMessageEntity> implements AttachmentResolver, MessageTypeResolver {
+public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolver<SiteMessageBody, SiteMessageEntity> implements AttachmentResolver, MessageTypeResolver, UnreadQuantityMessageResolver {
 
     public static final String DEFAULT_QUEUE_NAME = "message.site.queue";
 
@@ -272,7 +274,12 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
     }
 
     @Override
-    public Map<Integer, Long> countUnreadQuantity(AuditAuthenticationToken token) {
+    public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
         return siteMessageService.countUnreadQuantity(token);
+    }
+
+    @Override
+    public UnreadQuantityGroupEnum getGroup() {
+        return UnreadQuantityGroupEnum.SITE;
     }
 }

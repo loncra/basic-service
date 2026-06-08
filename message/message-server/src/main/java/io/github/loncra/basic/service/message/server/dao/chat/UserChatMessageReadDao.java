@@ -1,0 +1,23 @@
+package io.github.loncra.basic.service.message.server.dao.chat;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
+import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
+
+/**
+ * tb_user_chat_message_read 的数据访问
+ *
+ * <p>Table: tb_user_chat_message_read - 聊天消息已读列表</p>
+ *
+ * @see UserChatMessageReadEntity
+ *
+ * @author maurice.chen
+ *
+ * @since 2025-06-01 06:31:44
+ */
+@Mapper
+@Repository
+public interface UserChatMessageReadDao extends BaseMapper<UserChatMessageReadEntity> {
+
+}

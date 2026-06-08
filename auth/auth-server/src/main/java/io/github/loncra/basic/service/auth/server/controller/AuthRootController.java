@@ -290,7 +290,6 @@ public class AuthRootController {
                 .getByIdentity(metadata.getId());
     }
 
-
     /**
      * 查询系统用户
      *

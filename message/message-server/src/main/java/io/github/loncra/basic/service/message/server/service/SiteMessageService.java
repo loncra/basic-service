@@ -46,13 +46,14 @@ public class SiteMessageService extends BasicService<SiteMessageDao, SiteMessage
      *
      * @return 按类型分组的未读数量
      */
-    public Map<Integer, Long> countUnreadQuantity(AuditAuthenticationToken token) {
+    public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
         List<SiteMessageEntity> list = lambdaQuery()
                 .select(IdEntity::getId, BasicMessageEntity::getType)
                 .eq(SiteMessageEntity::getReadable, YesOrNo.Yes.getValue())
                 .eq(SiteMessageEntity::getToUser, token.getName())
                 .list();
-        return list.stream().collect(Collectors.groupingBy(e -> e.getType().getValue(), Collectors.counting()));
+        return list.stream()
+                .collect(Collectors.groupingBy(e -> e.getType().getValue().longValue(), Collectors.counting()));
     }
 
     /**

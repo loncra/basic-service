@@ -19,6 +19,8 @@ public interface MessageConstants {
 
     String DEFAULT_SITE_TYPE_VALUE = "site";
 
+    String DEFAULT_CHAT_TYPE_VALUE = "chat";
+
     String DEFAULT_SMS_TYPE_VALUE = "sms";
 
     String DEFAULT_EMAIL_TYPE_VALUE = "email";

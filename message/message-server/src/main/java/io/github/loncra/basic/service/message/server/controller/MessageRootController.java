@@ -5,6 +5,7 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.message.api.domian.metadata.MessageConstants;
 import io.github.loncra.basic.service.message.server.resolver.MessageSenderResolver;
 import io.github.loncra.basic.service.message.server.resolver.MessageTypeResolver;
+import io.github.loncra.basic.service.message.server.resolver.UnreadQuantityMessageResolver;
 import io.github.loncra.basic.service.message.server.resolver.support.AbstractMessageSenderResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -20,6 +21,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,6 +34,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequiredArgsConstructor
 public class MessageRootController {
+    private final List<UnreadQuantityMessageResolver> unreadQuantityMessageResolvers;
 
     private final List<MessageSenderResolver> messageSenderResolvers;
 
@@ -107,15 +110,19 @@ public class MessageRootController {
      */
     @GetMapping("unreadQuantity")
     @PreAuthorize("isAuthenticated()")
-    public Map<Integer, Long> unreadQuantity(
+    public Map<String, Map<Long,Long>> unreadQuantity(
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        List<Map<Integer, Long>> result = messageSenderResolvers.stream().map(s -> s.countUnreadQuantity(token)).toList();
-        return result.stream()
-                .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.summingLong(Map.Entry::getValue)));
+
+        Map<String, Map<Long,Long>> result = new LinkedHashMap<>();
+        for (UnreadQuantityMessageResolver unreadQuantityMessageResolver : unreadQuantityMessageResolvers) {
+            Map<Long, Long> countMap = unreadQuantityMessageResolver.countUnreadQuantity(token);
+            result.put(unreadQuantityMessageResolver.getGroup().getValue(), countMap);
+        }
+
+        return result;
     }
 
     /**

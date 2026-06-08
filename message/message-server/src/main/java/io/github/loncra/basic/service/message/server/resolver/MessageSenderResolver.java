@@ -30,15 +30,6 @@ public interface MessageSenderResolver {
     String getMessageType();
 
     /**
-     * 统计未读消息数量
-     *
-     * @param token 当前用户
-     *
-     * @return kye 为消息类型，value 为未读数量
-     */
-    Map<Integer, Long> countUnreadQuantity(AuditAuthenticationToken token);
-
-    /**
      * 获取泛型类型
      *
      * @param targetClass 目标类
