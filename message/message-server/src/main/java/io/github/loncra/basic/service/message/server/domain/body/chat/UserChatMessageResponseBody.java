@@ -12,7 +12,6 @@ import java.io.Serial;
 
 @Data
 @NoArgsConstructor
-@JsonIgnoreProperties("principal")
 @EqualsAndHashCode(callSuper = true)
 public class UserChatMessageResponseBody extends UserChatMessageEntity {
 

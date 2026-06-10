@@ -672,4 +672,14 @@ public class UserChatManager {
                 .ifPresent(body::setParticipant);
         return body;
     }
+
+    public List<UserChatParticipantEntity> findRoomParticipant(
+            Long roomId,
+            AuditAuthenticationToken token
+    ) {
+        UserChatParticipantEntity entity = userChatParticipantService.getByChatRoomIdAndPrincipal(roomId, token.getName());
+        SystemException.isTrue(Objects.nonNull(entity), "您已不在聊天会话中");
+
+        return userChatParticipantService.findByRoomId(roomId);
+    }
 }

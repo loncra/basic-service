@@ -2,10 +2,7 @@ package io.github.loncra.basic.service.message.server.controller.chat;
 
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatRoomEntity;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -111,6 +108,17 @@ public class UserChatController {
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return userChatManager.addRoomParticipant(roomId, principals, token);
+    }
+
+    @PostMapping("/participant/find/{roomId:\\d+}")
+    public List<UserChatParticipantEntity> findParticipant(
+            @PathVariable
+            Long roomId,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return userChatManager.findRoomParticipant(roomId, token);
     }
 
     @PutMapping("/participant/remove/{roomId:\\d+}")
