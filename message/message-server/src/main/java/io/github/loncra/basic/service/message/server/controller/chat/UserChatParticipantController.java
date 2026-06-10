@@ -5,7 +5,6 @@ import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChat
 import io.github.loncra.basic.service.message.server.service.chat.UserChatParticipantService;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
-import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,7 @@ import java.util.List;
  * @since 2025-06-01 06:31:44
  */
 @RestController
-@RequestMapping("chat/participant")
+@RequestMapping("/user/chat/participant")
 @RequiredArgsConstructor
 public class UserChatParticipantController {
 

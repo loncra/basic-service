@@ -1,11 +1,8 @@
 package io.github.loncra.basic.service.message.server.resolver;
 
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
+import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatConversationResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatParticipantEntity;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatRoomEntity;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomTypeEnum;
-import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 
@@ -32,7 +29,7 @@ public interface ChatRoomResolver {
      * @param token 认证 token
      */
     void postCreate(
-            ReturnValueSocketResult<UserChatConversationEntity> result,
+            ReturnValueSocketResult<UserChatConversationResponseBody> result,
             List<UserChatParticipantEntity> participantList,
             AuditAuthenticationToken token
     );

@@ -36,7 +36,7 @@ loncra:
             - "$.data.principal.name"
             - "$.data.details.remember"
             - "$.data.credentials"
-          findSystemUsers:
+          systemUsers:
             - "$.data[*].value[*].creationTime"
             - "$.data[*].value[*].groupsInfo"
             - "$.data[*].value[*].version"
@@ -75,5 +75,8 @@ loncra:
             - "$.data.details.metadata.phoneNumber"
           systemUsers:
             - "$.data[*].value[*].realName"
+            - "$.data[*].value[*].email"
+            - "$.data[*].value[*].phoneNumber"
+          systemUsersUndesensitizeName:
             - "$.data[*].value[*].email"
             - "$.data[*].value[*].phoneNumber"

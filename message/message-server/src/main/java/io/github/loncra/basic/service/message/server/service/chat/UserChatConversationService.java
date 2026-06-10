@@ -2,6 +2,8 @@ package io.github.loncra.basic.service.message.server.service.chat;
 
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatConversationDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,5 +35,37 @@ public class UserChatConversationService extends BasicService<UserChatConversati
 
     public List<UserChatConversationEntity> findByPrincipal(String principal) {
         return lambdaQuery().eq(UserChatConversationEntity::getPrincipal, principal).list();
+    }
+
+    public List<UserChatConversationEntity> pinned(List<Long> ids) {
+        List<UserChatConversationEntity> list =  get(ids);
+        for (UserChatConversationEntity entity : list) {
+            YesOrNo value = YesOrNo.ofBoolean(!entity.getPinned().toBoolean());
+            lambdaUpdate().set(UserChatConversationEntity::getPinned, value.getValue())
+                    .eq(IdEntity::getId, entity.getId())
+                    .update();
+            entity.setPinned(value);
+        }
+
+        return list;
+    }
+
+    public List<UserChatConversationEntity> muted(List<Long> ids) {
+        List<UserChatConversationEntity> list =  get(ids);
+        for (UserChatConversationEntity entity : list) {
+            YesOrNo value = YesOrNo.ofBoolean(!entity.getMuted().toBoolean());
+            lambdaUpdate().set(UserChatConversationEntity::getMuted, value.getValue())
+                    .eq(IdEntity::getId, entity.getId())
+                    .update();
+            entity.setMuted(value);
+        }
+
+        return list;
+    }
+
+    public List<UserChatConversationEntity> findEnabledByRoom(Long id) {
+        return lambdaQuery().eq(UserChatConversationEntity::getUserChatRoomId, id)
+                .eq(UserChatConversationEntity::getEnabled, YesOrNo.Yes.getValue())
+                .list();
     }
 }

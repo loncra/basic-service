@@ -4,9 +4,6 @@ import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChat
 import io.github.loncra.basic.service.message.server.service.chat.UserChatMessageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.commons.page.Page;
-import io.github.loncra.framework.commons.page.PageRequest;
-import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.socketio.api.SocketResult;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +31,7 @@ public class UserChatMessageController {
 
     private final UserChatMessageService userChatMessageService;
 
-    @GetMapping("/count/Readable/{chatRoomId:\\d+}")
+    @GetMapping("/count/readable/{chatRoomId:\\d+}")
     @PreAuthorize("isAuthenticated()")
     public RestResult<Long> countReadable(
             @PathVariable Long chatRoomId,

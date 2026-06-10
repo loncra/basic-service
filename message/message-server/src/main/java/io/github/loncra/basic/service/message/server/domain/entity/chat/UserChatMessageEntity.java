@@ -3,8 +3,8 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatMessageTypeEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
@@ -59,5 +59,7 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
      * 撤销时间
      */
     private Date revocationTime;
+
+    private UserChatMessageTypeEnum type;
 
 }

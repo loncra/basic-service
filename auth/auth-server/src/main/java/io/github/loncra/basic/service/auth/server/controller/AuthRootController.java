@@ -299,8 +299,8 @@ public class AuthRootController {
      * @return REST 响应结果
      */
     @ResponseBody
-    @PostMapping("system/users")
     @PreAuthorize("isAuthenticated()")
+    @PostMapping({"system/users","system/users/undesensitize/name"})
     public Object systemUsers(
             PageRequest pageRequest,
             HttpServletRequest request,

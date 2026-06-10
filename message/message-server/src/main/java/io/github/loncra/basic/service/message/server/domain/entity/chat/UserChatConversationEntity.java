@@ -1,18 +1,19 @@
 package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.FileObject;
-import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
-import lombok.*;
-
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
-import com.baomidou.mybatisplus.annotation.*;
 
-import java.util.*;
 import java.io.Serial;
+import java.util.List;
 
 
 /**
@@ -62,7 +63,15 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
      */
     private Long lastUserChatMessageId;
 
+    /**
+     * 会话名称
+     */
     private String name;
+
+    /**
+     * 是否启用
+     */
+    private YesOrNo enabled;
 
     @JsonCollectionGenericType(FileObject.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)

@@ -4,11 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
-import io.github.loncra.basic.service.commons.enumerate.TimeUnitEnum;
+import io.github.loncra.basic.service.message.server.config.UserChatConfig;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatConversationResponseBody;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
+import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatMessageTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatParticipantTypeEnum;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomTypeEnum;
 import io.github.loncra.basic.service.message.server.resolver.ChatRoomResolver;
@@ -17,40 +20,54 @@ import io.github.loncra.framework.commons.annotation.Time;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
+import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
+import io.github.loncra.framework.commons.id.number.LongIdEntity;
 import io.github.loncra.framework.commons.minio.FileObject;
-import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.idempotent.advisor.concurrent.ConcurrentInterceptor;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
+import io.github.loncra.framework.socketio.api.SocketPrincipal;
 import io.github.loncra.framework.socketio.api.SocketResult;
 import io.github.loncra.framework.socketio.api.metadata.BroadcastMessageMetadata;
+import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
+import io.github.loncra.framework.socketio.core.SocketServerManager;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
+import io.github.loncra.framework.spring.security.core.entity.support.MobileSecurityPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.jspecify.annotations.NonNull;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class UserChatManager {
 
-    public static final String DEFAULT_CHAT_ROOM_JOIN_EVENT_NAME = "chat_room_join";
-    public static final String DEFAULT_CHAT_MESSAGE_EVENT_NAME = "chat_message";
+    public static final String CHAT_ROOM_JOIN_EVENT_NAME = "chat_room_join";
+    public static final String CHAT_ROOM_RENAME_EVENT_NAME = "chat_room_rename";
+    public static final String CHAT_ROOM_LEVEL_EVENT_NAME = "chat_room_leve";
+    public static final String CHAT_MESSAGE_EVENT_NAME = "chat_message";
     public static final String CHAT_MESSAGE_READ_EVENT = "chat_message_read";
+    public static final String CHAT_CONVERSATION_CREATE_EVENT = "chat_conversation_create";
 
     public final static String CONCURRENT_PREFIX = "loncra:basic-service:message:app:chat:root:concurrent:";
+
+    private final UserChatConfig userChatConfig;
 
     private final List<ChatRoomResolver> chatRoomResolvers;
 
@@ -68,6 +85,8 @@ public class UserChatManager {
 
     private final SystemUserServiceClient systemUserServiceClient;
 
+    private final SocketServerManager socketServerManager;
+
     @Transactional(rollbackFor = Exception.class)
     @Concurrent(value = CONCURRENT_PREFIX + "send:[#chatRoomId]", waitTime = @Time(5000))
     public SocketResult send(
@@ -83,7 +102,10 @@ public class UserChatManager {
 
         SystemException.isTrue(role, token.getName() + " 用户没有权限向 id 为 [" + chatRoomId + "] 的房间发送消息");
 
-        List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(chatRoomId);
+        UserChatRoomEntity room = userChatRoomService.get(chatRoomId);
+        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  chatRoomId + "] 的聊天房间信息");
+
+        List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(room.getId());
         UserChatParticipantEntity currentParticipant = participants.stream()
                 .filter(s -> Strings.CS.equals(s.getPrincipal(), token.getName()))
                 .findFirst()
@@ -91,15 +113,26 @@ public class UserChatManager {
 
         UserChatMessageEntity entity = new UserChatMessageEntity();
         entity.setPrincipal(token.getName());
-        entity.setChatRoomId(chatRoomId);
+        entity.setChatRoomId(room.getId());
         entity.setContent(messages);
+        entity.setType(UserChatMessageTypeEnum.USER);
         userChatMessageService.insert(entity);
 
         List<UserChatMessageReadEntity> readableList = participants.stream()
-                .filter(s -> Strings.CS.equals(s.getPrincipal(), token.getName()))
+                .filter(s -> !Strings.CS.equals(s.getPrincipal(), token.getName()))
                 .map(s -> UserChatMessageReadEntity.of(entity.getId(), s.getPrincipal()))
                 .peek(userChatMessageReadService::insert)
                 .toList();
+
+        ReturnValueSocketResult<UserChatMessageEntity> socketResult = new ReturnValueSocketResult<>();
+
+        for (UserChatMessageReadEntity readable : readableList) {
+            UserChatConversationEntity targetConversation = userChatConversationService.getByPrincipal(readable.getPrincipal(), chatRoomId);
+            if (Objects.nonNull(targetConversation)) {
+                continue;
+            }
+            createConversationThenAddSocketMessage(readable.getPrincipal(), room, participants, socketResult);
+        }
 
         UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(token.getName(), chatRoomId);
         SystemException.isTrue(Objects.nonNull(conversation), "找不到会话记录");
@@ -114,11 +147,33 @@ public class UserChatManager {
         responseBody.setReadCount(readableList.size());
         responseBody.setReadable(YesOrNo.Yes);
 
-        ReturnValueSocketResult<UserChatMessageEntity> socketResult = new ReturnValueSocketResult<>();
-        socketResult.getMessages().add(BroadcastMessageMetadata.of(chatRoomId.toString(), DEFAULT_CHAT_MESSAGE_EVENT_NAME, responseBody));
+        socketResult.getMessages().add(BroadcastMessageMetadata.of(chatRoomId.toString(), CHAT_MESSAGE_EVENT_NAME, responseBody));
         socketResult.setReturnValue(responseBody);
 
         return socketResult;
+    }
+
+    private void createConversationThenAddSocketMessage(
+            String principal,
+            UserChatRoomEntity room,
+            List<UserChatParticipantEntity> participants,
+            SocketResult socketResult
+    ) {
+        UserChatConversationEntity conversation = createUserChatConversationEntity(principal, room, participants);
+        UserChatConversationResponseBody body = convertUserChatConversationByRoom(room, conversation);
+        TypeIdNameMetadata metadata = TypeIdNameMetadata.ofPrincipalString(principal);
+        SecurityContext securityContext = socketServerManager.getAccessTokenContextRepository()
+                .getSecurityContext(metadata.getType(), metadata.getId());
+
+        List<SocketPrincipal> socketPrincipals = socketServerManager.getSocketPrincipals(securityContext);
+        List<UnicastMessageMetadata<UserChatConversationResponseBody>> unicastMessages = socketPrincipals.stream()
+                .map(MobileSecurityPrincipal::getDeviceIdentified)
+                .map(device -> socketServerManager.getSocketServer().getClient(UUID.fromString(device)))
+                .filter(Objects::nonNull)
+                .peek(client -> client.joinRoom(room.getId().toString()))
+                .map(client -> UnicastMessageMetadata.of(client.getSessionId().toString(), CHAT_CONVERSATION_CREATE_EVENT, body))
+                .toList();
+        socketResult.getMessages().addAll(unicastMessages);
     }
 
     public List<UserChatConversationEntity> my(
@@ -133,8 +188,11 @@ public class UserChatManager {
                 UserChatRoomEntity room = roomMap.computeIfAbsent(conversation.getUserChatRoomId(), userChatRoomService::get);
                 result.add(convertUserChatConversationByRoom(room, conversation));
             }
+
             return result.stream()
-                    .sorted(Comparator.comparing((UserChatConversationResponseBody u) -> u.getLastUserMessage().getCreationTime()).reversed())
+                    .sorted(Comparator.comparing((UserChatConversationResponseBody u) -> Optional.ofNullable(u.getLastUserMessage())
+                            .map(LongIdEntity::getCreationTime)
+                            .orElse(u.getCreationTime())).reversed())
                     .collect(Collectors.toList());
         }
         return data;
@@ -179,15 +237,16 @@ public class UserChatManager {
         );
     }
 
-    private ReturnValueSocketResult<UserChatConversationEntity> doCreateConversation(
+    private ReturnValueSocketResult<UserChatConversationResponseBody> doCreateConversation(
             UserChatRoomEntity userChatRoomEntity,
             AuditAuthenticationToken token,
             List<String> principals
     ) {
         UserChatRoomEntity orm = userChatRoomService.getByBusiness(userChatRoomEntity.getBusinessId(), userChatRoomEntity.getBusinessScene());
         if (Objects.nonNull(orm)) {
-            UserChatConversationEntity conversation = createUserChatConversationEntity(token, orm, new LinkedList<>());
-            return new ReturnValueSocketResult<>(conversation);
+            UserChatConversationEntity conversation = createUserChatConversationEntity(token.getName(), orm, new LinkedList<>());
+            UserChatConversationResponseBody body = convertUserChatConversationByRoom(orm, conversation);
+            return new ReturnValueSocketResult<>(body);
         }
 
         userChatRoomEntity.setType(UserChatRoomTypeEnum.PRIVATE_CHAT);
@@ -200,8 +259,9 @@ public class UserChatManager {
                 userChatRoomEntity.getId(),
                 token.getName()
         );
+        tokenParticipant.setType(UserChatParticipantTypeEnum.MEMBER);
         if (userChatRoomEntity.getType().equals(UserChatRoomTypeEnum.GROUP_CHAT)) {
-            tokenParticipant.setOwner(YesOrNo.Yes);
+            tokenParticipant.setType(UserChatParticipantTypeEnum.OWNER);
         }
 
         List<UserChatParticipantEntity> participantList = new LinkedList<>();
@@ -211,12 +271,13 @@ public class UserChatManager {
                 .forEach(participantList::add);
         participantList.forEach(userChatParticipantService::insert);
 
-        UserChatConversationEntity conversation = createUserChatConversationEntity(token, userChatRoomEntity, participantList);
-        ReturnValueSocketResult<UserChatConversationEntity> result = new ReturnValueSocketResult<>(conversation);
+        UserChatConversationEntity conversation = createUserChatConversationEntity(token.getName(), userChatRoomEntity, participantList);
+        UserChatConversationResponseBody body = convertUserChatConversationByRoom(userChatRoomEntity, conversation);
+        ReturnValueSocketResult<UserChatConversationResponseBody> result = new ReturnValueSocketResult<>(body);
         if (UserChatRoomTypeEnum.GROUP_CHAT.equals(userChatRoomEntity.getType())) {
             BroadcastMessageMetadata<List<UserChatParticipantEntity>> metadata = BroadcastMessageMetadata.of(
                     userChatRoomEntity.getId().toString(),
-                    DEFAULT_CHAT_ROOM_JOIN_EVENT_NAME,
+                    CHAT_ROOM_JOIN_EVENT_NAME,
                     participantList
             );
             result.getMessages().add(metadata);
@@ -229,41 +290,43 @@ public class UserChatManager {
     }
 
     private UserChatConversationEntity createUserChatConversationEntity(
-            AuditAuthenticationToken token,
-            UserChatRoomEntity userChatRoomEntity,
+            String principal,
+            UserChatRoomEntity room,
             List<UserChatParticipantEntity> participantList
     ) {
-        UserChatConversationEntity entity = userChatConversationService.getByPrincipal(token.getName(), userChatRoomEntity.getId());
+        UserChatConversationEntity entity = userChatConversationService.getByPrincipal(principal, room.getId());
         if (Objects.nonNull(entity)) {
             return entity;
         }
 
         entity = new UserChatConversationEntity();
         entity.setPinned(YesOrNo.No);
-        entity.setUserChatRoomId(userChatRoomEntity.getId());
-        entity.setPrincipal(token.getName());
+        entity.setUserChatRoomId(room.getId());
+        entity.setPrincipal(principal);
         entity.setMuted(YesOrNo.No);
 
         if (CollectionUtils.isEmpty(participantList)) {
-            participantList = userChatParticipantService.findByRoomId(userChatRoomEntity.getId());
+            participantList = userChatParticipantService.findByRoomId(room.getId());
         }
 
         String name = participantList.stream()
                 .map(s -> CastUtils.convertValue(s.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY), CastUtils.MAP_TYPE_REFERENCE))
-                .filter(s -> !Objects.equals(token.getName(), s.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY)))
+                .filter(s -> !Objects.equals(principal, s.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY)))
                 .map(PrincipalDetailsConstants::getPrincipalName)
+                .limit(userChatConfig.getConversationNameLimit())
                 .collect(Collectors.joining(CastUtils.COMMA));
         entity.setName(name);
 
-        List<FileObject> cover = participantList.stream()
-                .map(s -> CastUtils.convertValue(s.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY), CastUtils.MAP_TYPE_REFERENCE))
-                .filter(s -> !Objects.equals(token.getName(), s.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY)))
+        Stream<Map<String, Object>> stream = getConversationCoverStream(principal, room, participantList);
+
+        List<FileObject> cover = stream
                 .map(s -> s.get(PrincipalDetailsConstants.AVATAR_KEY))
                 .filter(Objects::nonNull)
                 .map(s -> CastUtils.convertValue(s, FileObject.class))
+                .limit(userChatConfig.getConversationCoverLimit())
                 .toList();
         entity.setCover(cover);
-        UserChatMessageEntity lastMessage = userChatMessageService.getLastMessageByRoomId(userChatRoomEntity.getId());
+        UserChatMessageEntity lastMessage = userChatMessageService.getLastMessageByRoomId(room.getId());
         if (Objects.nonNull(lastMessage)) {
             entity.setLastUserChatMessageId(lastMessage.getId());
         }
@@ -273,12 +336,35 @@ public class UserChatManager {
         return entity;
     }
 
+    private @NonNull Stream<Map<String, Object>> getConversationCoverStream(
+            String principal,
+            UserChatRoomEntity room,
+            List<UserChatParticipantEntity> participantList
+    ) {
+        Stream<Map<String, Object>> stream = participantList.stream()
+                .map(s -> CastUtils.convertValue(s.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY), CastUtils.MAP_TYPE_REFERENCE))
+                .filter(s -> !Objects.equals(principal, s.get(PrincipalDetailsConstants.SYSTEM_NAME_KEY)));
+        if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
+            stream = participantList.stream()
+                    .map(s -> CastUtils.convertValue(s.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY), CastUtils.MAP_TYPE_REFERENCE));
+        }
+        return stream;
+    }
+
     private UserChatParticipantEntity createUserChatParticipantEntity(
             Long roomId,
             String principal
     ) {
+        return createUserChatParticipantEntity(roomId, principal, UserChatParticipantTypeEnum.MEMBER);
+    }
+
+    private UserChatParticipantEntity createUserChatParticipantEntity(
+            Long roomId,
+            String principal,
+            UserChatParticipantTypeEnum type
+    ) {
         UserChatParticipantEntity tokenParticipant = new UserChatParticipantEntity();
-        tokenParticipant.setOwner(YesOrNo.No);
+        tokenParticipant.setType(type);
         tokenParticipant.setPrincipal(principal);
         tokenParticipant.setChatRoomId(roomId);
 
@@ -296,7 +382,7 @@ public class UserChatManager {
                 .<UserChatMessageEntity>lambdaQuery()
                 .eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
                 .eq(UserChatMessageEntity::getRevoke, YesOrNo.No.getValue())
-                .orderByAsc(IdEntity::getId);
+                .orderByDesc(IdEntity::getId);
         Page<UserChatMessageEntity> page = userChatMessageService.findPage(request, wrapper);
 
         List<UserChatMessageEntity> messages = page.getElements();
@@ -305,11 +391,12 @@ public class UserChatManager {
                     .map(UserChatMessageEntity::getPrincipal)
                     .distinct()
                     .map(principal -> userChatParticipantService.getByChatRoomIdAndPrincipal(chatRoomId, principal))
+                    .filter(Objects::nonNull)
                     .toList();
             List<UserChatMessageResponseBody> responses = messages.stream()
                     .map(m -> convertResponseBody(m, token, participants))
                     .toList();
-            page.setElements(new LinkedList<>(responses));
+            page.setElements(responses.stream().sorted(Comparator.comparing(UserChatMessageResponseBody::getId)).collect(Collectors.toList()));
         }
 
         return page;
@@ -329,6 +416,7 @@ public class UserChatManager {
         body.setReadableCount((int) readList.stream().filter(r -> YesOrNo.Yes.equals(r.getReadable())).count());
 
         UserChatParticipantMetadata metadata = participants.stream()
+
                 .filter(s -> Strings.CS.equals(s.getPrincipal(), body.getPrincipal()))
                 .map(s ->CastUtils.of(s, UserChatParticipantMetadata.class))
                 .findFirst()
@@ -382,11 +470,159 @@ public class UserChatManager {
 
     public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
         List<UserChatConversationEntity> list = userChatConversationService.findByPrincipal(token.getName());
+        List<UserChatConversationEntity> filter = list.stream()
+                .filter(s -> YesOrNo.No.equals(s.getMuted()))
+                .toList();
         Map<Long, Long> result = new HashMap<>();
-        for (UserChatConversationEntity entity : list) {
+        for (UserChatConversationEntity entity : filter) {
             Long count = userChatMessageService.countReadable(entity.getUserChatRoomId(), token.getName());
             result.put(entity.getId(), count);
         }
         return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Concurrent(value = CONCURRENT_PREFIX + "addRoomParticipant:[#chatRoomId]")
+    public SocketResult addRoomParticipant(
+            Long chatRoomId,
+            List<String> principals,
+            AuditAuthenticationToken token
+    ) {
+        UserChatRoomEntity room = userChatRoomService.get(chatRoomId);
+        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  chatRoomId + "] 的聊天房间信息");
+
+        List<UserChatParticipantEntity> participants = new LinkedList<>();
+        if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
+            UserChatParticipantEntity participant = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), token.getName());
+            SystemException.isTrue(UserChatParticipantTypeEnum.OWNER_TYPE.contains(participant.getType()), "您不是管理员，无法添加成员");
+        } else {
+            userChatParticipantService.findByRoomId(room.getId())
+                    .forEach(participant -> principals.add(participant.getPrincipal()));
+            room = new UserChatRoomEntity();
+            room.setBusinessScene(UserChatRoomBuisnessScenEnum.IM);
+            room.setBusinessId(DigestUtils.md5DigestAsHex((token.getName() + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
+            room.setType(UserChatRoomTypeEnum.GROUP_CHAT);
+            userChatRoomService.insert(room);
+        }
+
+        for (String principal : principals) {
+            UserChatParticipantEntity participant = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), principal);
+            if (Objects.nonNull(participant)) {
+                participants.add(participant);
+                continue;
+            }
+            UserChatParticipantTypeEnum type = Strings.CS.equals(principal, token.getName())
+                    ? UserChatParticipantTypeEnum.OWNER
+                    : UserChatParticipantTypeEnum.MEMBER;
+
+            participant = createUserChatParticipantEntity(
+                    room.getId(),
+                    principal,
+                    type
+            );
+            userChatParticipantService.insert(participant);
+            participants.add(participant);
+        }
+
+        SocketResult socketResult = new SocketResult();
+        for (String principal : principals) {
+            createConversationThenAddSocketMessage(principal, room, participants, socketResult);
+        }
+
+        String names = participants.stream()
+                .map(s -> s.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY))
+                .map(s -> CastUtils.convertValue(s, CastUtils.MAP_TYPE_REFERENCE))
+                .map(PrincipalDetailsConstants::getPrincipalName)
+                .collect(Collectors.joining(CastUtils.COMMA));
+
+        String content = MessageFormat.format(userChatConfig.getJoinRoomText(), names);
+        BroadcastMessageMetadata<String> metadata = BroadcastMessageMetadata.of(
+                room.getId().toString(),
+                CHAT_ROOM_JOIN_EVENT_NAME,
+                content
+        );
+
+        UserChatMessageEntity message = new UserChatMessageEntity();
+        message.setPrincipal(token.getName());
+        message.setChatRoomId(room.getId());
+        message.setContent(CastUtils.convertValue(List.of(TextMessageMetadata.of(content)), CastUtils.LIST_MAP_TYPE_REFERENCE));
+        message.setType(UserChatMessageTypeEnum.SYSTEM);
+        userChatMessageService.insert(message);
+
+        socketResult.getMessages().add(metadata);
+
+        return socketResult;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Concurrent(value = CONCURRENT_PREFIX + "removeRoomParticipant:[#chatRoomId]")
+    public SocketResult removeRoomParticipant(
+            Long chatRoomId,
+            List<String> principals,
+            AuditAuthenticationToken token
+    ) {
+        UserChatRoomEntity room = userChatRoomService.get(chatRoomId);
+        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  chatRoomId + "] 的聊天房间信息");
+
+        UserChatParticipantEntity owner = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), token.getName());
+        SystemException.isTrue(UserChatParticipantTypeEnum.OWNER_TYPE.contains(owner.getType()), "您不是管理员，无法添加成员");
+        SocketResult result = new SocketResult();
+        for (String principal : principals) {
+            UserChatParticipantEntity participant = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), principal);
+            if (Objects.isNull(participant)) {
+                continue;
+            }
+            userChatParticipantService.deleteByEntity(participant);
+            UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(principal, room.getId());
+            if (Objects.nonNull(conversation)) {
+                userChatConversationService.lambdaUpdate()
+                        .set(UserChatConversationEntity::getEnabled, YesOrNo.No.getValue())
+                        .eq(IdEntity::getId, conversation.getId())
+                        .update();
+            }
+            TypeIdNameMetadata type = TypeIdNameMetadata.ofPrincipalString(principal);
+            SecurityContext securityContext = socketServerManager.getAccessTokenContextRepository()
+                    .getSecurityContext(type.getType(), type.getId());
+            List<SocketPrincipal> socketPrincipals = socketServerManager.getSocketPrincipals(securityContext);
+            List<UnicastMessageMetadata<Long>> unicastMessageMetadata = socketPrincipals.stream()
+                    .map(MobileSecurityPrincipal::getDeviceIdentified)
+                    .peek(device -> socketServerManager.getSocketServer().getClient(UUID.fromString(device)).leaveRoom(room.getId().toString()))
+                    .map(device -> UnicastMessageMetadata.of(device, CHAT_ROOM_LEVEL_EVENT_NAME, room.getId()))
+                    .toList();
+            result.getMessages().addAll(unicastMessageMetadata);
+        }
+
+        return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void roomRename(
+            Long chatRoomId,
+            String newName,
+            AuditAuthenticationToken token
+    ) {
+        UserChatRoomEntity room = userChatRoomService.get(chatRoomId);
+        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  chatRoomId + "] 的聊天房间信息");
+
+        UserChatParticipantEntity owner = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), token.getName());
+        SystemException.isTrue(UserChatParticipantTypeEnum.OWNER_TYPE.contains(owner.getType()), "您不是管理员，无法修改名称");
+
+        List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoom(room.getId());
+        for  (UserChatConversationEntity c : conversations) {
+            userChatConversationService.lambdaUpdate()
+                    .set(UserChatConversationEntity::getName, newName)
+                    .eq(IdEntity::getId, c.getId())
+                    .update();
+        }
+
+        IdValueMetadata<Long,String> metadata = IdValueMetadata.of(room.getId(), newName);
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        metadata.setMetadata(details.getMetadata());
+        BroadcastMessageMetadata<IdValueMetadata<Long,String>> message = BroadcastMessageMetadata.of(
+                room.getId().toString(),
+                CHAT_ROOM_RENAME_EVENT_NAME,
+                metadata
+        );
+        socketServerManager.sendMessage(message);
     }
 }

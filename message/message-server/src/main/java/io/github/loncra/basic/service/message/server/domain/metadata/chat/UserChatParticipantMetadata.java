@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.message.server.domain.metadata.chat;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatParticipantTypeEnum;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,10 +14,13 @@ import java.util.Map;
 public class UserChatParticipantMetadata {
 
     /**
-     * 是否房主
+     * 类型
      */
-    private YesOrNo owner;
+    private UserChatParticipantTypeEnum type;
 
+    /**
+     * 元数据信息
+     */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();
 }
