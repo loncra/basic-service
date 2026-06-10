@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.service.chat;
 
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatMessageReadDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
+import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,8 @@ import java.util.List;
 public class UserChatMessageReadService extends BasicService<UserChatMessageReadDao, UserChatMessageReadEntity> {
 
     public List<UserChatMessageReadEntity> getByChatMessageId(Long chatMessageId) {
-        return lambdaQuery().eq(UserChatMessageReadEntity::getChatMessageId, chatMessageId).list();
+        return lambdaQuery().eq(UserChatMessageReadEntity::getChatMessageId, chatMessageId)
+                .orderByDesc(IdEntity::getId)
+                .list();
     }
 }

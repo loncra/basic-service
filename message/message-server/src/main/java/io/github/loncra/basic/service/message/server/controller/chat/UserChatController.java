@@ -4,6 +4,7 @@ import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatRoomEntity;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.commons.CastUtils;
@@ -137,5 +138,17 @@ public class UserChatController {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         userChatManager.roomRename(roomId, newName, token);
         return RestResult.of("操作成功");
+    }
+
+    @PostMapping("/message/read/find/{messageId:\\d+}")
+    public RestResult<List<UserChatMessageReadEntity>> findMessageReader(
+            @PathVariable
+            Long messageId,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        List<UserChatMessageReadEntity> result = userChatManager.findMessageReader(messageId, token);
+        return RestResult.ofSuccess(result);
     }
 }
