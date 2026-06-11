@@ -16,7 +16,7 @@ public class TextMessageMetadata implements UserChatMessageContent {
     String value;
 
     @Override
-    public UserChatMessageContentTypeEnum getType() {
-        return UserChatMessageContentTypeEnum.TEXT;
+    public String getType() {
+        return UserChatMessageContentTypeEnum.TEXT.getValue();
     }
 }

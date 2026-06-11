@@ -3,13 +3,17 @@ package io.github.loncra.basic.service.message.server.controller.chat;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatParticipantTypeEnum;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
 import io.github.loncra.framework.socketio.api.SocketResult;
+import io.github.loncra.framework.socketio.api.metadata.AbstractSocketMessageMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +22,7 @@ import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +115,53 @@ public class UserChatController {
         return userChatManager.addRoomParticipant(roomId, principals, token);
     }
 
+    @PutMapping("/participant/remove/{roomId:\\d+}")
+    public SocketResult removeRoomParticipant(
+            @PathVariable
+            Long roomId,
+            @RequestParam
+            List<String> principals,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatManager.removeRoomParticipant(roomId, principals, token);
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
+    }
+
+    @PutMapping("/participant/update/type/{roomId:\\d+}")
+    public SocketResult updateRoomParticipantType(
+            @PathVariable
+            Long roomId,
+            @RequestParam
+            List<String> principals,
+            Integer type,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        UserChatParticipantTypeEnum typeValue = ValueEnum.ofEnum(UserChatParticipantTypeEnum.class, type);
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatManager.updateRoomParticipantType(
+                roomId,
+                principals,
+                typeValue,
+                token
+        );
+
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
+    }
+
+    @DeleteMapping("/participant/exist/room")
+    public SocketResult exitRoom(
+            @RequestParam
+            Long roomId,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return userChatManager.exitRoom(roomId, token);
+    }
+
     @PostMapping("/participant/find/{roomId:\\d+}")
     public List<UserChatParticipantEntity> findParticipant(
             @PathVariable
@@ -121,21 +173,8 @@ public class UserChatController {
         return userChatManager.findRoomParticipant(roomId, token);
     }
 
-    @PutMapping("/participant/remove/{roomId:\\d+}")
-    public SocketResult removeRoomParticipant(
-            @PathVariable
-            Long roomId,
-            @RequestParam
-            List<String> principals,
-            @CurrentSecurityContext
-            SecurityContext securityContext
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatManager.removeRoomParticipant(roomId, principals, token);
-    }
-
     @PutMapping("/room/rename/{roomId:\\d+}")
-    public RestResult<Void> renameRoomParticipant(
+    public ReturnValueSocketResult<Void> renameRoom(
             @PathVariable
             Long roomId,
             @RequestParam
@@ -144,8 +183,8 @@ public class UserChatController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        userChatManager.roomRename(roomId, newName, token);
-        return RestResult.of("操作成功");
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatManager.roomRename(roomId, newName, token);
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
 
     @PostMapping("/message/read/find/{messageId:\\d+}")
@@ -158,5 +197,19 @@ public class UserChatController {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         List<UserChatMessageReadEntity> result = userChatManager.findMessageReader(messageId, token);
         return RestResult.ofSuccess(result);
+    }
+
+    @GetMapping("conversation/{chatRoomId:\\d+}")
+    @PreAuthorize("isAuthenticated()")
+    public UserChatConversationEntity getByRoomId(
+            @PathVariable
+            Long chatRoomId,
+            @RequestParam
+            boolean convertBody,
+            @CurrentSecurityContext
+            SecurityContext  securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return userChatManager.getChatConversationByPrincipal(token.getName(), chatRoomId, convertBody);
     }
 }

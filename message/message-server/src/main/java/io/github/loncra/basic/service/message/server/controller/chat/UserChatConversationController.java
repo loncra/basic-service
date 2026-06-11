@@ -56,16 +56,4 @@ public class UserChatConversationController {
     public RestResult<List<UserChatConversationEntity>> muted(@RequestParam List<Long> ids) {
         return RestResult.ofSuccess(userChatConversationService.muted(ids));
     }
-
-    @GetMapping("/{chatRoomId:\\d+}")
-    @PreAuthorize("isAuthenticated()")
-    public UserChatConversationEntity getByRoomId(
-            @PathVariable
-            Long chatRoomId,
-            @CurrentSecurityContext
-            SecurityContext  securityContext
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatConversationService.getByPrincipal(token.getName(), chatRoomId);
-    }
 }
