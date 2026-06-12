@@ -152,14 +152,25 @@ public class UserChatController {
     }
 
     @DeleteMapping("/participant/exist/room")
-    public SocketResult exitRoom(
+    public SocketResult participantExitRoom(
             @RequestParam
             Long roomId,
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatManager.exitRoom(roomId, token);
+        return userChatManager.participantExitRoom(roomId, token);
+    }
+
+    @DeleteMapping("/room/disband")
+    public SocketResult disbandRoom(
+            @RequestParam
+            Long roomId,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return userChatManager.disbandRoom(roomId, token);
     }
 
     @PostMapping("/participant/find/{roomId:\\d+}")
@@ -201,7 +212,7 @@ public class UserChatController {
 
     @GetMapping("conversation/{chatRoomId:\\d+}")
     @PreAuthorize("isAuthenticated()")
-    public UserChatConversationEntity getByRoomId(
+    public UserChatConversationEntity getConversationByRoomId(
             @PathVariable
             Long chatRoomId,
             @RequestParam

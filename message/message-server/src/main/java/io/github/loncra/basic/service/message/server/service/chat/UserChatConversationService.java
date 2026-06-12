@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.service.chat;
 
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatConversationDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatConversationStatus;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
@@ -65,7 +66,7 @@ public class UserChatConversationService extends BasicService<UserChatConversati
 
     public List<UserChatConversationEntity> findEnabledByRoom(Long id) {
         return lambdaQuery().eq(UserChatConversationEntity::getUserChatRoomId, id)
-                .eq(UserChatConversationEntity::getEnabled, YesOrNo.Yes.getValue())
+                .eq(UserChatConversationEntity::getStatus, UserChatConversationStatus.ENABLED.getValue())
                 .list();
     }
 }

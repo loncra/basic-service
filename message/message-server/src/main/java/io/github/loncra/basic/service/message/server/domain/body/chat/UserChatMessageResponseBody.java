@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.message.server.domain.body.chat;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;

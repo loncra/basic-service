@@ -1,13 +1,9 @@
 package io.github.loncra.basic.service.message.server.service.chat;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatMessageDao;
-import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
-import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
@@ -17,15 +13,12 @@ import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
 import io.github.loncra.framework.socketio.api.SocketResult;
 import io.github.loncra.framework.socketio.api.metadata.BroadcastMessageMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -85,5 +78,9 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
 
     public long countReadable(Long roomId, String principal) {
         return getBaseMapper().countReadable(roomId, principal);
+    }
+
+    public List<Long> findReadable(Long roomId, String principal) {
+        return getBaseMapper().findReadable(roomId, principal);
     }
 }

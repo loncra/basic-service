@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.message.server.enumerate;
 
-import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.message.server.resolver;
 
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import org.springframework.core.ResolvableType;
 
 import java.util.Map;

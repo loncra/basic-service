@@ -1,14 +1,11 @@
 package io.github.loncra.basic.service.resource.server.controller;
 
 
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
-import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.resource.server.service.enumerate.SystemResourceService;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
-import io.github.loncra.framework.security.plugin.Plugin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

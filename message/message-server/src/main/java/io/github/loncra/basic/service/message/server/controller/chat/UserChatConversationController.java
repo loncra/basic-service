@@ -1,15 +1,10 @@
 package io.github.loncra.basic.service.message.server.controller.chat;
 
-import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatConversationResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatConversationService;
-import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.CurrentSecurityContext;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

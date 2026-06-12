@@ -1,21 +1,17 @@
 package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
-import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
-import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
-import lombok.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 
 /**

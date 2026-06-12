@@ -1,32 +1,21 @@
 package io.github.loncra.basic.service.auth.server.service.resource;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.server.dao.ResourceDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
-import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
-import io.github.loncra.basic.service.auth.server.service.role.RoleAuthorizationEventListener;
 import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
-import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 import org.springframework.util.DigestUtils;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  *

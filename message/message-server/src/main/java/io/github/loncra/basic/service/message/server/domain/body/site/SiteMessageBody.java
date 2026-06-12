@@ -6,7 +6,6 @@ import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageE
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
-import io.github.loncra.framework.security.audit.AuditPrincipal;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

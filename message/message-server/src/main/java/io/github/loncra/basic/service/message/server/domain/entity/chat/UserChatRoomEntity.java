@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomTypeEnum;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -51,4 +51,6 @@ public class UserChatRoomEntity extends LongVersionEntity<Integer>  {
 
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata;
+
+    private YesOrNo enabled;
 }

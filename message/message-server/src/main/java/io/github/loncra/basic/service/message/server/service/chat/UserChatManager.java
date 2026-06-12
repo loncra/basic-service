@@ -12,10 +12,7 @@ import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMe
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatMessageTypeEnum;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatParticipantTypeEnum;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.*;
 import io.github.loncra.basic.service.message.server.resolver.ChatRoomResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.annotation.Time;
@@ -297,7 +294,7 @@ public class UserChatManager {
     ) {
         UserChatConversationEntity entity = userChatConversationService.getByPrincipal(principal, room.getId());
         if (Objects.nonNull(entity)) {
-            entity.setEnabled(YesOrNo.Yes);
+            entity.setStatus(UserChatConversationStatus.ENABLED);
         } else {
             entity = new UserChatConversationEntity();
             entity.setPinned(YesOrNo.No);
@@ -593,7 +590,7 @@ public class UserChatManager {
             UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(principal, room.getId());
             if (Objects.nonNull(conversation)) {
                 userChatConversationService.lambdaUpdate()
-                        .set(UserChatConversationEntity::getEnabled, YesOrNo.No.getValue())
+                        .set(UserChatConversationEntity::getStatus, UserChatConversationStatus.EXIST.getValue())
                         .eq(IdEntity::getId, conversation.getId())
                         .update();
             }
@@ -813,7 +810,7 @@ public class UserChatManager {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public SocketResult exitRoom(
+    public SocketResult participantExitRoom(
             Long chatRoomId,
             AuditAuthenticationToken token
     ) {
@@ -825,7 +822,7 @@ public class UserChatManager {
 
         userChatParticipantService.deleteByEntity(participant);
         UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(token.getName(), room.getId());
-        conversation.setEnabled(YesOrNo.No);
+        conversation.setStatus(UserChatConversationStatus.EXIST);
         userChatConversationService.updateById(conversation);
 
         List<UnicastMessageMetadata<Object>> clientConversationRefresh = createUnicastMessageMetadata(
@@ -882,6 +879,40 @@ public class UserChatManager {
                 room.getId()
         );
         result.getMessages().add(refreshParticipantMessage);
+
+        return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public SocketResult disbandRoom(
+        Long chatRoomId,
+        AuditAuthenticationToken token
+    ){
+        UserChatRoomEntity room = userChatRoomService.get(chatRoomId);
+        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  chatRoomId + "] 的聊天会话信息");
+
+        UserChatParticipantEntity owner = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), token.getName());
+        SystemException.isTrue(Objects.nonNull(owner), "您非不会话的参与者，无法执行此操作");
+        SystemException.isTrue(UserChatParticipantTypeEnum.OWNER.equals(owner.getType()), "您不是群主，无法完成此操作。");
+
+        room.setEnabled(YesOrNo.No);
+        userChatRoomService.updateById(room);
+
+        SocketResult result = new SocketResult();
+        List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(room.getId());
+        for (UserChatParticipantEntity participantEntity : participants) {
+            UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(participantEntity.getPrincipal(), room.getId());
+            conversation.setStatus(UserChatConversationStatus.DISBAND);
+            userChatConversationService.updateById(conversation);
+            List<UnicastMessageMetadata<Object>> clientConversationRefresh = createUnicastMessageMetadata(
+                    token.getName(),
+                    CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME,
+                    room.getId(),
+                    c -> c.leaveRoom(room.getId().toString())
+            );
+
+            result.getMessages().addAll(clientConversationRefresh);
+        }
 
         return result;
     }

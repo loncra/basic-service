@@ -2,7 +2,6 @@ package io.github.loncra.basic.service.message.server.domain.body.sms;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
-import io.github.loncra.framework.security.audit.AuditPrincipal;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

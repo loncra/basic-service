@@ -1,14 +1,13 @@
 package io.github.loncra.basic.service.message.server.controller.chat;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatMessageReadService;
-import io.github.loncra.framework.commons.id.IdEntity;
-import io.github.loncra.framework.security.plugin.Plugin;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 

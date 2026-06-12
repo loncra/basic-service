@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * tb_user_chat_message 的数据访问
  *
@@ -44,4 +46,26 @@ public interface UserChatMessageDao extends BaseMapper<UserChatMessageEntity> {
         </script>
     """)
     long countReadable(@Param("roomId") Long roomId, @Param("principal") String principal);
+
+    @Select("""
+        <script>
+            SELECT 
+              chat_message.id
+            FROM 
+              tb_user_chat_message chat_message 
+            LEFT JOIN 
+              tb_user_chat_room chat_room 
+            ON 
+              chat_room.id = chat_message.chat_room_id 
+            LEFT JOIN 
+              tb_user_chat_message_read chat_message_read 
+            ON 
+              chat_message_read.chat_message_id = chat_message.id 
+            WHERE 
+              chat_message_read.principal = #{principal} 
+              AND chat_message_read.readable = 1
+              AND chat_room.id = #{roomId}
+        </script>
+    """)
+    List<Long> findReadable(@Param("roomId") Long roomId, @Param("principal") String principal);
 }

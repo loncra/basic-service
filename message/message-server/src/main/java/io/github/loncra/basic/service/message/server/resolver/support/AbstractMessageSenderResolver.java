@@ -1,12 +1,9 @@
 package io.github.loncra.basic.service.message.server.resolver.support;
 
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
-import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
 import io.github.loncra.basic.service.message.server.resolver.MessageSenderResolver;
-import io.github.loncra.basic.service.message.server.resolver.UnreadQuantityMessageResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.BindException;

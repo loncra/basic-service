@@ -18,7 +18,6 @@ import io.github.loncra.framework.minio.MinioAsyncTemplate;
 import io.github.loncra.framework.minio.ObjectItem;
 import io.github.loncra.framework.security.audit.Auditable;
 import io.github.loncra.framework.security.plugin.Plugin;
-import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import io.minio.GetObjectResponse;

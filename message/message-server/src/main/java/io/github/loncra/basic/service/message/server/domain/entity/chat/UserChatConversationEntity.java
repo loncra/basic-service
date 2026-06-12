@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.github.loncra.basic.service.message.server.enumerate.UserChatConversationStatus;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.FileObject;
@@ -69,9 +70,9 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
     private String name;
 
     /**
-     * 是否启用
+     * 状态
      */
-    private YesOrNo enabled;
+    private UserChatConversationStatus status;
 
     @JsonCollectionGenericType(FileObject.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
