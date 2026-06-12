@@ -20,6 +20,11 @@ public enum UserChatConversationStatus implements NameValueEnum<Integer> {
     EXIST(20, "退出"),
 
     /**
+     * 移除
+     */
+    REMOVE(25, "被移除"),
+
+    /**
      * 解散
      */
     DISBAND(30, "解散");

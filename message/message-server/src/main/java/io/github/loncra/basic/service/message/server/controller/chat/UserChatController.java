@@ -89,7 +89,7 @@ public class UserChatController {
 
     @PutMapping("/conversation/create")
     @PreAuthorize("isAuthenticated()")
-    public SocketResult createConversation(
+    public UserChatConversationEntity createConversation(
             @Valid
             @RequestBody
             UserChatRoomEntity userChatRoomEntity,
@@ -159,7 +159,9 @@ public class UserChatController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatManager.participantExitRoom(roomId, token);
+        List<AbstractSocketMessageMetadata<Object>> messages =  userChatManager.participantExitRoom(roomId, token);
+
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
 
     @DeleteMapping("/room/disband")
@@ -170,7 +172,8 @@ public class UserChatController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatManager.disbandRoom(roomId, token);
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatManager.disbandRoom(roomId, token);
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
 
     @PostMapping("/participant/find/{roomId:\\d+}")
