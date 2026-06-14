@@ -9,8 +9,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
-import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
-import io.github.loncra.framework.socketio.api.SocketResult;
+import io.github.loncra.framework.socketio.api.metadata.AbstractSocketMessageMetadata;
 import io.github.loncra.framework.socketio.api.metadata.BroadcastMessageMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -37,32 +37,34 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserChatMessageService extends BasicService<UserChatMessageDao, UserChatMessageEntity> {
 
-    public static final String CHAT_MESSAGE_REVOKE_EVENT = "CHAT_MESSAGE_REVOKE";
+    public static final String CHAT_MESSAGE_UNDO_EVENT_NAME = "chat_message_undo";
 
     @Transactional(rollbackFor = Exception.class)
-    public SocketResult revoke(List<String> chatMessageIds, AuditAuthenticationToken token) {
-        ReturnValueSocketResult<UserChatMessageEntity> socketResult = new ReturnValueSocketResult<>();
-
+    public List<AbstractSocketMessageMetadata<Object>> undo(
+            List<String> chatMessageIds,
+            AuditAuthenticationToken token
+    ) {
+        //ReturnValueSocketResult<UserChatMessageEntity> socketResult = new ReturnValueSocketResult<>();
+        List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
         List<UserChatMessageEntity> messages = get(chatMessageIds);
         for (UserChatMessageEntity entity : messages) {
             PrincipalDetailsConstants.equals(entity, token, token.getName() + "不是 ID 为 [" + entity.getId() + "] 消息记录发送者，无法撤销。");
-            if (entity.getRevoke().toBoolean()) {
+            if (entity.getUndo().toBoolean()) {
                 continue;
             }
 
-            entity.setRevoke(YesOrNo.Yes);
-            entity.setRevocationTime(new Date());
+            entity.setUndo(YesOrNo.Yes);
+            entity.setUndoTime(new Date());
 
             updateById(entity);
-            BroadcastMessageMetadata<UserChatMessageEntity> metadata = BroadcastMessageMetadata.of(
+            result.add(BroadcastMessageMetadata.of(
                     entity.getChatRoomId().toString(),
-                    CHAT_MESSAGE_REVOKE_EVENT,
+                    CHAT_MESSAGE_UNDO_EVENT_NAME,
                     entity
-            );
-            socketResult.getMessages().add(metadata);
+            ));
         }
 
-        return socketResult;
+        return result;
     }
 
     public UserChatMessageEntity getLastMessageByRoomId(Long id) {
@@ -80,7 +82,15 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
         return getBaseMapper().countReadable(roomId, principal);
     }
 
-    public List<Long> findReadable(Long roomId, String principal) {
-        return getBaseMapper().findReadable(roomId, principal);
+    public Long getReadableAnchorId(Long roomId, String principal) {
+        return getBaseMapper().getReadableAnchorId(roomId, principal);
+    }
+
+    public int positioningMessagePageNumber(Long chatRoomId, Long messageId, int pageSize) {
+        long newerCount = lambdaQuery().eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
+                .eq(UserChatMessageEntity::getUndo, YesOrNo.No.getValue())
+                .gt(UserChatMessageEntity::getId, messageId)
+                .count();
+        return (int) (newerCount / pageSize) + 1;
     }
 }

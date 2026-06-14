@@ -357,27 +357,46 @@ public class UserChatManager {
     public Page<UserChatMessageEntity> histories(
             PageRequest request,
             Long chatRoomId,
+            boolean withoutReadableAnchor,
+            boolean totalPage,
             AuditAuthenticationToken token
     ) {
         Wrapper<UserChatMessageEntity> wrapper = Wrappers
                 .<UserChatMessageEntity>lambdaQuery()
                 .eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
-                .eq(UserChatMessageEntity::getRevoke, YesOrNo.No.getValue())
+                .eq(UserChatMessageEntity::getUndo, YesOrNo.No.getValue())
                 .orderByDesc(IdEntity::getId);
-        Page<UserChatMessageEntity> page = userChatMessageService.findPage(request, wrapper);
+
+        Page<UserChatMessageEntity> page;
+        if (totalPage) {
+            page = userChatMessageService.findTotalPage(request, wrapper);
+        } else {
+            page = userChatMessageService.findPage(request, wrapper);
+        }
 
         List<UserChatMessageEntity> messages = page.getElements();
-        if (CollectionUtils.isNotEmpty(messages)) {
-            List<UserChatParticipantEntity> participants = messages.stream()
-                    .map(UserChatMessageEntity::getPrincipal)
-                    .distinct()
-                    .map(principal -> userChatParticipantService.getByChatRoomIdAndPrincipal(chatRoomId, principal))
-                    .filter(Objects::nonNull)
-                    .toList();
-            List<UserChatMessageResponseBody> responses = messages.stream()
-                    .map(m -> convertResponseBody(m, token, participants))
-                    .toList();
-            page.setElements(responses.stream().sorted(Comparator.comparing(UserChatMessageResponseBody::getId)).collect(Collectors.toList()));
+        if (CollectionUtils.isEmpty(messages)) {
+            return page;
+        }
+
+        List<UserChatParticipantEntity> participants = messages.stream()
+                .map(UserChatMessageEntity::getPrincipal)
+                .distinct()
+                .map(principal -> userChatParticipantService.getByChatRoomIdAndPrincipal(chatRoomId, principal))
+                .filter(Objects::nonNull)
+                .toList();
+        List<UserChatMessageResponseBody> responses = messages.stream()
+                .map(m -> convertResponseBody(m, token, participants))
+                .toList();
+        page.setElements(new LinkedList<>(responses));
+
+        if (!withoutReadableAnchor) {
+            Long readableAnchorId = userChatMessageService.getReadableAnchorId(chatRoomId, token.getName());
+            if (Objects.nonNull(readableAnchorId)) {
+                int anchorPage = userChatMessageService.positioningMessagePageNumber(chatRoomId, readableAnchorId, request.getSize());
+                page.getMetadata().put(UserChatMessageEntity.READABLE_ANCHOR_ID_KEY, readableAnchorId);
+                page.getMetadata().put(UserChatMessageEntity.READABLE_ANCHOR_PAGE_KEY, anchorPage);  // 新增
+            }
         }
 
         return page;

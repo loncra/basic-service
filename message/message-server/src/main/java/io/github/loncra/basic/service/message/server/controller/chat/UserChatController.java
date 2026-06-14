@@ -70,11 +70,13 @@ public class UserChatController {
     @PreAuthorize("isAuthenticated()")
     public Page<UserChatMessageEntity> histories(
             PageRequest pageRequest,
+            @RequestParam(required = false, defaultValue = "false") boolean withoutReadableAnchor,
+            @RequestParam(required = false, defaultValue = "false") boolean totalPage,
             @PathVariable Long chatRoomId,
             @CurrentSecurityContext SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatManager.histories(pageRequest, chatRoomId, token);
+        return userChatManager.histories(pageRequest, chatRoomId, withoutReadableAnchor, totalPage, token);
     }
 
     @PostMapping("message/read")

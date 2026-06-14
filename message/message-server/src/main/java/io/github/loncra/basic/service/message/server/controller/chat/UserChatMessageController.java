@@ -4,7 +4,9 @@ import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChat
 import io.github.loncra.basic.service.message.server.service.chat.UserChatMessageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
 import io.github.loncra.framework.socketio.api.SocketResult;
+import io.github.loncra.framework.socketio.api.metadata.AbstractSocketMessageMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,6 +14,7 @@ import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -32,7 +35,6 @@ public class UserChatMessageController {
     private final UserChatMessageService userChatMessageService;
 
     @GetMapping("/count/readable/{chatRoomId:\\d+}")
-    @PreAuthorize("isAuthenticated()")
     public RestResult<Long> countReadable(
             @PathVariable Long chatRoomId,
             @CurrentSecurityContext SecurityContext securityContext
@@ -42,14 +44,14 @@ public class UserChatMessageController {
         return RestResult.ofSuccess(count);
     }
 
-    @DeleteMapping("revoke")
+    @DeleteMapping("undo")
     @PreAuthorize("isFullyAuthenticated()")
-    public SocketResult revoke(
-            @RequestParam List<String> chatMessageIds,
+    public SocketResult undo(
+            @RequestParam List<String> ids,
             @CurrentSecurityContext SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatMessageService.revoke(chatMessageIds, token);
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatMessageService.undo(ids, token);
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
-
 }

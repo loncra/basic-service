@@ -35,6 +35,9 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
     @Serial
     private static final long serialVersionUID = 7472157646402407685L;
 
+    public final static String READABLE_ANCHOR_ID_KEY = "readableAnchorId";
+    public final static String READABLE_ANCHOR_PAGE_KEY = "readableAnchorPage";
+
     /**
      * 业务  id
      */
@@ -54,11 +57,11 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
     /**
      * 是否撤销
      */
-    private YesOrNo revoke = YesOrNo.No;
+    private YesOrNo undo = YesOrNo.No;
     /**
      * 撤销时间
      */
-    private Date revocationTime;
+    private Date undoTime;
 
     private UserChatMessageTypeEnum type;
 
