@@ -6,6 +6,7 @@ import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatParticipantTypeEnum;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.page.Page;
@@ -15,11 +16,14 @@ import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
 import io.github.loncra.framework.socketio.api.SocketResult;
 import io.github.loncra.framework.socketio.api.metadata.AbstractSocketMessageMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedList;
@@ -70,13 +74,23 @@ public class UserChatController {
     @PreAuthorize("isAuthenticated()")
     public Page<UserChatMessageEntity> histories(
             PageRequest pageRequest,
+            HttpServletRequest request,
             @RequestParam(required = false, defaultValue = "false") boolean withoutReadableAnchor,
             @RequestParam(required = false, defaultValue = "false") boolean totalPage,
             @PathVariable Long chatRoomId,
             @CurrentSecurityContext SecurityContext securityContext
     ) {
+        MultiValueMap<String, String> parameter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
+        MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
+        parameter.forEach(filter::addAll);
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return userChatManager.histories(pageRequest, chatRoomId, withoutReadableAnchor, totalPage, token);
+        return userChatManager.histories(
+                pageRequest,
+                filter,
+                chatRoomId,
+                withoutReadableAnchor,
+                totalPage,
+                token);
     }
 
     @PostMapping("message/read")

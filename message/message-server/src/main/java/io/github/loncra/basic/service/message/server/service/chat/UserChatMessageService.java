@@ -86,7 +86,7 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
         return getBaseMapper().getReadableAnchorId(roomId, principal);
     }
 
-    public int positioningMessagePageNumber(Long chatRoomId, Long messageId, int pageSize) {
+    public int positioningPageNumber(Long chatRoomId, Long messageId, int pageSize) {
         long newerCount = lambdaQuery().eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
                 .eq(UserChatMessageEntity::getUndo, YesOrNo.No.getValue())
                 .gt(UserChatMessageEntity::getId, messageId)

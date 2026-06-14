@@ -54,4 +54,16 @@ public class UserChatMessageController {
         List<AbstractSocketMessageMetadata<Object>> messages = userChatMessageService.undo(ids, token);
         return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
+
+    @GetMapping("positioning/page/number/{chatRoomId:\\d+}/{messageId:\\d+}/{pageSize:\\d+}")
+    public RestResult<Integer> positioningPageNumber(
+            @PathVariable
+            Long chatRoomId,
+            @PathVariable
+            Long messageId,
+            @PathVariable
+            int pageSize
+    ) {
+        return RestResult.ofSuccess(userChatMessageService.positioningPageNumber(chatRoomId, messageId, pageSize));
+    }
 }

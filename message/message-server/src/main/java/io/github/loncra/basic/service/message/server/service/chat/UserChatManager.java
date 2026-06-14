@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.message.server.service.chat;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.corundumstudio.socketio.SocketIOClient;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
@@ -45,6 +44,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
+import org.springframework.util.MultiValueMap;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -356,16 +356,16 @@ public class UserChatManager {
 
     public Page<UserChatMessageEntity> histories(
             PageRequest request,
+            MultiValueMap<String, Object> filter,
             Long chatRoomId,
             boolean withoutReadableAnchor,
             boolean totalPage,
             AuditAuthenticationToken token
     ) {
-        Wrapper<UserChatMessageEntity> wrapper = Wrappers
-                .<UserChatMessageEntity>lambdaQuery()
-                .eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
-                .eq(UserChatMessageEntity::getUndo, YesOrNo.No.getValue())
-                .orderByDesc(IdEntity::getId);
+        QueryWrapper<UserChatMessageEntity> wrapper = userChatMessageService.getQueryGenerator().createQueryWrapperFromMap(filter);
+        wrapper.eq(UserChatMessageEntity.ROOM_ID_TABLE_FIELD_NAME, chatRoomId)
+                .eq(UserChatMessageEntity.UNDO_TABLE_FIELD_NAME, YesOrNo.No.getValue())
+                .orderByDesc(IdEntity.ID_FIELD_NAME);
 
         Page<UserChatMessageEntity> page;
         if (totalPage) {
@@ -393,7 +393,7 @@ public class UserChatManager {
         if (!withoutReadableAnchor) {
             Long readableAnchorId = userChatMessageService.getReadableAnchorId(chatRoomId, token.getName());
             if (Objects.nonNull(readableAnchorId)) {
-                int anchorPage = userChatMessageService.positioningMessagePageNumber(chatRoomId, readableAnchorId, request.getSize());
+                int anchorPage = userChatMessageService.positioningPageNumber(chatRoomId, readableAnchorId, request.getSize());
                 page.getMetadata().put(UserChatMessageEntity.READABLE_ANCHOR_ID_KEY, readableAnchorId);
                 page.getMetadata().put(UserChatMessageEntity.READABLE_ANCHOR_PAGE_KEY, anchorPage);  // 新增
             }

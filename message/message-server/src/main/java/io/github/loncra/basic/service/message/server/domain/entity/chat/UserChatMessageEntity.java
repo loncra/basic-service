@@ -36,7 +36,11 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
     private static final long serialVersionUID = 7472157646402407685L;
 
     public final static String READABLE_ANCHOR_ID_KEY = "readableAnchorId";
+
     public final static String READABLE_ANCHOR_PAGE_KEY = "readableAnchorPage";
+
+    public final static String ROOM_ID_TABLE_FIELD_NAME = "`chat_room_id`";
+    public final static String UNDO_TABLE_FIELD_NAME = "`undo`";
 
     /**
      * 业务  id
