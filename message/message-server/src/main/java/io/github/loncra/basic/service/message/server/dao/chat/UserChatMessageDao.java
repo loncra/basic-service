@@ -39,6 +39,7 @@ public interface UserChatMessageDao extends BaseMapper<UserChatMessageEntity> {
               chat_message_read.chat_message_id = chat_message.id 
             WHERE 
               chat_message_read.principal = #{principal} 
+              AND chat_message.undo = 0
               AND chat_message_read.readable = 1
               AND chat_room.id = #{roomId}
         </script>
@@ -61,6 +62,7 @@ public interface UserChatMessageDao extends BaseMapper<UserChatMessageEntity> {
               chat_message_read.chat_message_id = chat_message.id
             WHERE
               chat_message_read.principal = #{principal} 
+              AND chat_message.undo = 0
               AND chat_message_read.readable = 1
               AND chat_room.id = #{roomId}
             ORDER BY

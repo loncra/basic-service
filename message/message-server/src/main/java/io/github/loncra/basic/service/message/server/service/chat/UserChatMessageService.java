@@ -27,10 +27,8 @@ import java.util.List;
  *
  * <p>Table: tb_user_chat_message - 聊天房间消息</p>
  *
- * @see UserChatMessageEntity
- *
  * @author maurice.chen
- *
+ * @see UserChatMessageEntity
  * @since 2025-06-01 06:31:44
  */
 @Service
@@ -44,7 +42,6 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
             List<String> chatMessageIds,
             AuditAuthenticationToken token
     ) {
-        //ReturnValueSocketResult<UserChatMessageEntity> socketResult = new ReturnValueSocketResult<>();
         List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
         List<UserChatMessageEntity> messages = get(chatMessageIds);
         for (UserChatMessageEntity entity : messages) {
@@ -78,15 +75,25 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
         return page.getElements().getFirst();
     }
 
-    public long countReadable(Long roomId, String principal) {
+    public long countReadable(
+            Long roomId,
+            String principal
+    ) {
         return getBaseMapper().countReadable(roomId, principal);
     }
 
-    public Long getReadableAnchorId(Long roomId, String principal) {
+    public Long getReadableAnchorId(
+            Long roomId,
+            String principal
+    ) {
         return getBaseMapper().getReadableAnchorId(roomId, principal);
     }
 
-    public int positioningPageNumber(Long chatRoomId, Long messageId, int pageSize) {
+    public int positioningPageNumber(
+            Long chatRoomId,
+            Long messageId,
+            int pageSize
+    ) {
         long newerCount = lambdaQuery().eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
                 .eq(UserChatMessageEntity::getUndo, YesOrNo.No.getValue())
                 .gt(UserChatMessageEntity::getId, messageId)

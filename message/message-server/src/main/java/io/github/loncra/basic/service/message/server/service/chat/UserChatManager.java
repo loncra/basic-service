@@ -341,7 +341,6 @@ public class UserChatManager {
         return stream;
     }
 
-
     private UserChatParticipantEntity createUserChatParticipantEntity(
             String principal
     ) {
