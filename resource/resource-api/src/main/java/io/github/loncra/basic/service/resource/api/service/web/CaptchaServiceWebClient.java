@@ -30,7 +30,7 @@ public interface CaptchaServiceWebClient extends CaptchaServiceClient {
      */
     @Override
     @PostExchange("createCaptchaIntercept")
-    InterceptToken createCaptchaIntercept(
+    Map<String, Object> createCaptchaIntercept(
             @RequestParam("token")
             String token,
             @RequestParam("type")
@@ -50,7 +50,7 @@ public interface CaptchaServiceWebClient extends CaptchaServiceClient {
      */
     @Override
     @GetExchange("generateToken")
-    BuildToken createCaptchaToken(
+    Map<String, Object> createCaptchaToken(
             @RequestParam("type")
             String type,
             @RequestParam("deviceIdentified")

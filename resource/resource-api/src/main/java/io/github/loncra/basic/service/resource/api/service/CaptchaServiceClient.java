@@ -35,7 +35,7 @@ public interface CaptchaServiceClient {
      *
      * @return 绑定 token
      */
-    InterceptToken createCaptchaIntercept(
+    Map<String, Object> createCaptchaIntercept(
             String token,
             String type,
             String interceptType
@@ -50,7 +50,7 @@ public interface CaptchaServiceClient {
      *
      * @return 绑定 token
      */
-    BuildToken createCaptchaToken(
+    Map<String, Object> createCaptchaToken(
             String type,
             String deviceIdentified,
             Map<String, Object> appendParams

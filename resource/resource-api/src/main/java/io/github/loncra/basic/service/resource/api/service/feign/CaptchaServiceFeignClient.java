@@ -35,7 +35,7 @@ public interface CaptchaServiceFeignClient extends CaptchaServiceClient {
      */
     @Override
     @PostMapping("captcha/createCaptchaIntercept")
-    InterceptToken createCaptchaIntercept(
+    Map<String, Object> createCaptchaIntercept(
             @RequestParam("token")
             String token,
             @RequestParam("type")
@@ -55,7 +55,7 @@ public interface CaptchaServiceFeignClient extends CaptchaServiceClient {
      */
     @Override
     @GetMapping("captcha/generateToken")
-    BuildToken createCaptchaToken(
+    Map<String, Object> createCaptchaToken(
             @RequestParam("type")
             String type,
             @RequestParam("deviceIdentified")

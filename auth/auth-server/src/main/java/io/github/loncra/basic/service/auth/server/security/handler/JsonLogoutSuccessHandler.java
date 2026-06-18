@@ -184,7 +184,7 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
         if (number >= allowableFailureNumber) {
             String captchaType = authAppConfig.getFormLoginFailureCaptchaType();
 
-            BuildToken buildToken = failureHandler.getCaptchaServiceClient()
+            Map<String, Object> buildToken = failureHandler.getCaptchaServiceClient()
                     .createCaptchaToken(captchaType, meta.getId(), new LinkedHashMap<>());
 
             result.getData()

@@ -166,6 +166,8 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
                 .eq(ConsoleUserEntity::getUsername, identity)
                 .or()
                 .eq(ConsoleUserEntity::getEmail, identity)
+                .or()
+                .eq(ConsoleUserEntity::getPhoneNumber, identity)
                 .one();
     }
 

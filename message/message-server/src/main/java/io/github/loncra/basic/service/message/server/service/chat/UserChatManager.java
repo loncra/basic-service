@@ -390,15 +390,26 @@ public class UserChatManager {
         page.setElements(new LinkedList<>(responses));
 
         if (!withoutReadableAnchor) {
-            Long readableAnchorId = userChatMessageService.getReadableAnchorId(chatRoomId, token.getName());
-            if (Objects.nonNull(readableAnchorId)) {
-                int anchorPage = userChatMessageService.positioningPageNumber(chatRoomId, readableAnchorId, request.getSize());
-                page.getMetadata().put(UserChatMessageEntity.READABLE_ANCHOR_ID_KEY, readableAnchorId);
-                page.getMetadata().put(UserChatMessageEntity.READABLE_ANCHOR_PAGE_KEY, anchorPage);  // 新增
-            }
+            Map<String, Object> metadata = setReadableAnchorMetadata(chatRoomId, token.getName(), page.getSize());
+            page.setMetadata(metadata);
         }
 
         return page;
+    }
+
+    private Map<String, Object> setReadableAnchorMetadata(Long chatRoomId, String principal, int pageSize) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        Long readableAnchorId = userChatMessageService.getReadableAnchorId(chatRoomId, principal);
+        if (Objects.isNull(readableAnchorId)) {
+           return metadata;
+        }
+        int anchorPage = userChatMessageService.positioningPageNumber(chatRoomId, readableAnchorId, pageSize);
+        if (anchorPage == 1) {
+            return metadata;
+        }
+        metadata.put(UserChatMessageEntity.READABLE_ANCHOR_ID_KEY, readableAnchorId);
+        metadata.put(UserChatMessageEntity.READABLE_ANCHOR_PAGE_KEY, anchorPage);
+        return metadata;
     }
 
     private UserChatMessageResponseBody convertResponseBody(

@@ -20,7 +20,7 @@ loncra:
     captcha:
       tianai:
         random-captcha-type: SLIDER
-        api-base-url: http://192.168.1.58:8080
+        api-base-url: http://localhost:8080
         tolerant-map:
           ROTATE: 0.056F
         template-map:

@@ -2,8 +2,13 @@ package io.github.loncra.basic.service.auth.server.service.user.console;
 
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
+import io.github.loncra.basic.service.auth.server.resolver.login.LoadDatabaseLoginTypeResolver;
 import io.github.loncra.basic.service.auth.server.security.AbstractSystemUserDetailsService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.security.entity.SecurityPrincipal;
+import io.github.loncra.framework.spring.security.core.authentication.token.RequestAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.authentication.token.TypeAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -22,6 +27,8 @@ public class ConsoleUserDetailsService extends AbstractSystemUserDetailsService<
 
     private final ConsoleUserService consoleUserService;
 
+    private final LoadDatabaseLoginTypeResolver loadDatabaseLoginTypeResolver;
+
     @Override
     protected ConsoleUserEntity getByIdentity(String id) {
         return consoleUserService.getByIdentity(id);
@@ -37,6 +44,22 @@ public class ConsoleUserDetailsService extends AbstractSystemUserDetailsService<
                 .set(AbstractPlatformUser::getLastAuthenticationTime, date)
                 .eq(AbstractPlatformUser::getId, id)
                 .update();
+    }
+
+    @Override
+    public boolean matchesPassword(
+            String presentedPassword,
+            TypeAuthenticationToken token,
+            SecurityPrincipal principal
+    ) {
+        boolean result = super.matchesPassword(presentedPassword, token, principal);
+
+        if (!result) {
+            RequestAuthenticationToken requestAuthenticationToken = CastUtils.cast(token);
+            return loadDatabaseLoginTypeResolver.matchesPassword(presentedPassword, requestAuthenticationToken, principal);
+        }
+        return true;
+
     }
 
     @Override

@@ -102,7 +102,7 @@ public class CaptchaAuthenticationFailureResponse implements JsonAuthenticationF
         // 获取设备唯一识别
         String identified = SpringMvcUtils.getDeviceIdentified(request);
 
-        BuildToken buildToken = captchaServiceClient.createCaptchaToken(
+        Map<String, Object> buildToken = captchaServiceClient.createCaptchaToken(
                 authAppConfig.getFormLoginFailureCaptchaType(),
                 identified,
                 new LinkedHashMap<>()

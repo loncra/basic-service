@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.util.Assert;
 import org.springframework.validation.Validator;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +112,7 @@ public abstract class AbstractMessageCaptchaService<T extends MessageCaptchaType
         RestResult<Object> superResult = CastUtils.cast(result.getResult());
         restResult.getData().put(IdEntity.ID_FIELD_NAME, superResult.getData());
         if (Objects.nonNull(retryTime)) {
-            restResult.getData().put(Expired.class.getSimpleName().toLowerCase(), retryTime);
+            restResult.getData().put(Expired.class.getSimpleName().toLowerCase(), Instant.now().plus(retryTime.toDuration()));
         }
         restResult.getData().put(DEFAULT_CODE_LENGTH, result.getMatchValue().length());
 
