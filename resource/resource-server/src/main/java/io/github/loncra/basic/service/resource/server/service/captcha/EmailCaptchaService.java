@@ -108,7 +108,6 @@ public class EmailCaptchaService extends AbstractMessageCaptchaService<EmailRequ
         return RandomStringUtils.secure().nextNumeric(emailCaptchaConfig.getRandomNumericCount());
     }
 
-
     @Override
     protected TimeProperties getCaptchaExpireTime() {
         return emailCaptchaConfig.getCaptchaExpireTime();
