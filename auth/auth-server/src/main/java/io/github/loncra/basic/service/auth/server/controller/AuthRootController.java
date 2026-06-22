@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.controller;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
+import io.github.loncra.basic.service.auth.server.domain.body.UserResetPasswordRequestBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.WechatAuthenticationEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
@@ -11,6 +12,8 @@ import io.github.loncra.basic.service.auth.server.service.AbstractAuthorizationS
 import io.github.loncra.basic.service.auth.server.service.WechatAuthenticationService;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.DelegatingPluginResourceService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.captcha.ReceivingTargetSimpleCaptcha;
+import io.github.loncra.framework.captcha.filter.CaptchaVerificationFilter;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -28,6 +31,7 @@ import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.handler.JsonAuthenticationSuccessResponse;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import io.github.loncra.framework.wechat.domain.WechatUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -77,7 +81,6 @@ public class AuthRootController {
      * 登录预处理
      *
      * @param request http servlet request
-     *
      * @return REST 响应结果
      */
     @ResponseBody
@@ -105,7 +108,6 @@ public class AuthRootController {
      * 登录成功后跳转的连接，直接获取当前用户
      *
      * @param securityContext 安全上下文
-     *
      * @return REST 响应结果
      */
     @ResponseBody
@@ -128,7 +130,6 @@ public class AuthRootController {
      *
      * @param securityContext 安全上下文
      * @param mergeTree       是否合并树形 true，是 否则 false
-     *
      * @return 资源实体集合
      */
     @ResponseBody
@@ -161,8 +162,7 @@ public class AuthRootController {
 
         if (mergeTree) {
             return TreeUtils.buildGenericTree(resourceList);
-        }
-        else {
+        } else {
             return resourceList;
         }
     }
@@ -232,7 +232,7 @@ public class AuthRootController {
     }
 
     /**
-     * 更新系统用户登录密码
+     * 管理员重置用户登录密码
      *
      * @param type 用户类型
      * @param id   用户 id
@@ -240,7 +240,7 @@ public class AuthRootController {
     @ResponseBody
     @OperationDataTrace
     @PutMapping("user/password/admin/reset")
-    @Plugin(name = "重置用户密码", parent = "authority")
+    @Plugin(name = "管理员重置用户密码", parent = "authority")
     @PreAuthorize("hasAuthority('perms[auth_server_system_user:admin_reset_password]')")
     public RestResult<Object> adminRestPassword(
             String type,
@@ -251,11 +251,30 @@ public class AuthRootController {
     }
 
     /**
+     * 管理员重置用户登录密码
+     *
+     * @param body     重置密码请求体
+     */
+    @Auditable
+    @ResponseBody
+    @PostMapping("user/password/reset")
+    public RestResult<Object> restPassword(
+        @RequestBody
+        UserResetPasswordRequestBody body
+    ) {
+        ReceivingTargetSimpleCaptcha captcha = CastUtils.convertValue(
+                SpringMvcUtils.getRequestAttribute(CaptchaVerificationFilter.ATTR_NAME),
+                ReceivingTargetSimpleCaptcha.class
+        );
+        authorizationService.restPassword(body, captcha);
+        return RestResult.of("重置密码成功");
+    }
+
+    /**
      * 更具手机号码创建系统用户
      *
      * @param phoneNumber 手机号码
      * @param type        用户类型
-     *
      * @return REST 响应结果
      */
     @ResponseBody
@@ -274,10 +293,8 @@ public class AuthRootController {
      * 获取系统用户
      *
      * @param systemName 用户系统形成
-     *
-     * @see AbstractPlatformUser#getSystemName()
-     *
      * @return REST 响应结果
+     * @see AbstractPlatformUser#getSystemName()
      */
     @ResponseBody
     @PostMapping("system/user/{systemName}")
@@ -295,12 +312,10 @@ public class AuthRootController {
      *
      * @param pageRequest 分页请求
      * @param request     http servlet request
-     *
      * @return REST 响应结果
      */
     @ResponseBody
-    @PreAuthorize("isAuthenticated()")
-    @PostMapping({"system/users","system/users/undesensitize/name"})
+    @PostMapping({"system/users", "system/users/undesensitize/name"})
     public Object systemUsers(
             PageRequest pageRequest,
             HttpServletRequest request,
@@ -317,8 +332,7 @@ public class AuthRootController {
             List<IdNameValueMetadata<String, List<AbstractBasicSystemUser>>> metadataList = new LinkedList<>();
             result.forEach((k, v) -> metadataList.add(new IdNameValueMetadata<>(k.getId(), k.getName(), v)));
             return metadataList;
-        }
-        else {
+        } else {
             Map<String, Object> map = new LinkedHashMap<>();
             result.forEach((k, v) -> map.put(k.getName(), v));
             return map;
@@ -340,8 +354,7 @@ public class AuthRootController {
                     .stream()
                     .flatMap(s -> s.findPage(PageRequest.of(-1), filter).getElements().stream())
                     .toList();
-        }
-        else {
+        } else {
             return authorizationService.getSystemUserAuthorizationResolver(type, true)
                     .findPage(PageRequest.of(-1), new LinkedMultiValueMap<>(filter))
                     .getElements();

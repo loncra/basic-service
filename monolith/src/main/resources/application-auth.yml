@@ -10,11 +10,11 @@ loncra:
           message-server:
             - io.github.loncra.basic.service.message.server.controller
   framework:
+    captcha:
+      verify-urls:
+        - "/user/password/reset/**"
+        - "/sms/send/**"
     authentication:
-      captcha-verification:
-        verify-urls:
-          - "/login/**"
-          - "/sms/send/**"
       permit-uri-ant-matchers:
         - "/prepare/**"
         - "/login/**"
@@ -26,6 +26,9 @@ loncra:
         - "/captcha/**"
         - "/tianai-captcha.css/**"
         - "/carousel/find/**"
+        - "/user/password/reset/**"
+        - "/system/users/**"
+        - "/attachment/loncra.basic-service.resource.avatar/**"
     security:
       web:
         ignore-result-map:

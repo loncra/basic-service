@@ -1,9 +1,7 @@
 package io.github.loncra.basic.service.resource.api.service;
 
-import io.github.loncra.framework.captcha.token.BuildToken;
-import io.github.loncra.framework.captcha.token.InterceptToken;
+import io.github.loncra.framework.captcha.CaptchaProperties;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.spring.security.core.authentication.config.CaptchaVerificationProperties;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -104,7 +102,7 @@ public interface CaptchaServiceClient {
             String paramName
     ) {
         Map<String, Object> param = new LinkedHashMap<>();
-        param.put(CaptchaVerificationProperties.DEFAULT_CAPTCHA_TYPE_PARAM_NAME, captchaType);
+        param.put(CaptchaProperties.DEFAULT_CAPTCHA_TYPE_PARAM_NAME, captchaType);
         param.put(paramName, captchaToken);
 
         return deleteCaptcha(param);

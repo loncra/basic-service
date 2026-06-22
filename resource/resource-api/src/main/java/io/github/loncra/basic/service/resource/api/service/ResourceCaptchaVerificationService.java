@@ -26,7 +26,7 @@ import java.util.Map;
 @ConditionalOnClass(FeignClientsConfiguration.class)
 public class ResourceCaptchaVerificationService implements CaptchaVerificationService {
 
-    public static final List<String> DEFAULT_TYPE = Arrays.asList("tianai", "email");
+    public static final List<String> DEFAULT_TYPE = Arrays.asList("tianai", "email", "sms");
 
     private final CaptchaServiceClient captchaServiceClient;
 
@@ -36,10 +36,12 @@ public class ResourceCaptchaVerificationService implements CaptchaVerificationSe
     }
 
     @Override
-    public void verify(HttpServletRequest request) {
+    public RestResult<Object> verify(HttpServletRequest request) {
         Map<String, Object> param = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
         RestResult<Object> result = captchaServiceClient.verifyCaptcha(param);
         Assert.isTrue(result.getStatus() == HttpStatus.OK.value(), result.getMessage());
+
+        return result;
     }
 
     @Override

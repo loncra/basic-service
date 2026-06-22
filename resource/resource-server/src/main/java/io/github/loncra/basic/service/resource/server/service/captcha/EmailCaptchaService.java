@@ -10,10 +10,15 @@ import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionar
 import io.github.loncra.basic.service.resource.server.config.capthca.CaptchaConfig;
 import io.github.loncra.basic.service.resource.server.config.capthca.EmailCaptchaConfig;
 import io.github.loncra.basic.service.resource.server.domain.body.captcha.EmailRequestBody;
+import io.github.loncra.framework.captcha.ReceivingTargetSimpleCaptcha;
+import io.github.loncra.framework.captcha.SimpleCaptcha;
+import io.github.loncra.framework.captcha.token.InterceptToken;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.TimeProperties;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
@@ -55,6 +60,9 @@ public class EmailCaptchaService extends AbstractMessageCaptchaService<EmailRequ
             Map<String, Object> metaVariables = CastUtils.convertValue(meta, CastUtils.MAP_TYPE_REFERENCE);
             variables.putAll(metaVariables);
         }
+        if (StringUtils.isEmpty(entity.getOperation())) {
+            entity.setOperation(entry.getName());
+        }
 
         TimeProperties expireTime = emailCaptchaConfig.getCaptchaExpireTime();
 
@@ -74,6 +82,20 @@ public class EmailCaptchaService extends AbstractMessageCaptchaService<EmailRequ
         String title = Objects.toString(variables.get(MessageConstants.DEFAULT_TITLE_KEY), entry.getName());
 
         return MessageServiceClient.createEmailMessage(Collections.singletonList(entity.getEmail()), title, content, MessageTypeEnum.SYSTEM);
+    }
+
+    @Override
+    protected SimpleCaptcha createMatchCaptcha(
+            String value,
+            HttpServletRequest request,
+            InterceptToken buildToken,
+            EmailRequestBody requestBody
+    ) {
+        SimpleCaptcha captcha = super.createMatchCaptcha(value, request, buildToken, requestBody);
+        ReceivingTargetSimpleCaptcha targetSimpleCaptcha = CastUtils.of(captcha, ReceivingTargetSimpleCaptcha.class);
+        targetSimpleCaptcha.setTarget(requestBody.getEmail());
+
+        return targetSimpleCaptcha;
     }
 
     @Override
@@ -102,6 +124,10 @@ public class EmailCaptchaService extends AbstractMessageCaptchaService<EmailRequ
         return MessageConstants.DEFAULT_EMAIL_TYPE_VALUE;
     }
 
+    @Override
+    protected TimeProperties getRetryTime() {
+        return emailCaptchaConfig.getRetryTime();
+    }
 
     @Override
     protected Map<String, Object> createGenerateArgs() {

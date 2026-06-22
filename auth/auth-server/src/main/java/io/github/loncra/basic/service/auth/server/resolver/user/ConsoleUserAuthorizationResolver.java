@@ -101,6 +101,19 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
     }
 
     @Override
+    public void restPassword(
+            Long userId,
+            String newPassword
+    ) {
+        String encodePassword = consoleUserService.getPasswordEncoder()
+                .encode(newPassword);
+        consoleUserService.lambdaUpdate()
+                .set(AbstractPlatformUser::getPassword, encodePassword)
+                .eq(AbstractPlatformUser::getId, userId)
+                .update();
+    }
+
+    @Override
     public String adminRestPassword(String id) {
         String password = RandomStringUtils.secure()
                 .next(

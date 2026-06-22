@@ -171,6 +171,14 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
     );
 
     /**
+     * 重置密码
+     *
+     * @param userId      用户 id
+     * @param newPassword 新密码
+     */
+    void restPassword(Long userId, String newPassword);
+
+    /**
      * 管理员重置密码
      *
      * @param id 用户 id

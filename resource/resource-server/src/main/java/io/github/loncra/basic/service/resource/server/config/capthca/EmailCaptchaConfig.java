@@ -23,7 +23,7 @@ public class EmailCaptchaConfig {
     /**
      * 邮件验证码的超时时间
      */
-    private TimeProperties captchaExpireTime = new TimeProperties(300, TimeUnit.SECONDS);
+    private TimeProperties captchaExpireTime = new TimeProperties(5, TimeUnit.MINUTES);
     /**
      * 提交邮件验证码的参数名称
      */
@@ -32,7 +32,7 @@ public class EmailCaptchaConfig {
     /**
      * 邮件验证码的随机生成数量
      */
-    private Integer randomNumericCount = 4;
+    private Integer randomNumericCount = 6;
 
     /**
      * 提交邮件的参数名称
@@ -58,5 +58,9 @@ public class EmailCaptchaConfig {
      */
     private String typeValue = "system.email.captcha.login";
 
+    /**
+     * 验证码重试时间
+     */
+    private TimeProperties retryTime = TimeProperties.of(60, TimeUnit.SECONDS);
 
 }

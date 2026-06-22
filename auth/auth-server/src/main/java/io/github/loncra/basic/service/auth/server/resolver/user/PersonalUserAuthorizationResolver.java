@@ -112,6 +112,19 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
     }
 
     @Override
+    public void restPassword(
+            Long userId,
+            String newPassword
+    ) {
+        String encodePassword = personalUserService.getPasswordEncoder()
+                .encode(newPassword);
+        personalUserService.lambdaUpdate()
+                .set(AbstractPlatformUser::getPassword, encodePassword)
+                .eq(PersonalUserEntity::getId, userId)
+                .update();
+    }
+
+    @Override
     public String adminRestPassword(String id) {
         String password = RandomStringUtils.secure()
                 .next(

@@ -2,14 +2,18 @@ package io.github.loncra.basic.service.auth.server.service;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.auth.server.domain.body.UserResetPasswordRequestBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.captcha.ReceivingTargetSimpleCaptcha;
+import io.github.loncra.framework.captcha.SimpleCaptcha;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.exception.ServiceException;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.page.PageRequest;
@@ -22,6 +26,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -58,32 +63,6 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
         return optional.orElse(null);
     }
 
-
-    /*public void syncSystemUserRole(
-            List<BasicSystemRole> roles,
-            SystemUserRoleSyncResolver systemUserRoleSyncResolver
-    ) {
-        List<ResourceSourceEnum> sources = roles
-                .stream()
-                .flatMap(g -> g.getSources().stream())
-                .toList();
-
-        Set<Long> groupIds = roles.stream()
-                .map(BasicSystemRole::getId)
-                .collect(Collectors.toSet());
-
-        for (ResourceSourceEnum source : sources) {
-            SystemUserAuthorizationResolver<T> userAuthorizationResolver = getSystemUserAuthorizationResolver(source.getValue(), false);
-
-            List<T> systemUsers = new LinkedList<>(userAuthorizationResolver.getByRoleId(groupIds));
-            if (CollectionUtils.isEmpty(systemUsers)) {
-                continue;
-            }
-
-            systemUsers.forEach(sue -> systemUserRoleSyncResolver.syncSystemUserGroup(sue, roles));
-        }
-    }*/
-
     public List<IdNameMetadata> getSystemUserTypes() {
         List<IdNameMetadata> result = new ArrayList<>();
         for (SystemUserAuthorizationResolver<T> resolver : getSystemUserAuthorizationResolvers()) {
@@ -100,6 +79,20 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
             String id
     ) {
         return getSystemUserAuthorizationResolver(type, true).adminRestPassword(id);
+    }
+
+    public void restPassword(
+            UserResetPasswordRequestBody body,
+            SimpleCaptcha captcha
+    ) {
+        Assert.isTrue(Strings.CS.equals(body.getNewPassword(), body.getConfirmPassword()), "新密码与确认密码不一致");
+        SystemUserAuthorizationResolver<T> resolver = getSystemUserAuthorizationResolver(body.getType(), true);
+        if (captcha instanceof ReceivingTargetSimpleCaptcha receivingTargetSimpleCaptcha) {
+            T user = resolver.getByIdentity(receivingTargetSimpleCaptcha.getTarget());
+            SystemException.isTrue(Objects.nonNull(user), "找不到用户信息。");
+            SystemException.isTrue(user.getId().equals(body.getUserId()), "用户唯一性不正确，无法重置密码。");
+        }
+        resolver.restPassword(body.getUserId(), body.getNewPassword());
     }
 
     public T updatePassword(

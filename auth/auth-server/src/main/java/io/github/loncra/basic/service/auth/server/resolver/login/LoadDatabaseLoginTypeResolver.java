@@ -57,7 +57,7 @@ public class LoadDatabaseLoginTypeResolver implements LoginTypeResolver {
             SystemException.isTrue(result.isSuccess(), () -> new ErrorCodeException(result.getMessage(), result.getExecuteCode()));
             return true;
         } else {
-            return null;
+            return false;
         }
     }
 

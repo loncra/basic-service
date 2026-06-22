@@ -115,7 +115,7 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
     public void onMessage(Long id,
                           Channel channel,
                           @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
-        super.sendMessage(id);
+        //super.sendMessage(id);
         channel.basicAck(tag, false);
     }
 
