@@ -362,14 +362,14 @@ public class AuthRootController {
     }
 
     @ResponseBody
-    @GetMapping("systemUserTypes")
+    @GetMapping("system/user/types")
     @PreAuthorize("isAuthenticated()")
     public List<IdNameMetadata> getSystemUserTypes() {
         return authorizationService.getSystemUserTypes();
     }
 
     @ResponseBody
-    @GetMapping("wechatAuthentication")
+    @GetMapping("wechat/authentication")
     @ConditionalOnProperty(prefix = "loncra.framework.wechat", value = "enabled", matchIfMissing = true)
     public WechatAuthenticationEntity getWechatAuthentication(String principal) {
         return wechatAuthenticationService.stream()
@@ -378,20 +378,9 @@ public class AuthRootController {
                 .getByPrincipal(principal);
     }
 
-    @GetMapping("wechatInfo")
-    @PreAuthorize("isAuthenticated()")
-    @ConditionalOnProperty(prefix = "loncra.framework.wechat", value = "enabled", matchIfMissing = true)
-    public WechatAuthenticationEntity getWechatAuthentication(@CurrentSecurityContext SecurityContext securityContext) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return wechatAuthenticationService.stream()
-                .findFirst()
-                .orElseThrow(() -> new SystemException("当前找不到微信任务服务，请设置 loncra.framework.wechat.enabled = true"))
-                .getByPrincipal(token.getName());
-    }
-
     @ResponseBody
     @PreAuthorize("isFullyAuthenticated()")
-    @PostMapping("wechatAuthentication/sync")
+    @PostMapping("wechat/authentication/sync")
     @ConditionalOnProperty(prefix = "loncra.framework.wechat", value = "enabled", matchIfMissing = true)
     public WechatUserDetails syncWechatAuthentication(
             @RequestParam
@@ -407,6 +396,17 @@ public class AuthRootController {
                 .findFirst()
                 .orElseThrow(() -> new SystemException("当前找不到微信任务服务，请设置 loncra.framework.wechat.enabled = true"))
                 .syncWechatAuthentication(authenticationCode, phoneNumberCode, request, response, securityContext);
+    }
+
+    @GetMapping("wechat/Info")
+    @PreAuthorize("isAuthenticated()")
+    @ConditionalOnProperty(prefix = "loncra.framework.wechat", value = "enabled", matchIfMissing = true)
+    public WechatAuthenticationEntity getWechatAuthentication(@CurrentSecurityContext SecurityContext securityContext) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return wechatAuthenticationService.stream()
+                .findFirst()
+                .orElseThrow(() -> new SystemException("当前找不到微信任务服务，请设置 loncra.framework.wechat.enabled = true"))
+                .getByPrincipal(token.getName());
     }
 
     /**
