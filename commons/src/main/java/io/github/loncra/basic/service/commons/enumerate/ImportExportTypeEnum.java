@@ -25,7 +25,11 @@ public enum ImportExportTypeEnum implements NameValueEnum<String> {
     /**
      * 后台用户数据
      */
-    CONSOLE_USER(ResourceSourceEnum.CONSOLE.getValue(), ResourceSourceEnum.CONSOLE.getName())
+    CONSOLE_USER(ResourceSourceEnum.CONSOLE.getValue(), ResourceSourceEnum.CONSOLE.getName()),
+    /**
+     * 个人用户数据
+     */
+    PERSONAL_USER(ResourceSourceEnum.PERSONAL.getValue(), ResourceSourceEnum.PERSONAL.getName()),
     ;
 
     private final String value;

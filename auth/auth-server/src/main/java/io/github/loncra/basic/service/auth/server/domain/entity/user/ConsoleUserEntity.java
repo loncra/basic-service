@@ -69,7 +69,7 @@ public class ConsoleUserEntity extends AbstractPlatformUser implements PhoneNumb
      * 联系电话
      */
     @Length(max = 32)
-    @Description(value = "联系电话", sort = 6)
+    @Description(value = "联系电话", sort = 7)
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @Pattern(regexp = SystemConstants.PHONE_NUMBER_REGULAR_EXPRESSION)
     @Decryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
@@ -87,7 +87,7 @@ public class ConsoleUserEntity extends AbstractPlatformUser implements PhoneNumb
     /**
      * 备注
      */
-    @Description(value = "备注", sort = 7)
+    @Description(value = "备注", sort = 8)
     private String remark;
 
     @Override

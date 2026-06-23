@@ -9,6 +9,8 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.MetadataUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.domain.metadata.TreeDescriptionMetadata;
+import io.github.loncra.framework.commons.enumerate.NameEnum;
+import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdValueRecordMetadata;
@@ -153,6 +155,13 @@ public interface AttachmentServiceClient {
                 }
 
                 IdValueRecordMetadata<String, Object> recordMetadata = new IdValueRecordMetadata<>();
+
+                if (value instanceof NameEnum nameEnum) {
+                    value = nameEnum.getName();
+                }
+                else if (value instanceof ValueEnum<?> valueEnum) {
+                    value = valueEnum.getValue();
+                }
 
                 recordMetadata.setId(description.getId());
                 recordMetadata.setValue(value);

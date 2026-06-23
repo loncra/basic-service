@@ -1,7 +1,10 @@
 package io.github.loncra.basic.service.commons.domain.metadata;
 
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ImportExportTypeEnum;
 import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.id.BasicIdentification;
 import io.github.loncra.framework.commons.retry.Retryable;
@@ -10,6 +13,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
 
 import java.io.Serial;
 import java.time.Instant;
@@ -111,5 +115,11 @@ public class ExportDataMetadata implements BasicIdentification<String>, ExecuteS
 
     public String toUploadFilename() {
         return getPrincipal() + AntPathMatcher.DEFAULT_PATH_SEPARATOR + getFilename();
+    }
+
+    public Map<String, Object> getQueryMap() {
+        Map<String, String[]> queryParams = CastUtils.cast(getMetadata().get(SystemConstants.QUERY_KEY));
+        MultiValueMap<String, String> param = HttpRequestParameterMapUtils.castMapToMultiValueMap(queryParams);
+        return new LinkedHashMap<>(param);
     }
 }

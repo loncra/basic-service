@@ -12,6 +12,7 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.GenderEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.annotation.Description;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -47,13 +48,16 @@ public class PersonalUserEntity extends AbstractPlatformUser implements PhoneNum
     @Serial
     private static final long serialVersionUID = 3436650151058536328L;
 
+    @Description(value = "真实姓名", sort = 6)
     private String nickname;
 
+    @Description(value = "性别", sort = 5)
     private GenderEnum gender = GenderEnum.UNKNOWN;
 
     /**
      * 电话号码
      */
+    @Description(value = "联系电话", sort = 7)
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     @Pattern(regexp = SystemConstants.PHONE_NUMBER_REGULAR_EXPRESSION)
     @Decryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)

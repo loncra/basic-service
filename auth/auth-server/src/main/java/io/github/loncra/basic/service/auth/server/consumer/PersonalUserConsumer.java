@@ -3,8 +3,8 @@ package io.github.loncra.basic.service.auth.server.consumer;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.rabbitmq.client.Channel;
-import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
-import io.github.loncra.basic.service.auth.server.service.user.console.ConsoleUserService;
+import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
+import io.github.loncra.basic.service.auth.server.service.user.personal.PersonalUserService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
@@ -34,13 +34,13 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ConsoleUserConsumer {
+public class PersonalUserConsumer {
 
-    private final ConsoleUserService consoleUserService;
+    private final PersonalUserService personalUserService;
 
     private final AttachmentServiceClient attachmentServiceClient;
 
-    public static final String DEFAULT_EXPORT_QUEUE_NAME = "auth.server.console.user.export";
+    public static final String DEFAULT_EXPORT_QUEUE_NAME = "auth.server.personal.user.export";
 
     @RabbitListener(
             bindings = @QueueBinding(
@@ -54,22 +54,22 @@ public class ConsoleUserConsumer {
                        Channel channel,
                        @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
 
-        RBucket<ExportDataMetadata> bucket = consoleUserService.getRedissonClient().getBucket(SystemConstants.USER_EXPORT_CACHE.getName(cacheName));
+        RBucket<ExportDataMetadata> bucket = personalUserService.getRedissonClient().getBucket(SystemConstants.USER_EXPORT_CACHE.getName(cacheName));
         if (!bucket.isExists()) {
-            log.info("[后台用户导出]: 找不到缓存为 {} 的桶信息", cacheName);
+            log.info("[个人用户导出]: 找不到缓存为 {} 的桶信息", cacheName);
             channel.basicNack(tag, false, false);
             return ;
         }
 
         ExportDataMetadata exportDataMetadata = bucket.get();
         exportDataMetadata.setExpiresTime(exportDataMetadata.getCreationTime().plus(SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration()));
-        QueryWrapper<ConsoleUserEntity> query = consoleUserService.getQueryGenerator()
+        QueryWrapper<PersonalUserEntity> query = personalUserService.getQueryGenerator()
                 .createQueryWrapperFromMap(exportDataMetadata.getQueryMap());
-        List<ConsoleUserEntity> data = consoleUserService.find(query);
+        List<PersonalUserEntity> data = personalUserService.find(query);
 
         exportDataMetadata.setExecuteStatus(ExecuteStatus.Processing);
         bucket.set(exportDataMetadata, Duration.between(Instant.EPOCH, exportDataMetadata.getExpiresTime()));
-        TreeDescriptionMetadata descriptionMetadata = MetadataUtils.convertDescriptionMetadata(ConsoleUserEntity.class);
+        TreeDescriptionMetadata descriptionMetadata = MetadataUtils.convertDescriptionMetadata(PersonalUserEntity.class);
         attachmentServiceClient.export(descriptionMetadata, new LinkedList<>(data), exportDataMetadata, IdValueMetadata::getValue);
         exportDataMetadata.setSuccessTime(Instant.now());
         bucket.set(exportDataMetadata, Duration.between(Instant.EPOCH, exportDataMetadata.getExpiresTime()));
