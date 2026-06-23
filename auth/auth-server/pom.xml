@@ -12,6 +12,7 @@
 
     <artifactId>auth-server</artifactId>
     <name>auth-server</name>
+    <packaging>jar</packaging>
 
     <dependencies>
 

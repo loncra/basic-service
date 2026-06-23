@@ -12,6 +12,7 @@
 
     <artifactId>auth-api</artifactId>
     <name>auth-api</name>
+    <packaging>jar</packaging>
 
     <dependencies>
 
