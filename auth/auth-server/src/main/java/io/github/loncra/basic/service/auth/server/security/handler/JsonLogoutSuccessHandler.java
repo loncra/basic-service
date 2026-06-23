@@ -6,7 +6,6 @@ import io.github.loncra.basic.service.auth.server.service.RedissonCacheAuthoriza
 import io.github.loncra.basic.service.commons.config.CommonsConfig;
 import io.github.loncra.basic.service.commons.constants.FrontEndSystemErrorCodeConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
-import io.github.loncra.framework.captcha.token.BuildToken;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;

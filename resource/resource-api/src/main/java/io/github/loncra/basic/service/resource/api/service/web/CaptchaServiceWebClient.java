@@ -1,8 +1,6 @@
 package io.github.loncra.basic.service.resource.api.service.web;
 
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
-import io.github.loncra.framework.captcha.token.BuildToken;
-import io.github.loncra.framework.captcha.token.InterceptToken;
 import io.github.loncra.framework.commons.RestResult;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;

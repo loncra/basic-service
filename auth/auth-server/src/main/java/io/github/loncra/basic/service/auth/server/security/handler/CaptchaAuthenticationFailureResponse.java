@@ -5,7 +5,6 @@ import io.github.loncra.basic.service.auth.server.enumerate.LoginTypeEnum;
 import io.github.loncra.basic.service.commons.constants.FrontEndSystemErrorCodeConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
-import io.github.loncra.framework.captcha.token.BuildToken;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;

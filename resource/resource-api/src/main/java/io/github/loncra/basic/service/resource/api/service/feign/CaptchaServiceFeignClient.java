@@ -2,8 +2,6 @@ package io.github.loncra.basic.service.resource.api.service.feign;
 
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
-import io.github.loncra.framework.captcha.token.BuildToken;
-import io.github.loncra.framework.captcha.token.InterceptToken;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.spring.security.core.authentication.service.feign.FeignAuthenticationConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
