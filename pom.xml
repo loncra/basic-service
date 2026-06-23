@@ -107,6 +107,7 @@
         <module>message</module>
         <module>gateway</module>
         <module>monolith</module>
+        <module>ai</module>
     </modules>
 
 </project>

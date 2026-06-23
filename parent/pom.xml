@@ -92,6 +92,12 @@
 
             <dependency>
                 <groupId>io.github.loncra.basic.service</groupId>
+                <artifactId>ai-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.loncra.basic.service</groupId>
                 <artifactId>resource-api</artifactId>
                 <version>${project.version}</version>
             </dependency>

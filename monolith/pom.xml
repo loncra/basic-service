@@ -66,6 +66,22 @@
         </dependency>
 
         <dependency>
+            <groupId>io.github.loncra.basic.service</groupId>
+            <artifactId>ai-server</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.cloud</groupId>
+                    <artifactId>spring-cloud-starter-openfeign</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.github.loncra.framework</groupId>
+                    <artifactId>spring-boot-starter-alibaba-nacos</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
