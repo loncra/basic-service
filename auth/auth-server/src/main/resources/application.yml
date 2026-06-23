@@ -35,6 +35,7 @@ loncra:
         - "/logout/**"
     mvc:
       enumerate-endpoint-base-packages:
+        - io.github.loncra.basic.service.auth.api.enumerate
         - io.github.loncra.basic.service.auth.server.enumerate
 
 server:

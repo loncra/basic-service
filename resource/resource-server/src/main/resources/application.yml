@@ -46,6 +46,7 @@ loncra:
       enumerate-endpoint-base-packages:
         - io.github.loncra.basic.service.commons.enumerate
         - io.github.loncra.basic.service.resource.api.enumerate
+        - io.github.loncra.basic.service.resource.server.enumerate
         - io.github.loncra.framework.security.enumerate
         - io.github.loncra.framework.commons.enumerate
 
