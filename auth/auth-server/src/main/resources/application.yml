@@ -1,5 +1,5 @@
 mybatis-plus:
-  type-aliases-package: io.github.loncra.basic.service.auth.simple.server.domain.entity
+  type-aliases-package: io.github.loncra.basic.service.auth.server.domain.entity
   configuration:
     call-setters-on-nulls: on
     default-enum-type-handler: io.github.loncra.framework.mybatis.handler.NameValueEnumTypeHandler
