@@ -55,11 +55,6 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
     private YesOrNo muted;
 
     /**
-     * 草稿内容
-     */
-    private String draft;
-
-    /**
      * 最后一条消息内容
      */
     private Long lastUserChatMessageId;
