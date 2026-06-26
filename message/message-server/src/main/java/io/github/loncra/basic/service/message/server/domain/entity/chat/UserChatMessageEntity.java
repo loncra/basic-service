@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -62,10 +63,16 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
      * 是否撤销
      */
     private YesOrNo undo = YesOrNo.No;
+
     /**
      * 撤销时间
      */
-    private Date undoTime;
+    private Instant undoTime;
+
+    /**
+     * 可撤销时间
+     */
+    private Instant undoableTime;
 
     private UserChatMessageTypeEnum type;
 

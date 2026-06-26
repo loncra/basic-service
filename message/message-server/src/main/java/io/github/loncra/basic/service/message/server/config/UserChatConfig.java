@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.message.server.config;
 
+import io.github.loncra.framework.commons.TimeProperties;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -26,4 +27,8 @@ public class UserChatConfig {
     private Integer conversationCoverLimit = 3;
 
     private Integer conversationNameLimit = 3;
+
+    private TimeProperties groupChatUndoableTime = TimeProperties.ofSeconds(3);
+
+    private TimeProperties privateChatUndoableTime = TimeProperties.ofSeconds(2);
 }

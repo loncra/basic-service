@@ -124,6 +124,12 @@ public class UserChatManager {
         entity.setChatRoomId(room.getId());
         entity.setContent(messages);
         entity.setType(UserChatMessageTypeEnum.USER);
+        if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
+            entity.setUndoableTime(Instant.now().plus(userChatConfig.getGroupChatUndoableTime().toDuration()));
+        }
+        else if (UserChatRoomTypeEnum.PRIVATE_CHAT.equals(room.getType())) {
+            entity.setUndoableTime(Instant.now().plus(userChatConfig.getPrivateChatUndoableTime().toDuration()));
+        }
         userChatMessageService.insert(entity);
 
         List<UserChatMessageReadEntity> readableList = participants.stream()
@@ -208,7 +214,7 @@ public class UserChatManager {
         if (Objects.nonNull(body.getLastUserChatMessageId())) {
             body.setLastUserMessage(userChatMessageService.get(body.getLastUserChatMessageId()));
         }
-        if (Objects.isNull(body.getLastUserMessage())) {
+        if (Objects.isNull(body.getLastUserMessage()) && Objects.nonNull(room)) {
             UserChatMessageEntity userChatMessageEntity = userChatMessageService.getLastMessageByRoomId(room.getId());
             body.setLastUserMessage(userChatMessageEntity);
             body.setLastUserChatMessageId(body.getLastUserChatMessageId());

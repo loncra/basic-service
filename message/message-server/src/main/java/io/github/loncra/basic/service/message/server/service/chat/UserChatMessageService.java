@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.service.chat;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.message.server.config.UserChatConfig;
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatMessageDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -17,7 +18,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -45,13 +46,16 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
         List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
         List<UserChatMessageEntity> messages = get(chatMessageIds);
         for (UserChatMessageEntity entity : messages) {
+            if (entity.getUndoableTime().isAfter(Instant.now())) {
+                continue;
+            }
             PrincipalDetailsConstants.equals(entity, token, token.getName() + "不是 ID 为 [" + entity.getId() + "] 消息记录发送者，无法撤销。");
             if (entity.getUndo().toBoolean()) {
                 continue;
             }
 
             entity.setUndo(YesOrNo.Yes);
-            entity.setUndoTime(new Date());
+            entity.setUndoTime(Instant.now());
 
             updateById(entity);
             result.add(BroadcastMessageMetadata.of(
