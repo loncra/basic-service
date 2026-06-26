@@ -936,6 +936,10 @@ public class UserChatManager {
         userChatRoomService.deleteByEntity(room);
         List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
         List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(room.getId());
+
+        String content = MessageFormat.format(userChatConfig.getDisbandRoomText(), PrincipalDetailsConstants.getPrincipalName(token));
+        UserChatMessageEntity entity = insertSystemMessage(room.getId(), content);
+
         for (UserChatParticipantEntity participantEntity : participants) {
             UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(participantEntity.getPrincipal(), room.getId());
             userChatConversationService.lambdaUpdate()
@@ -943,13 +947,19 @@ public class UserChatManager {
                     .eq(IdEntity::getId, conversation.getId())
                     .update();
             List<UnicastMessageMetadata<Object>> clientConversationRefresh = createUnicastMessageMetadata(
-                    token.getName(),
+                    participantEntity.getPrincipal(),
                     CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME,
                     room.getId(),
                     c -> c.leaveRoom(room.getId().toString())
             );
-
             result.addAll(clientConversationRefresh);
+
+            List<UnicastMessageMetadata<Object>> systemMessage = createUnicastMessageMetadata(
+                    participantEntity.getPrincipal(),
+                    CHAT_MESSAGE_EVENT_NAME,
+                    entity
+            );
+            result.addAll(systemMessage);
         }
 
         return result;
