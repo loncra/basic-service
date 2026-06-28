@@ -150,16 +150,20 @@ public class UserChatManager {
             createConversationThenAddSocketMessage(readable.getPrincipal(), room, participants, socketResult);
         }
 
-        userChatConversationService.lambdaUpdate()
-                .set(UserChatConversationEntity::getLastUserChatMessageId, entity.getId())
-                .eq(IdEntity::getId, conversation.getId())
-                .update();
-
         UserChatMessageResponseBody responseBody = CastUtils.of(entity, UserChatMessageResponseBody.class);
         responseBody.setParticipant(CastUtils.of(currentParticipant, UserChatParticipantMetadata.class));
         responseBody.setReadableCount(readableList.size());
         responseBody.setReadCount(readableList.size());
         responseBody.setReadable(YesOrNo.Yes);
+
+        // FIXME 这里应该执行 mq 异步完成
+        userChatConversationService.findEnabledByRoom(room.getId())
+                .stream()
+                .peek(s -> s.setLastUserChatMessageId(responseBody.getId()))
+                .forEach(s -> userChatConversationService.lambdaUpdate()
+                        .set(UserChatConversationEntity::getLastUserChatMessageId, responseBody.getId())
+                        .eq(IdEntity::getId, s.getId()).update()
+                );
 
         socketResult.getMessages().add(BroadcastMessageMetadata.of(chatRoomId.toString(), CHAT_MESSAGE_EVENT_NAME, responseBody));
         socketResult.setReturnValue(responseBody);
