@@ -22,7 +22,7 @@ public class ChatMessageSenderResolver implements UnreadQuantityMessageResolver 
     }
 
     @Override
-    public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
+    public Map<Long, Object> countUnreadQuantity(AuditAuthenticationToken token) {
         return userChatManager.countUnreadQuantity(token);
     }
 

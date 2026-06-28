@@ -5,13 +5,16 @@ import com.corundumstudio.socketio.SocketIOClient;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.message.server.config.UserChatConfig;
+import io.github.loncra.basic.service.message.server.domain.body.chat.ParticipantMetadataMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatConversationResponseBody;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageReadResponseBody;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
+import io.github.loncra.basic.service.message.server.domain.metadata.chat.ChatUnreadQuantityMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
 import io.github.loncra.basic.service.message.server.enumerate.*;
+import io.github.loncra.basic.service.message.server.resolver.ChatMessageContentResolver;
 import io.github.loncra.basic.service.message.server.resolver.ChatResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.annotation.Time;
@@ -19,7 +22,6 @@ import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.id.number.LongIdEntity;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.commons.page.Page;
@@ -34,13 +36,11 @@ import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
 import io.github.loncra.framework.socketio.core.SocketServerManager;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
-import io.github.loncra.framework.spring.security.core.entity.support.MobileSecurityPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jspecify.annotations.NonNull;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
@@ -75,6 +75,8 @@ public class UserChatManager {
     private final UserChatConfig userChatConfig;
 
     private final List<ChatResolver> chatResolvers;
+
+    private final List<ChatMessageContentResolver> chatMessageContentResolvers;
 
     private final UserChatRoomService userChatRoomService;
 
@@ -162,6 +164,10 @@ public class UserChatManager {
         socketResult.getMessages().add(BroadcastMessageMetadata.of(chatRoomId.toString(), CHAT_MESSAGE_EVENT_NAME, responseBody));
         socketResult.setReturnValue(responseBody);
 
+        chatMessageContentResolvers.stream()
+                .filter(s -> s.isSupport(entity))
+                .forEach(s -> s.postSend(socketResult, responseBody, readableList, socketServerManager));
+
         return socketResult;
     }
 
@@ -221,6 +227,9 @@ public class UserChatManager {
             body.setReadableCount(userChatMessageService.countReadable(room.getId(), conversation.getPrincipal()));
             userChatConversationService.updateById(body);
         }
+        if (Objects.nonNull(body.getLastUserMessage())) {
+            body.setLastUserMessage(convertParticipantMetadataMessageResponseBody(body.getLastUserMessage(), room));
+        }
         return body;
     }
 
@@ -257,7 +266,7 @@ public class UserChatManager {
             if (principals.size() > BigDecimal.ONE.intValue()) {
                 room.setType(UserChatRoomTypeEnum.GROUP_CHAT);
             }
-            room.setDeleted(YesOrNo.No);
+            room.setEnabled(YesOrNo.Yes);
             userChatRoomService.insert(room);
         } else {
             room = orm;
@@ -391,7 +400,7 @@ public class UserChatManager {
                 .filter(Objects::nonNull)
                 .toList();
         List<UserChatMessageResponseBody> responses = messages.stream()
-                .map(m -> convertResponseBody(m, token, participants))
+                .map(m -> convertUserChatMessageResponseBody(m, token, participants))
                 .toList();
         page.setElements(new LinkedList<>(responses));
 
@@ -418,7 +427,17 @@ public class UserChatManager {
         return metadata;
     }
 
-    private UserChatMessageResponseBody convertResponseBody(
+
+    private ParticipantMetadataMessageResponseBody convertParticipantMetadataMessageResponseBody(
+            UserChatMessageEntity entity,
+            UserChatRoomEntity room
+    ) {
+        ParticipantMetadataMessageResponseBody body = CastUtils.of(entity, UserChatMessageResponseBody.class);
+        body.setParticipant(userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), entity.getPrincipal()));
+        return body;
+    }
+
+    private UserChatMessageResponseBody convertUserChatMessageResponseBody(
             UserChatMessageEntity entity,
             AuditAuthenticationToken token,
             List<UserChatParticipantEntity> participants
@@ -456,9 +475,18 @@ public class UserChatManager {
         List<UserChatMessageEntity> messages = userChatMessageService.get(messageIds);
         Map<Long, List<UserChatMessageEntity>> grouping = messages.stream()
                 .collect(Collectors.groupingBy(UserChatMessageEntity::getChatRoomId));
-        List<UserChatParticipantEntity> participants = grouping.entrySet().stream().flatMap(e -> e.getValue().stream().map(UserChatMessageEntity::getPrincipal)
+        List<UserChatParticipantEntity> participants = grouping.entrySet()
+                .stream()
+                .flatMap(e -> e.getValue().stream().map(UserChatMessageEntity::getPrincipal)
                 .distinct()
                 .map(principal -> userChatParticipantService.getByChatRoomIdAndPrincipal(e.getKey(), principal)))
+                .filter(Objects::nonNull)
+                .toList();
+
+        List<UserChatConversationEntity> conversations = grouping.keySet()
+                .stream()
+                .distinct()
+                .map(key -> userChatConversationService.getByPrincipal(token.getName(),key))
                 .toList();
 
         for (UserChatMessageEntity entity : messages) {
@@ -472,7 +500,22 @@ public class UserChatManager {
                     .peek(read -> read.setReadable(YesOrNo.No))
                     .peek(userChatMessageReadService::updateById)
                     .toList();
-            UserChatMessageResponseBody body = convertResponseBody(entity, token, participants);
+
+            Optional<UserChatConversationEntity> optional = conversations.stream()
+                    .filter(s -> s.getMentions().stream().anyMatch(idValue -> idValue.getMessageId().equals(entity.getId())))
+                    .findFirst();
+            if (optional.isPresent()) {
+                UserChatConversationEntity conversation = optional.get();
+                conversation.getMentions().removeIf(id -> id.getMessageId().equals(entity.getId()));
+                userChatConversationService.updateById(conversation);
+                List<UnicastMessageMetadata<Object>> unicastMessageMetadata = createUnicastMessageMetadata(
+                        conversation.getPrincipal(),
+                        CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME,
+                        conversation.getUserChatRoomId()
+                );
+                socketResult.getMessages().addAll(unicastMessageMetadata);
+            }
+            UserChatMessageResponseBody body = convertUserChatMessageResponseBody(entity, token, participants);
             BroadcastMessageMetadata<UserChatMessageResponseBody> metadata = BroadcastMessageMetadata.of(
                     entity.getChatRoomId().toString(),
                     CHAT_MESSAGE_READ_EVENT_NAME,
@@ -493,15 +536,12 @@ public class UserChatManager {
         return socketResult;
     }
 
-    public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
+    public Map<Long, Object> countUnreadQuantity(AuditAuthenticationToken token) {
         List<UserChatConversationEntity> list = userChatConversationService.findByPrincipal(token.getName());
-        List<UserChatConversationEntity> filter = list.stream()
-                .filter(s -> YesOrNo.No.equals(s.getMuted()))
-                .toList();
-        Map<Long, Long> result = new HashMap<>();
-        for (UserChatConversationEntity entity : filter) {
+        Map<Long, Object> result = new HashMap<>();
+        for (UserChatConversationEntity entity : list) {
             Long count = userChatMessageService.countReadable(entity.getUserChatRoomId(), token.getName());
-            result.put(entity.getId(), count);
+            result.put(entity.getId(), ChatUnreadQuantityMetadata.of(count, entity.getMuted()));
         }
         return result;
     }
@@ -535,7 +575,7 @@ public class UserChatManager {
             room.setBusinessId(DigestUtils.md5DigestAsHex((token.getName() + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)));
             room.setType(UserChatRoomTypeEnum.GROUP_CHAT);
             room.setName(getParticipantNames(participants));
-            room.setDeleted(YesOrNo.No);
+            room.setEnabled(YesOrNo.Yes);
             userChatRoomService.insert(room);
             participants.stream()
                     .peek(p -> p.setId(null))
@@ -551,7 +591,7 @@ public class UserChatManager {
                 .filter(s -> Objects.isNull(s.getId()))
                 .peek(s -> s.setChatRoomId(finalRoomId))
                 .peek(userChatParticipantService::insert)
-                .flatMap(s -> getPrincipalClients(s.getPrincipal()).stream())
+                .flatMap(s -> socketServerManager.getPrincipalClients(s.getPrincipal()).stream())
                 .forEach(c -> c.joinRoom(finalRoomId.toString()));
 
         ReturnValueSocketResult<UserChatConversationEntity> result = new ReturnValueSocketResult<>();
@@ -727,27 +767,11 @@ public class UserChatManager {
             Consumer<? super SocketIOClient> action
     ) {
         List<UnicastMessageMetadata<Object>> result = new LinkedList<>();
-        getPrincipalClients(principal)
+        socketServerManager.getPrincipalClients(principal)
                 .stream()
                 .filter(Objects::nonNull)
                 .peek(action)
                 .map(client -> UnicastMessageMetadata.of(client.getSessionId().toString(), eventName, object))
-                .forEach(result::add);
-        return result;
-    }
-
-    private List<SocketIOClient> getPrincipalClients(String principal) {
-        List<SocketIOClient> result = new LinkedList<>();
-        TypeIdNameMetadata type = TypeIdNameMetadata.ofPrincipalString(principal);
-        SecurityContext context = socketServerManager.getAccessTokenContextRepository().getSecurityContext(type.getType(), type.getId());
-        if (Objects.isNull(context)) {
-            return result;
-        }
-        socketServerManager.getSocketPrincipals(context)
-                .stream()
-                .map(MobileSecurityPrincipal::getDeviceIdentified)
-                .map(device -> socketServerManager.getSocketServer().getClient(UUID.fromString(device)))
-                .filter(Objects::nonNull)
                 .forEach(result::add);
         return result;
     }

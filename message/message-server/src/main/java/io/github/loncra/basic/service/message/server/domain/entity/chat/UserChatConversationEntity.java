@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.github.loncra.basic.service.message.server.domain.metadata.chat.MessageContentMentionMetadata;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatConversationStatus;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -27,8 +29,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @Alias("userChatConversation")
-@TableName(value = "tb_user_chat_conversation", autoResultMap = true)
 @EqualsAndHashCode(callSuper = true)
+@TableName(value = "tb_user_chat_conversation", autoResultMap = true)
 public class UserChatConversationEntity extends LongVersionEntity<Integer> {
 
     @Serial
@@ -68,6 +70,13 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
      * 状态
      */
     private UserChatConversationStatus status;
+
+    /**
+     * 提及内容
+     */
+    @JsonCollectionGenericType(MessageContentMentionMetadata.class)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private List<MessageContentMentionMetadata> mentions = new LinkedList<>();
 
     @JsonCollectionGenericType(FileObject.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)

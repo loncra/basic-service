@@ -274,8 +274,8 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
     }
 
     @Override
-    public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
-        return siteMessageService.countUnreadQuantity(token);
+    public Map<Long, Object> countUnreadQuantity(AuditAuthenticationToken token) {
+        return new LinkedHashMap<>(siteMessageService.countUnreadQuantity(token));
     }
 
     @Override

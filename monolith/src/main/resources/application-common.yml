@@ -20,6 +20,7 @@ spring:
     time-zone: GMT+8
     deserialization:
       fail-on-ignored-properties: false
+      read-date-timestamps-as-nanoseconds: false
     serialization:
       write-date-timestamps-as-nanoseconds: false
       write-durations-as-timestamps: true

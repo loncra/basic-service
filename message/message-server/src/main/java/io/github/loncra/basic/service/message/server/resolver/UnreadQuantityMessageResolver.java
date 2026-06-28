@@ -21,7 +21,7 @@ public interface UnreadQuantityMessageResolver {
      *
      * @return kye 为消息类型，value 为未读数量
      */
-    Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token);
+    Map<Long, Object> countUnreadQuantity(AuditAuthenticationToken token);
 
 
     UnreadQuantityGroupEnum getGroup();

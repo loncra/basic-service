@@ -110,15 +110,15 @@ public class MessageRootController {
      */
     @GetMapping("unreadQuantity")
     @PreAuthorize("isAuthenticated()")
-    public Map<String, Map<Long,Long>> unreadQuantity(
+    public Map<String, Map<Long,Object>> unreadQuantity(
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
 
-        Map<String, Map<Long,Long>> result = new LinkedHashMap<>();
+        Map<String, Map<Long,Object>> result = new LinkedHashMap<>();
         for (UnreadQuantityMessageResolver unreadQuantityMessageResolver : unreadQuantityMessageResolvers) {
-            Map<Long, Long> countMap = unreadQuantityMessageResolver.countUnreadQuantity(token);
+            Map<Long, Object> countMap = unreadQuantityMessageResolver.countUnreadQuantity(token);
             result.put(unreadQuantityMessageResolver.getGroup().getValue(), countMap);
         }
 
