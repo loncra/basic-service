@@ -68,6 +68,7 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
             if (mention.getValue().getId().equals(MENTION_EVERYONE_ID)) {
                 List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoom(responseBody.getChatRoomId());
                 clients = conversations.stream()
+                        .filter(s -> !s.getPrincipal().equals(responseBody.getPrincipal()))
                         .peek(s -> setConversationMentionThenUpdate(responseBody, s))
                         .flatMap(s -> socketServerManager.getPrincipalClients(s.getPrincipal()).stream())
                         .toList();
