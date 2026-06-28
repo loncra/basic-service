@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.message.server.service.chat;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatConversationDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
 import io.github.loncra.basic.service.message.server.enumerate.UserChatConversationStatus;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -68,5 +70,18 @@ public class UserChatConversationService extends BasicService<UserChatConversati
         return lambdaQuery().eq(UserChatConversationEntity::getUserChatRoomId, id)
                 .eq(UserChatConversationEntity::getStatus, UserChatConversationStatus.ENABLED.getValue())
                 .list();
+    }
+
+    public List<UserChatConversationEntity> findEnabledByRoomAndMentionsMessageId(
+            Long messageId,
+            Long chatRoomId
+    ) {
+        Map<String, Object> filter = Map.of(
+                "filter_[user_chat_room_id_eq]", chatRoomId,
+                "filter_[mentions.*messageId_jin]", messageId
+        );
+
+        Wrapper<UserChatConversationEntity> wrapper = getQueryGenerator().createQueryWrapperFromMap(filter);
+        return find(wrapper);
     }
 }

@@ -32,6 +32,7 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
     public static final String MENTION_PREFIX = "@";
 
     public static final String CHAT_MESSAGE_MENTION_EVENT_NAME = "chat_message_mention";
+    public static final String MENTION_EVERYONE_ID = "EVERYONE";
 
     private final UserChatConversationService userChatConversationService;
 
@@ -59,9 +60,21 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
             SocketServerManager socketServerManager
     ) {
         List<InstructionMessageMetadata> metadata = getAtInstructionMessageMetadata(responseBody);
+        if (metadata.stream().anyMatch(s -> MENTION_EVERYONE_ID.equals(s.getValue().getId()))) {
+            metadata = metadata.stream().filter(s -> MENTION_EVERYONE_ID.equals(s.getValue().getId())).toList();
+        }
         for (InstructionMessageMetadata mention : metadata) {
-            updateConversation(mention, responseBody);
-            List<SocketIOClient> clients = socketServerManager.getPrincipalClients(mention.getValue().getId());
+            List<SocketIOClient> clients;
+            if (mention.getValue().getId().equals(MENTION_EVERYONE_ID)) {
+                List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoom(responseBody.getChatRoomId());
+                clients = conversations.stream()
+                        .peek(s -> setConversationMentionThenUpdate(responseBody, s))
+                        .flatMap(s -> socketServerManager.getPrincipalClients(s.getPrincipal()).stream())
+                        .toList();
+            } else {
+                updateConversation(mention, responseBody);
+                clients = socketServerManager.getPrincipalClients(mention.getValue().getId());
+            }
             clients.stream()
                     .map(s -> UnicastMessageMetadata.of(s.getSessionId().toString(), CHAT_MESSAGE_MENTION_EVENT_NAME, responseBody))
                     .forEach(s -> socketResult.getMessages().add(s));
@@ -79,6 +92,13 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
         if (Objects.isNull(conversation)) {
             return ;
         }
+        setConversationMentionThenUpdate(responseBody, conversation);
+    }
+
+    private void setConversationMentionThenUpdate(
+            UserChatMessageResponseBody responseBody,
+            UserChatConversationEntity conversation
+    ) {
         if (CollectionUtils.isEmpty(conversation.getMentions())) {
             conversation.setMentions(new LinkedList<>());
         }

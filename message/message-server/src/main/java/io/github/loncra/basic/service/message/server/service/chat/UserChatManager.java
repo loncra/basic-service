@@ -65,6 +65,7 @@ public class UserChatManager {
     public static final String PARTICIPANT_REFRESH_BY_ROOM_ID_EVENT_NAME = "chat_participant_refresh_by_room_id";
 
     public static final String CHAT_MESSAGE_EVENT_NAME = "chat_message";
+    public static final String CHAT_MESSAGE_UNDO_EVENT_NAME = "chat_message_undo";
     public static final String CHAT_MESSAGE_READ_EVENT_NAME = "chat_message_read";
     public static final String CHAT_MESSAGE_READ_UPDATE_EVENT = "chat_message_read_update";
 
@@ -93,6 +94,43 @@ public class UserChatManager {
     private final SystemUserServiceClient systemUserServiceClient;
 
     private final SocketServerManager socketServerManager;
+
+    @Transactional(rollbackFor = Exception.class)
+    public List<AbstractSocketMessageMetadata<Object>> undo(
+            List<String> chatMessageIds,
+            AuditAuthenticationToken token
+    ) {
+        List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
+        List<UserChatMessageEntity> messages = userChatMessageService.get(chatMessageIds);
+        for (UserChatMessageEntity entity : messages) {
+            if (entity.getUndoableTime().isBefore(Instant.now())) {
+                continue;
+            }
+            PrincipalDetailsConstants.equals(entity, token, token.getName() + "不是 ID 为 [" + entity.getId() + "] 消息记录发送者，无法撤销。");
+            if (entity.getUndo().toBoolean()) {
+                continue;
+            }
+
+            entity.setUndo(YesOrNo.Yes);
+            entity.setUndoTime(Instant.now());
+
+            userChatMessageService.updateById(entity);
+            result.add(BroadcastMessageMetadata.of(
+                    entity.getChatRoomId().toString(),
+                    CHAT_MESSAGE_UNDO_EVENT_NAME,
+                    entity
+            ));
+
+            List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoomAndMentionsMessageId(entity.getId(), entity.getChatRoomId());
+            conversations.stream()
+                    .peek(s -> s.getMentions().removeIf(m -> entity.getId().equals(m.getMessageId())))
+                    .peek(userChatConversationService::updateById)
+                    .flatMap(s -> createUnicastMessageMetadata(s.getPrincipal(), CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME, entity.getChatRoomId()).stream())
+                    .forEach(result::add);
+        }
+
+        return result;
+    }
 
     @Transactional(rollbackFor = Exception.class)
     @Concurrent(value = CONCURRENT_PREFIX + "send:[#chatRoomId]", waitTime = @Time(5000))
@@ -132,7 +170,12 @@ public class UserChatManager {
         else if (UserChatRoomTypeEnum.PRIVATE_CHAT.equals(room.getType())) {
             entity.setUndoableTime(Instant.now().plus(userChatConfig.getPrivateChatUndoableTime().toDuration()));
         }
-        userChatMessageService.insert(entity);
+        UserChatMessageEntity insert = chatMessageContentResolvers.stream()
+                .filter(s -> s.isSupport(entity))
+                .findFirst()
+                .map(s -> s.preSave(entity))
+                .orElse(entity);
+        userChatMessageService.insert(insert);
 
         List<UserChatMessageReadEntity> readableList = participants.stream()
                 .filter(s -> !Strings.CS.equals(s.getPrincipal(), token.getName()))

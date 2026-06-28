@@ -12,6 +12,10 @@ public interface ChatMessageContentResolver {
 
     boolean isSupport(UserChatMessageEntity entity);
 
+    default UserChatMessageEntity preSave(UserChatMessageEntity entity) {
+        return entity;
+    }
+
     void postSend(
             ReturnValueSocketResult<UserChatMessageEntity> socketResult,
             UserChatMessageResponseBody responseBody,

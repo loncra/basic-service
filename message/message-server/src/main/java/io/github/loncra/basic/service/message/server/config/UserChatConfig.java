@@ -28,7 +28,7 @@ public class UserChatConfig {
 
     private Integer conversationNameLimit = 3;
 
-    private TimeProperties groupChatUndoableTime = TimeProperties.ofSeconds(3);
+    private TimeProperties groupChatUndoableTime = TimeProperties.ofMinutes(3);
 
-    private TimeProperties privateChatUndoableTime = TimeProperties.ofSeconds(2);
+    private TimeProperties privateChatUndoableTime = TimeProperties.ofMinutes(2);
 }

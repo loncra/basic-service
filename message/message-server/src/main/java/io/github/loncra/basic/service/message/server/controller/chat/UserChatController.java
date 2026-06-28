@@ -217,6 +217,17 @@ public class UserChatController {
         return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
 
+    @DeleteMapping("message/undo")
+    @PreAuthorize("isFullyAuthenticated()")
+    public SocketResult undo(
+            @RequestParam List<String> ids,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatManager.undo(ids, token);
+        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
+    }
+
     @PostMapping("/message/read/find/{messageId:\\d+}")
     public RestResult<List<UserChatMessageReadEntity>> findMessageReader(
             @PathVariable

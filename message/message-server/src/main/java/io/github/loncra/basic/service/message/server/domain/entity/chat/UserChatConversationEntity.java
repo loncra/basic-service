@@ -35,7 +35,6 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
 
     @Serial
     private static final long serialVersionUID = -2739967825296343790L;
-
     /**
      * 所属用户
      */
