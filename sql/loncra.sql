@@ -3726,48 +3726,6 @@ CREATE TABLE `tb_sms_message`  (
                                    INDEX `ix_phone_number`(`phone_number` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '短信消息' ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Records of tb_sms_message
--- ----------------------------
-
--- ----------------------------
--- Table structure for tb_user_chat_call
--- ----------------------------
-DROP TABLE IF EXISTS `tb_user_chat_call`;
-CREATE TABLE `tb_user_chat_call`  (
-                                      `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                      `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                      `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                      `user_chat_room_id` bigint NOT NULL COMMENT '业务  id',
-                                      `type` tinyint NOT NULL COMMENT '房间类型',
-                                      `metadata` json NULL COMMENT '元数据信息',
-                                      `start_time` datetime NULL DEFAULT NULL COMMENT '开始时间',
-                                      `end_time` datetime NULL DEFAULT NULL COMMENT '结束时间',
-                                      `status` tinyint NOT NULL COMMENT '状态',
-                                      PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天通话表' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tb_user_chat_call
--- ----------------------------
-
--- ----------------------------
--- Table structure for tb_user_chat_call_participant
--- ----------------------------
-DROP TABLE IF EXISTS `tb_user_chat_call_participant`;
-CREATE TABLE `tb_user_chat_call_participant`  (
-                                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                                  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                                  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                                  `user_chat_call_id` bigint NOT NULL COMMENT '聊天通话逐渐 id',
-                                                  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '参与者',
-                                                  `type` tinyint NOT NULL COMMENT '类型',
-                                                  `metadata` json NULL COMMENT '元数据信息',
-                                                  `status` tinyint NOT NULL COMMENT '状态',
-                                                  PRIMARY KEY (`id`) USING BTREE,
-                                                  INDEX `ix_chat_room_id`(`user_chat_call_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间参与者' ROW_FORMAT = Dynamic;
-
 
 -- ----------------------------
 -- Table structure for tb_user_chat_conversation
