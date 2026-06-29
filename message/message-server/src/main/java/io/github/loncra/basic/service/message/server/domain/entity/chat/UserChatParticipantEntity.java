@@ -39,9 +39,9 @@ public class UserChatParticipantEntity extends UserChatParticipantMetadata imple
     private Integer version;
 
     /**
-     * 业务  id
+     * 聊天房间 id
      */
-    private Long chatRoomId;
+    private Long userChatRoomId;
 
     /**
      * 参与者

@@ -116,16 +116,16 @@ public class UserChatManager {
 
             userChatMessageService.updateById(entity);
             result.add(BroadcastMessageMetadata.of(
-                    entity.getChatRoomId().toString(),
+                    entity.getUserChatRoomId().toString(),
                     CHAT_MESSAGE_UNDO_EVENT_NAME,
                     entity
             ));
 
-            List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoomAndMentionsMessageId(entity.getId(), entity.getChatRoomId());
+            List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoomAndMentionsMessageId(entity.getId(), entity.getUserChatRoomId());
             conversations.stream()
                     .peek(s -> s.getMentions().removeIf(m -> entity.getId().equals(m.getMessageId())))
                     .peek(userChatConversationService::updateById)
-                    .flatMap(s -> createUnicastMessageMetadata(s.getPrincipal(), CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME, entity.getChatRoomId()).stream())
+                    .flatMap(s -> createUnicastMessageMetadata(s.getPrincipal(), CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME, entity.getUserChatRoomId()).stream())
                     .forEach(result::add);
         }
 
@@ -141,7 +141,7 @@ public class UserChatManager {
     ) {
         boolean role = userChatParticipantService
                 .lambdaQuery()
-                .eq(UserChatParticipantEntity::getChatRoomId, chatRoomId)
+                .eq(UserChatParticipantEntity::getUserChatRoomId, chatRoomId)
                 .eq(UserChatParticipantEntity::getPrincipal, token.getName())
                 .exists();
 
@@ -161,7 +161,7 @@ public class UserChatManager {
 
         UserChatMessageEntity entity = new UserChatMessageEntity();
         entity.setPrincipal(token.getName());
-        entity.setChatRoomId(room.getId());
+        entity.setUserChatRoomId(room.getId());
         entity.setContent(messages);
         entity.setType(UserChatMessageTypeEnum.USER);
         if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
@@ -492,7 +492,7 @@ public class UserChatManager {
         UserChatMessageResponseBody body = CastUtils.of(entity, UserChatMessageResponseBody.class);
         List<UserChatMessageReadEntity> readList = userChatMessageReadService
                 .lambdaQuery()
-                .eq(UserChatMessageReadEntity::getChatMessageId, body.getId())
+                .eq(UserChatMessageReadEntity::getUserChatMessageId, body.getId())
                 .list();
         body.setReadCount(readList.size());
         body.setReadableCount((int) readList.stream().filter(r -> YesOrNo.Yes.equals(r.getReadable())).count());
@@ -521,7 +521,7 @@ public class UserChatManager {
 
         List<UserChatMessageEntity> messages = userChatMessageService.get(messageIds);
         Map<Long, List<UserChatMessageEntity>> grouping = messages.stream()
-                .collect(Collectors.groupingBy(UserChatMessageEntity::getChatRoomId));
+                .collect(Collectors.groupingBy(UserChatMessageEntity::getUserChatRoomId));
         List<UserChatParticipantEntity> participants = grouping.entrySet()
                 .stream()
                 .flatMap(e -> e.getValue().stream().map(UserChatMessageEntity::getPrincipal)
@@ -538,7 +538,7 @@ public class UserChatManager {
 
         for (UserChatMessageEntity entity : messages) {
             List<UserChatMessageReadEntity> reads = userChatMessageReadService.lambdaQuery()
-                    .in(UserChatMessageReadEntity::getChatMessageId, entity.getId())
+                    .in(UserChatMessageReadEntity::getUserChatMessageId, entity.getId())
                     .eq(UserChatMessageReadEntity::getPrincipal, token.getName())
                     .list()
                     .stream()
@@ -564,7 +564,7 @@ public class UserChatManager {
             }
             UserChatMessageResponseBody body = convertUserChatMessageResponseBody(entity, token, participants);
             BroadcastMessageMetadata<UserChatMessageResponseBody> metadata = BroadcastMessageMetadata.of(
-                    entity.getChatRoomId().toString(),
+                    entity.getUserChatRoomId().toString(),
                     CHAT_MESSAGE_READ_EVENT_NAME,
                     body
             );
@@ -573,7 +573,7 @@ public class UserChatManager {
                     .map(s -> IdValueMetadata.of(s.getId(), s.getReadTime()))
                     .toList();
             BroadcastMessageMetadata<List<IdValueMetadata<Long, Instant>>> readBroadcastMetadata = BroadcastMessageMetadata.of(
-                    entity.getChatRoomId().toString(),
+                    entity.getUserChatRoomId().toString(),
                     CHAT_MESSAGE_READ_UPDATE_EVENT,
                     readBroadcasts
             );
@@ -636,7 +636,7 @@ public class UserChatManager {
         Long finalRoomId = room.getId();
         participants.stream()
                 .filter(s -> Objects.isNull(s.getId()))
-                .peek(s -> s.setChatRoomId(finalRoomId))
+                .peek(s -> s.setUserChatRoomId(finalRoomId))
                 .peek(userChatParticipantService::insert)
                 .flatMap(s -> socketServerManager.getPrincipalClients(s.getPrincipal()).stream())
                 .forEach(c -> c.joinRoom(finalRoomId.toString()));
@@ -690,7 +690,7 @@ public class UserChatManager {
     private UserChatMessageEntity insertSystemMessage(Long roomId, String content) {
         UserChatMessageEntity message = new UserChatMessageEntity();
         message.setPrincipal(UserChatMessageTypeEnum.SYSTEM.toString());
-        message.setChatRoomId(roomId);
+        message.setUserChatRoomId(roomId);
         message.setContent(CastUtils.convertValue(List.of(TextMessageMetadata.of(content)), CastUtils.LIST_MAP_TYPE_REFERENCE));
         message.setType(UserChatMessageTypeEnum.SYSTEM);
         userChatMessageService.insert(message);
@@ -873,8 +873,8 @@ public class UserChatManager {
         UserChatMessageEntity message = userChatMessageService.get(messageId);
         SystemException.isTrue(Objects.nonNull(message), "找不到 ID 为 [" +  messageId + "] 的聊天消息");
 
-        UserChatRoomEntity room = userChatRoomService.get(message.getChatRoomId());
-        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  message.getChatRoomId() + "] 的聊天会话信息");
+        UserChatRoomEntity room = userChatRoomService.get(message.getUserChatRoomId());
+        SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  message.getUserChatRoomId() + "] 的聊天会话信息");
 
         List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(room.getId());
         SystemException.isTrue(participants.stream().anyMatch(s -> s.getPrincipal().equals(token.getName())), "你没有权限查看该消息内容");

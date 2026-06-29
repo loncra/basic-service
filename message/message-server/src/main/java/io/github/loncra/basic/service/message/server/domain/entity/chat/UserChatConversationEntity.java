@@ -41,7 +41,7 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
     private String principal;
 
     /**
-     * 房间 id
+     * 聊天房间 id
      */
     private Long userChatRoomId;
 

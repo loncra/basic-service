@@ -38,7 +38,7 @@ public class UserChatParticipantService extends BasicService<UserChatParticipant
     }
 
     public List<UserChatParticipantEntity> findByRoomId(Long roomId) {
-        return lambdaQuery().eq(UserChatParticipantEntity::getChatRoomId, roomId)
+        return lambdaQuery().eq(UserChatParticipantEntity::getUserChatRoomId, roomId)
                 .list()
                 .stream()
                 .sorted(Comparator.comparing(UserChatParticipantEntity::getId))
@@ -46,14 +46,14 @@ public class UserChatParticipantService extends BasicService<UserChatParticipant
     }
 
     public UserChatParticipantEntity getByChatRoomIdAndPrincipal(Long roomId, String principal) {
-        return lambdaQuery().eq(UserChatParticipantEntity::getChatRoomId, roomId)
+        return lambdaQuery().eq(UserChatParticipantEntity::getUserChatRoomId, roomId)
                 .eq(UserChatParticipantEntity::getPrincipal, principal)
                 .one();
     }
 
     public UserChatParticipantEntity getFirst(Long roomId) {
         Wrapper<UserChatParticipantEntity> wrapper = Wrappers.<UserChatParticipantEntity>lambdaQuery()
-                        .eq(UserChatParticipantEntity::getChatRoomId, roomId);
+                        .eq(UserChatParticipantEntity::getUserChatRoomId, roomId);
         Page<UserChatParticipantEntity> page = findPage(PageRequest.of(1), wrapper);
 
         return page.getNumberOfElements() > 0 ? page.getElements().getFirst() :  null;

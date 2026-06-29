@@ -26,7 +26,7 @@ import java.util.List;
 public class UserChatMessageReadService extends BasicService<UserChatMessageReadDao, UserChatMessageReadEntity> {
 
     public List<UserChatMessageReadEntity> getByChatMessageId(Long chatMessageId) {
-        return lambdaQuery().eq(UserChatMessageReadEntity::getChatMessageId, chatMessageId)
+        return lambdaQuery().eq(UserChatMessageReadEntity::getUserChatMessageId, chatMessageId)
                 .orderByDesc(IdEntity::getId)
                 .list();
     }

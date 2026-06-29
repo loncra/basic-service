@@ -66,7 +66,7 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
         for (InstructionMessageMetadata mention : metadata) {
             List<SocketIOClient> clients;
             if (mention.getValue().getId().equals(MENTION_EVERYONE_ID)) {
-                List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoom(responseBody.getChatRoomId());
+                List<UserChatConversationEntity> conversations = userChatConversationService.findEnabledByRoom(responseBody.getUserChatRoomId());
                 clients = conversations.stream()
                         .filter(s -> !s.getPrincipal().equals(responseBody.getPrincipal()))
                         .peek(s -> setConversationMentionThenUpdate(responseBody, s))
@@ -80,7 +80,7 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
                     .map(s -> UnicastMessageMetadata.of(s.getSessionId().toString(), CHAT_MESSAGE_MENTION_EVENT_NAME, responseBody))
                     .forEach(s -> socketResult.getMessages().add(s));
             clients.stream()
-                    .map(s -> UnicastMessageMetadata.of(s.getSessionId().toString(), UserChatManager.CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME, responseBody.getChatRoomId()))
+                    .map(s -> UnicastMessageMetadata.of(s.getSessionId().toString(), UserChatManager.CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME, responseBody.getUserChatRoomId()))
                     .forEach(s -> socketResult.getMessages().add(s));
         }
     }
@@ -89,7 +89,7 @@ public class MentionChatMessageResolver implements ChatMessageContentResolver {
             InstructionMessageMetadata metadata,
             UserChatMessageResponseBody responseBody
     ) {
-        UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(metadata.getValue().getId(), responseBody.getChatRoomId());
+        UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(metadata.getValue().getId(), responseBody.getUserChatRoomId());
         if (Objects.isNull(conversation)) {
             return ;
         }

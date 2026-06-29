@@ -14,7 +14,6 @@ import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -44,9 +43,9 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
     public final static String UNDO_TABLE_FIELD_NAME = "`undo`";
 
     /**
-     * 业务  id
+     * 聊天房间 id
      */
-    private Long chatRoomId;
+    private Long userChatRoomId;
 
     /**
      * 内容

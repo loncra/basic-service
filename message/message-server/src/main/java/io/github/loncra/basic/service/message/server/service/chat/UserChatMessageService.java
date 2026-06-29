@@ -29,7 +29,7 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
     public UserChatMessageEntity getLastMessageByRoomId(Long id) {
         Page<UserChatMessageEntity> page = findPage(
                 PageRequest.of(1),
-                Wrappers.<UserChatMessageEntity>lambdaQuery().eq(UserChatMessageEntity::getChatRoomId, id).orderByDesc(IdEntity::getId)
+                Wrappers.<UserChatMessageEntity>lambdaQuery().eq(UserChatMessageEntity::getUserChatRoomId, id).orderByDesc(IdEntity::getId)
         );
         if (CollectionUtils.isEmpty(page.getElements())) {
             return null;
@@ -56,7 +56,7 @@ public class UserChatMessageService extends BasicService<UserChatMessageDao, Use
             Long messageId,
             int pageSize
     ) {
-        long newerCount = lambdaQuery().eq(UserChatMessageEntity::getChatRoomId, chatRoomId)
+        long newerCount = lambdaQuery().eq(UserChatMessageEntity::getUserChatRoomId, chatRoomId)
                 .eq(UserChatMessageEntity::getUndo, YesOrNo.No.getValue())
                 .gt(UserChatMessageEntity::getId, messageId)
                 .count();
