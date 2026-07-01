@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.message.server.service.chat;
 
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatRoomDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatRoomEntity;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatRoomBuisnessScenEnum;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

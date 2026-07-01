@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.message.server.resolver.support;
 
 import io.github.loncra.basic.service.message.api.domian.metadata.MessageConstants;
-import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UnreadQuantityGroupEnum;
 import io.github.loncra.basic.service.message.server.resolver.UnreadQuantityMessageResolver;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;

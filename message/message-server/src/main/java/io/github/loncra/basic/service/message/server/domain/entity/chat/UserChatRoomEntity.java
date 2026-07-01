@@ -2,8 +2,8 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatRoomBuisnessScenEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatRoomTypeEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;

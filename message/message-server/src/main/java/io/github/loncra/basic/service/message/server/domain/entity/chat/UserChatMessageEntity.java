@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatMessageTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatMessageTypeEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
@@ -39,7 +39,7 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
 
     public final static String READABLE_ANCHOR_PAGE_KEY = "readableAnchorPage";
 
-    public final static String ROOM_ID_TABLE_FIELD_NAME = "`chat_room_id`";
+    public final static String ROOM_ID_TABLE_FIELD_NAME = "`user_chat_room_id`";
     public final static String UNDO_TABLE_FIELD_NAME = "`undo`";
 
     /**

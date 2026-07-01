@@ -31,4 +31,5 @@ public class UserChatConfig {
     private TimeProperties groupChatUndoableTime = TimeProperties.ofMinutes(3);
 
     private TimeProperties privateChatUndoableTime = TimeProperties.ofMinutes(2);
+
 }

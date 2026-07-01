@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.message.server.resolver;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatParticipantEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatRoomEntity;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatRoomBuisnessScenEnum;
 
 import java.util.List;
 

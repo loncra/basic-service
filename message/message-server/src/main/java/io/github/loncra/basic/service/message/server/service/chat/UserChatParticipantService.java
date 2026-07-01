@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import io.github.loncra.basic.service.message.server.dao.chat.UserChatParticipantDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatParticipantEntity;
+import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
@@ -57,5 +58,14 @@ public class UserChatParticipantService extends BasicService<UserChatParticipant
         Page<UserChatParticipantEntity> page = findPage(PageRequest.of(1), wrapper);
 
         return page.getNumberOfElements() > 0 ? page.getElements().getFirst() :  null;
+    }
+
+    public List<UserChatParticipantEntity> findByChatRoomIdAndPrincipals(
+            Long roomId,
+            List<String> principals
+    ) {
+        return lambdaQuery().eq(UserChatParticipantEntity::getUserChatRoomId, roomId)
+                .in(UserChatParticipantMetadata::getPrincipal, principals)
+                .list();
     }
 }

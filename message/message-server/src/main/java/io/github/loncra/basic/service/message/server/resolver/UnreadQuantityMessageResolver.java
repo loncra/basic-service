@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.message.server.resolver;
 
-import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UnreadQuantityGroupEnum;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 
 import java.util.Map;

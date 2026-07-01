@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.message.server.controller.chat;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatParticipantTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatParticipantTypeEnum;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;

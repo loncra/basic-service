@@ -13,7 +13,7 @@ import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.ChatUnreadQuantityMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
-import io.github.loncra.basic.service.message.server.enumerate.*;
+import io.github.loncra.basic.service.message.server.enumerate.chat.*;
 import io.github.loncra.basic.service.message.server.resolver.ChatMessageContentResolver;
 import io.github.loncra.basic.service.message.server.resolver.ChatResolver;
 import io.github.loncra.framework.commons.CastUtils;
@@ -36,6 +36,7 @@ import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
 import io.github.loncra.framework.socketio.core.SocketServerManager;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -71,7 +72,7 @@ public class UserChatManager {
 
     public static final String CHAT_CONVERSATION_CREATE_EVENT_NAME = "chat_conversation_create";
 
-    public final static String CONCURRENT_PREFIX = "loncra:basic-service:message:app:chat:root:concurrent:";
+    public final static String CONCURRENT_PREFIX = "loncra:basic-service:message:app:chat:room:concurrent:";
 
     private final UserChatConfig userChatConfig;
 
@@ -79,10 +80,12 @@ public class UserChatManager {
 
     private final List<ChatMessageContentResolver> chatMessageContentResolvers;
 
+    @Getter
     private final UserChatRoomService userChatRoomService;
 
     private final UserChatMessageService userChatMessageService;
 
+    @Getter
     private final UserChatParticipantService userChatParticipantService;
 
     private final UserChatMessageReadService userChatMessageReadService;
@@ -157,7 +160,7 @@ public class UserChatManager {
                 .orElseThrow(() -> new SystemException("您不能在该会话中聊天"));
         UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(token.getName(), chatRoomId);
         SystemException.isTrue(Objects.nonNull(conversation), "找不到会话记录");
-        SystemException.isTrue(UserChatConversationStatus.ENABLED.equals(conversation.getStatus()), "会话状态不正确，状态应为 [" + UserChatConversationStatus.ENABLED.getName() + "], 但该状态为 [" + conversation.getStatus().getName() + "]");
+        SystemException.isTrue(UserChatConversationStatusEnum.ENABLED.equals(conversation.getStatus()), "会话状态不正确，状态应为 [" + UserChatConversationStatusEnum.ENABLED.getName() + "], 但该状态为 [" + conversation.getStatus().getName() + "]");
 
         UserChatMessageEntity entity = new UserChatMessageEntity();
         entity.setPrincipal(token.getName());
@@ -344,7 +347,7 @@ public class UserChatManager {
             entity.setMuted(YesOrNo.No);
         }
 
-        entity.setStatus(UserChatConversationStatus.ENABLED);
+        entity.setStatus(UserChatConversationStatusEnum.ENABLED);
 
         if (CollectionUtils.isEmpty(participantList)) {
             participantList = userChatParticipantService.findByRoomId(room.getId());
@@ -720,7 +723,7 @@ public class UserChatManager {
             UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(principal, room.getId());
             if (Objects.nonNull(conversation)) {
                 userChatConversationService.lambdaUpdate()
-                        .set(UserChatConversationEntity::getStatus, UserChatConversationStatus.REMOVE.getValue())
+                        .set(UserChatConversationEntity::getStatus, UserChatConversationStatusEnum.REMOVE.getValue())
                         .eq(IdEntity::getId, conversation.getId())
                         .update();
             }
@@ -799,7 +802,7 @@ public class UserChatManager {
                 .collect(Collectors.joining(CastUtils.COMMA));
     }
 
-    private List<UnicastMessageMetadata<Object>> createUnicastMessageMetadata(
+    public List<UnicastMessageMetadata<Object>> createUnicastMessageMetadata(
             String principal,
             String eventName,
             Object object
@@ -937,7 +940,7 @@ public class UserChatManager {
 
         UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(token.getName(), room.getId());
         userChatConversationService.lambdaUpdate()
-                .set(UserChatConversationEntity::getStatus, UserChatConversationStatus.EXIST.getValue())
+                .set(UserChatConversationEntity::getStatus, UserChatConversationStatusEnum.EXIST.getValue())
                 .eq(IdEntity::getId, conversation.getId())
                 .update();
 
@@ -1020,7 +1023,7 @@ public class UserChatManager {
         for (UserChatParticipantEntity participantEntity : participants) {
             UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(participantEntity.getPrincipal(), room.getId());
             userChatConversationService.lambdaUpdate()
-                    .set(UserChatConversationEntity::getStatus, UserChatConversationStatus.DISBAND.getValue())
+                    .set(UserChatConversationEntity::getStatus, UserChatConversationStatusEnum.DISBAND.getValue())
                     .eq(IdEntity::getId, conversation.getId())
                     .update();
             List<UnicastMessageMetadata<Object>> clientConversationRefresh = createUnicastMessageMetadata(

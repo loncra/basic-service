@@ -34,6 +34,7 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import io.github.loncra.framework.spring.security.core.entity.support.AccessTokenAuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import io.github.loncra.framework.spring.web.result.RestResponseBodyAdvice;
+import io.livekit.server.RoomServiceClient;
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -258,5 +259,10 @@ public class MonolithStartupAutoConfig {
                 return CaptchaVerificationInterceptor.super.preVerify(request, response);
             }
         };
+    }
+
+    @Bean
+    public RoomServiceClient roomServiceClient() {
+        return RoomServiceClient.createClient("http://127.0.0.1:7880","secret_key_abcdefg123456","secret");
     }
 }

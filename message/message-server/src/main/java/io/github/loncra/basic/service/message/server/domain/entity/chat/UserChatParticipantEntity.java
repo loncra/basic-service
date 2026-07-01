@@ -26,7 +26,7 @@ import java.time.Instant;
 @Alias("chatParticipant")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_user_chat_participant", autoResultMap = true)
-public class UserChatParticipantEntity extends UserChatParticipantMetadata implements AuditPrincipal, VersionEntity<Integer, Long> {
+public class UserChatParticipantEntity extends UserChatParticipantMetadata implements VersionEntity<Integer, Long> {
 
     @Serial
     private static final long serialVersionUID = -6613713197651424835L;
@@ -42,10 +42,5 @@ public class UserChatParticipantEntity extends UserChatParticipantMetadata imple
      * 聊天房间 id
      */
     private Long userChatRoomId;
-
-    /**
-     * 参与者
-     */
-    private String principal;
 
 }

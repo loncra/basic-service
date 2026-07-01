@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.MessageContentMentionMetadata;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatConversationStatus;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatConversationStatusEnum;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.FileObject;
@@ -68,7 +68,7 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
     /**
      * 状态
      */
-    private UserChatConversationStatus status;
+    private UserChatConversationStatusEnum status;
 
     /**
      * 提及内容
