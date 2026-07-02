@@ -810,7 +810,7 @@ public class UserChatManager {
         return createUnicastMessageMetadata( principal, eventName, object, c -> {});
     }
 
-    private List<UnicastMessageMetadata<Object>> createUnicastMessageMetadata(
+    public List<UnicastMessageMetadata<Object>> createUnicastMessageMetadata(
             String principal,
             String eventName,
             Object object,

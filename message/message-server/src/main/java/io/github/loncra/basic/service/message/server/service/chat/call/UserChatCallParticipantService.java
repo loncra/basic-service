@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.message.server.service.chat.call;
 import io.github.loncra.basic.service.message.server.dao.chat.call.UserChatCallParticipantDao;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallParticipantEntity;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatParticipantTypeEnum;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
@@ -59,5 +60,14 @@ public class UserChatCallParticipantService extends BasicService<UserChatCallPar
                 .peek(s -> s.setStatus(status))
                 .peek(preUpdate)
                 .forEach(this::updateById);
+    }
+
+    public UserChatCallParticipantEntity getByUserChatCallIdAndType(
+            Long userChatCallId,
+            UserChatParticipantTypeEnum type
+    ) {
+        return lambdaQuery().eq(UserChatCallParticipantEntity::getUserChatCallId,userChatCallId)
+                .eq(UserChatParticipantMetadata::getType, type.getValue())
+                .one();
     }
 }

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @Data
@@ -18,5 +19,5 @@ public class UserChatCallResponseBody extends UserChatCallEntity {
 
     private UserChatRoomEntity room;
 
-    private List<UserChatCallParticipantEntity> participants;
+    private List<UserChatCallParticipantEntity> participants = new LinkedList<>();
 }
