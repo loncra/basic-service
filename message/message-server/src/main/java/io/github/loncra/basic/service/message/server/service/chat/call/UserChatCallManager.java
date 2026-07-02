@@ -33,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,10 +45,7 @@ public class UserChatCallManager {
 
     public static final String CHAT_CALL_COMPLETED_EVENT_NAME = "chat_call_completed";
 
-    public static final String CHAT_CALL_ACCEPT_EVENT_NAME = "chat_call_accept";
-
-    public static final String CHAT_CALL_REJECTED_EVENT_NAME = "chat_call_rejected";
-
+    public static final String CHAT_CALL_CONFIRM_EVENT_NAME = "chat_call_confirm";
 
     public static final String CHAT_CALL_LEVEL_EVENT_NAME = "chat_call_level";
 
@@ -97,6 +95,7 @@ public class UserChatCallManager {
                 userChatCallEntity.getId(),
                 callParticipant.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY)
         );
+        metadata.setMetadata(CastUtils.convertValue(userChatCallEntity, CastUtils.MAP_TYPE_REFERENCE));
 
         if (UserChatRoomTypeEnum.PRIVATE_CHAT.equals(room.getType())){
             SystemException.isTrue(callingPrincipals.size() == 1,room.getType().getName() + "会话必须要有一个接听方，且不能是自己");
@@ -176,7 +175,7 @@ public class UserChatCallManager {
     }
 
     @Concurrent(value = CONCURRENT_PREFIX + "completed:[#userChatCallId]", waitTime = @Time(5000))
-    public AbstractSocketMessageMetadata<Long> completed(
+    public AbstractSocketMessageMetadata<Object> completed(
             Long userChatCallId,
             AuditAuthenticationToken token
     ) {
@@ -198,7 +197,7 @@ public class UserChatCallManager {
         }
     }
 
-    private AbstractSocketMessageMetadata<Long> completedByPrivateChat(
+    private AbstractSocketMessageMetadata<Object> completedByPrivateChat(
             UserChatCallParticipantEntity participant,
             UserChatCallEntity call
     ) {
@@ -225,16 +224,16 @@ public class UserChatCallManager {
         call.setEndTime(Instant.now());
         userChatCallService.updateById(call);
 
-        return BroadcastMessageMetadata.of(call.getUserChatRoomId().toString(), CHAT_CALL_COMPLETED_EVENT_NAME, call.getId());
+        return BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_COMPLETED_EVENT_NAME, call);
     }
 
-    private AbstractSocketMessageMetadata<Long> completedByGroupChat(
+    private AbstractSocketMessageMetadata<Object> completedByGroupChat(
             UserChatCallParticipantEntity participant,
             UserChatCallEntity call
     ) {
         if (participant.getType().equals(UserChatParticipantTypeEnum.CALLEE)) {
             participant.setStatus(UserChatCallParticipantStatusEnum.COMPLETED_BY_GROUP_LEAVE);
-            return BroadcastMessageMetadata.of(call.getUserChatRoomId().toString(), CHAT_CALL_LEVEL_EVENT_NAME, call.getId());
+            return BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_LEVEL_EVENT_NAME, participant);
         } else {
             userChatCallParticipantService.updateAllStatus(
                     call.getId(),
@@ -243,7 +242,7 @@ public class UserChatCallManager {
                     participant.getPrincipal()
             );
 
-            return BroadcastMessageMetadata.of(call.getUserChatRoomId().toString(), CHAT_CALL_COMPLETED_EVENT_NAME, call.getId());
+            return BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_COMPLETED_EVENT_NAME, call);
         }
     }
 
@@ -278,12 +277,12 @@ public class UserChatCallManager {
         call.setStartTime(Instant.now());
         userChatCallService.updateById(call);
 
-        return BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_ACCEPT_EVENT_NAME, call.getId());
+        return BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_CONFIRM_EVENT_NAME, callee);
     }
 
 
     @Concurrent(value = CONCURRENT_PREFIX + "confirm:[#userChatCallId]:[#token.name]")
-    public void rejected(
+    public List<AbstractSocketMessageMetadata<Object>> rejected(
             Long userChatCallId,
             AuditAuthenticationToken token
     ) {
@@ -306,7 +305,13 @@ public class UserChatCallManager {
         callee.setLeaveTime(Instant.now());
         userChatCallParticipantService.updateById(callee);
 
-        UserChatCallParticipantEntity caller = userChatCallParticipantService.getByUserChatCallIdAndType(call.getId(), UserChatParticipantTypeEnum.CALLER);
-        userChatManager.createUnicastMessageMetadata(caller.getPrincipal(), CHAT_CALL_REJECTED_EVENT_NAME, callee);
+        List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
+        result.add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_CONFIRM_EVENT_NAME, callee));
+        if (UserChatCallSceneEnum.PRIVATE.equals(call.getScene())) {
+            call.setStatus(UserChatCallStatusEnum.COMPLETED);
+            userChatCallService.updateById(call);
+            result.add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_COMPLETED_EVENT_NAME, call));
+        }
+        return result;
     }
 }

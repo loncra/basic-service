@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.message.server.controller.chat;
 
 import feign.Param;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallEntity;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
 import io.github.loncra.basic.service.message.server.service.chat.call.UserChatCallManager;
 import io.github.loncra.framework.commons.CastUtils;
@@ -14,6 +15,7 @@ import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @RestController
@@ -47,33 +49,31 @@ public class UserChatCallController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        AbstractSocketMessageMetadata<Long> metadata = userChatCallManager.completed(userChatCallId, token);
+        AbstractSocketMessageMetadata<Object> metadata = userChatCallManager.completed(userChatCallId, token);
         return ReturnValueSocketResult.of(List.of(metadata));
     }
 
     @PutMapping("accept/{userChatCallId:\\d+}")
-    public ReturnValueSocketResult<Void> confirm(
+    public ReturnValueSocketResult<Void> accept(
             @PathVariable
             Long userChatCallId,
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-
         AbstractSocketMessageMetadata<Object> message = userChatCallManager.accept(userChatCallId, token);
-
         return ReturnValueSocketResult.of(List.of(message));
     }
 
     @PutMapping("rejected/{userChatCallId:\\d+}")
-    public void rejected(
+    public ReturnValueSocketResult<Void> rejected(
             @PathVariable
             Long userChatCallId,
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-
-        userChatCallManager.rejected(userChatCallId, token);
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.rejected(userChatCallId, token);
+        return ReturnValueSocketResult.of(new LinkedList<>(messages));
     }
 }

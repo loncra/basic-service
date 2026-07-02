@@ -18,7 +18,7 @@ public enum UserChatCallStatusEnum implements NameValueEnum<Integer> {
 
     ACTIVE(20, "通话中"),
 
-    COMPLETED(30, "已结束"),
+    COMPLETED(30, "通话结束"),
 
     ;
 
