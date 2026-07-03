@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.message.server.controller.chat;
 
 import feign.Param;
-import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallEntity;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
 import io.github.loncra.basic.service.message.server.service.chat.call.UserChatCallManager;
 import io.github.loncra.framework.commons.CastUtils;
@@ -49,8 +48,8 @@ public class UserChatCallController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        AbstractSocketMessageMetadata<Object> metadata = userChatCallManager.completed(userChatCallId, token);
-        return ReturnValueSocketResult.of(List.of(metadata));
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.completed(userChatCallId, token);
+        return ReturnValueSocketResult.of(new LinkedList<>(messages));
     }
 
     @PutMapping("accept/{userChatCallId:\\d+}")
@@ -61,8 +60,8 @@ public class UserChatCallController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        AbstractSocketMessageMetadata<Object> message = userChatCallManager.accept(userChatCallId, token);
-        return ReturnValueSocketResult.of(List.of(message));
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.accept(userChatCallId, token);
+        return ReturnValueSocketResult.of(new LinkedList<>(messages));
     }
 
     @PutMapping("rejected/{userChatCallId:\\d+}")

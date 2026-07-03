@@ -18,7 +18,7 @@ import java.util.List;
 public enum UserChatCallParticipantStatusEnum implements NameValueEnum<Integer> {
 
     // ========== 基础呼叫阶段 ==========
-    INITIATING(10, "发起中"),
+    INITIATING(10, "呼叫中"),
     RINGING(20, "响铃中"),
 
     // ========== 通话建立阶段 ==========

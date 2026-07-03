@@ -17,7 +17,7 @@ public class InstructionMessageMetadata extends AbstractCustomMessageMetadata{
     private IdValueMetadata<String, String> value;
 
     @Override
-    protected String getSlotKind() {
+    public String getSlotKind() {
         return DEFAULT_SLOT_KIND;
     }
 }

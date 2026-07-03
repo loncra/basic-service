@@ -12,6 +12,8 @@ public enum UserChatMessageTypeEnum implements NameValueEnum<Integer> {
     USER("用户消息",10),
 
     SYSTEM("系统消息",20),
+
+    CALL("通话消息",30),
     ;
 
     private final String name;

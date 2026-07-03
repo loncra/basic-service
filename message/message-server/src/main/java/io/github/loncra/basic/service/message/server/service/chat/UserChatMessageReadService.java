@@ -25,9 +25,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserChatMessageReadService extends BasicService<UserChatMessageReadDao, UserChatMessageReadEntity> {
 
-    public List<UserChatMessageReadEntity> getByChatMessageId(Long chatMessageId) {
-        return lambdaQuery().eq(UserChatMessageReadEntity::getUserChatMessageId, chatMessageId)
+    public List<UserChatMessageReadEntity> findByUserChatMessageId(Long userChatMessageId) {
+        return lambdaQuery().eq(UserChatMessageReadEntity::getUserChatMessageId, userChatMessageId)
                 .orderByDesc(IdEntity::getId)
                 .list();
+    }
+
+    public UserChatMessageReadEntity getByUserChatMessageIdAndPrincipal(
+            Long userChatMessageId,
+            String principal
+    ) {
+        return lambdaQuery().eq(UserChatMessageReadEntity::getUserChatMessageId, userChatMessageId)
+                .eq(UserChatMessageReadEntity::getPrincipal, principal)
+                .one();
     }
 }

@@ -44,6 +44,11 @@ public class UserChatCallEntity extends LongVersionEntity<Integer> {
     private Long userChatRoomId;
 
     /**
+     * 对应的消息 id
+     */
+    private Long userChatMessageId;
+
+    /**
      * 房间类型
      */
     private UserChatCallTypeEnum type;

@@ -10,10 +10,13 @@ import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatCo
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageReadResponseBody;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
+import io.github.loncra.basic.service.message.server.domain.metadata.chat.CallMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.ChatUnreadQuantityMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
 import io.github.loncra.basic.service.message.server.enumerate.chat.*;
+import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
 import io.github.loncra.basic.service.message.server.resolver.ChatMessageContentResolver;
 import io.github.loncra.basic.service.message.server.resolver.ChatResolver;
 import io.github.loncra.framework.commons.CastUtils;
@@ -67,6 +70,7 @@ public class UserChatManager {
 
     public static final String CHAT_MESSAGE_EVENT_NAME = "chat_message";
     public static final String CHAT_MESSAGE_UNDO_EVENT_NAME = "chat_message_undo";
+    public static final String CHAT_MESSAGE_UPDATE_EVENT_NAME = "chat_message_update";
     public static final String CHAT_MESSAGE_READ_EVENT_NAME = "chat_message_read";
     public static final String CHAT_MESSAGE_READ_UPDATE_EVENT = "chat_message_read_update";
 
@@ -136,11 +140,22 @@ public class UserChatManager {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @Concurrent(value = CONCURRENT_PREFIX + "send:[#chatRoomId]", waitTime = @Time(5000))
-    public SocketResult send(
+    @Concurrent(value = CONCURRENT_PREFIX + "send:[#chatRoomId]:[#token.name]", waitTime = @Time(5000))
+    public ReturnValueSocketResult<UserChatMessageEntity> send(
             Long chatRoomId,
             List<Map<String, Object>> messages,
             AuditAuthenticationToken token
+    ) {
+        return send(chatRoomId, messages, token, UserChatMessageTypeEnum.USER);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Concurrent(value = CONCURRENT_PREFIX + "send:[#chatRoomId]:[#token.name]", waitTime = @Time(5000))
+    public ReturnValueSocketResult<UserChatMessageEntity> send(
+            Long chatRoomId,
+            List<Map<String, Object>> messages,
+            AuditAuthenticationToken token,
+            UserChatMessageTypeEnum type
     ) {
         boolean role = userChatParticipantService
                 .lambdaQuery()
@@ -166,7 +181,7 @@ public class UserChatManager {
         entity.setPrincipal(token.getName());
         entity.setUserChatRoomId(room.getId());
         entity.setContent(messages);
-        entity.setType(UserChatMessageTypeEnum.USER);
+        entity.setType(type);
         if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
             entity.setUndoableTime(Instant.now().plus(userChatConfig.getGroupChatUndoableTime().toDuration()));
         }
@@ -450,7 +465,7 @@ public class UserChatManager {
                 .filter(Objects::nonNull)
                 .toList();
         List<UserChatMessageResponseBody> responses = messages.stream()
-                .map(m -> convertUserChatMessageResponseBody(m, token, participants))
+                .map(m -> convertUserChatMessageResponseBody(m, token.getName(), participants))
                 .toList();
         page.setElements(new LinkedList<>(responses));
 
@@ -489,7 +504,7 @@ public class UserChatManager {
 
     private UserChatMessageResponseBody convertUserChatMessageResponseBody(
             UserChatMessageEntity entity,
-            AuditAuthenticationToken token,
+            String principal,
             List<UserChatParticipantEntity> participants
     ) {
         UserChatMessageResponseBody body = CastUtils.of(entity, UserChatMessageResponseBody.class);
@@ -509,7 +524,7 @@ public class UserChatManager {
 
         readList
                 .stream()
-                .filter(r -> r.getPrincipal().equals(token.getName()))
+                .filter(r -> r.getPrincipal().equals(principal))
                 .findFirst()
                 .ifPresent(r -> body.setReadable(r.getReadable()));
         return body;
@@ -565,7 +580,7 @@ public class UserChatManager {
                 );
                 socketResult.getMessages().addAll(unicastMessageMetadata);
             }
-            UserChatMessageResponseBody body = convertUserChatMessageResponseBody(entity, token, participants);
+            UserChatMessageResponseBody body = convertUserChatMessageResponseBody(entity, token.getName(), participants);
             BroadcastMessageMetadata<UserChatMessageResponseBody> metadata = BroadcastMessageMetadata.of(
                     entity.getUserChatRoomId().toString(),
                     CHAT_MESSAGE_READ_EVENT_NAME,
@@ -882,7 +897,7 @@ public class UserChatManager {
         List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(room.getId());
         SystemException.isTrue(participants.stream().anyMatch(s -> s.getPrincipal().equals(token.getName())), "你没有权限查看该消息内容");
 
-        List<UserChatMessageReadEntity> result = userChatMessageReadService.getByChatMessageId(message.getId());
+        List<UserChatMessageReadEntity> result = userChatMessageReadService.findByUserChatMessageId(message.getId());
         return result.stream()
                 .map(s -> convertUserChatMessageReadResponseBody(s, participants))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -1043,5 +1058,37 @@ public class UserChatManager {
         }
 
         return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public BroadcastMessageMetadata<Object> updateCallMessage(
+            Long userChatMessageId,
+            UserChatCallParticipantStatusEnum status,
+            String principal
+    ) {
+        UserChatMessageEntity message = Objects.requireNonNull(
+                userChatMessageService.get(userChatMessageId),
+                "找不到 ID 为 [" + userChatMessageId + "] 的消息记录"
+        );
+        SystemException.isTrue(CollectionUtils.isNotEmpty(message.getContent()), "ID 为 [" + message.getId() + "] 的消息内容出现错误");
+        CallMessageMetadata callMessageMetadata = CastUtils.convertValue(message.getContent().getFirst(), CallMessageMetadata.class);
+        callMessageMetadata.setStatus(status);
+        message.setContent(CastUtils.convertValue(List.of(callMessageMetadata), CastUtils.LIST_MAP_TYPE_REFERENCE));
+        userChatMessageService.updateById(message);
+
+        if (StringUtils.isNotEmpty(principal)) {
+
+            UserChatMessageReadEntity userChatMessageRead = userChatMessageReadService.getByUserChatMessageIdAndPrincipal(message.getId(), principal);
+            if (YesOrNo.Yes.equals(userChatMessageRead.getReadable())) {
+                userChatMessageRead.setReadable(YesOrNo.No);
+                userChatMessageRead.setReadTime(Instant.now());
+                userChatMessageReadService.updateById(userChatMessageRead);
+            }
+
+            UserChatMessageResponseBody body = convertUserChatMessageResponseBody(message, principal, new LinkedList<>());
+            return BroadcastMessageMetadata.of(message.getUserChatRoomId().toString(), CHAT_MESSAGE_UPDATE_EVENT_NAME, body);
+        } else {
+            return BroadcastMessageMetadata.of(message.getUserChatRoomId().toString(), CHAT_MESSAGE_UPDATE_EVENT_NAME, message);
+        }
     }
 }
