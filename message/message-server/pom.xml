@@ -108,9 +108,23 @@
         </dependency>
 
         <dependency>
+            <groupId>io.livekit</groupId>
+            <artifactId>livekit-server</artifactId>
+            <version>0.13.0</version>
+
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>4.31.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>

@@ -16,7 +16,6 @@ import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMe
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
 import io.github.loncra.basic.service.message.server.enumerate.chat.*;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
-import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
 import io.github.loncra.basic.service.message.server.resolver.ChatMessageContentResolver;
 import io.github.loncra.basic.service.message.server.resolver.ChatResolver;
 import io.github.loncra.framework.commons.CastUtils;
@@ -927,11 +926,11 @@ public class UserChatManager {
     }
 
     public UserChatConversationEntity getChatConversationByPrincipal(
-            String name,
+            String principal,
             Long chatRoomId,
             boolean convertBody
     ) {
-        UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(name, chatRoomId);
+        UserChatConversationEntity conversation = userChatConversationService.getByPrincipal(principal, chatRoomId);
         if (convertBody) {
             UserChatRoomEntity room = userChatRoomService.get(chatRoomId);
             return convertUserChatConversationByRoom(room, conversation);
@@ -1064,7 +1063,7 @@ public class UserChatManager {
     public BroadcastMessageMetadata<Object> updateCallMessage(
             Long userChatMessageId,
             UserChatCallParticipantStatusEnum status,
-            String principal
+            String readPrincipal
     ) {
         UserChatMessageEntity message = Objects.requireNonNull(
                 userChatMessageService.get(userChatMessageId),
@@ -1076,16 +1075,16 @@ public class UserChatManager {
         message.setContent(CastUtils.convertValue(List.of(callMessageMetadata), CastUtils.LIST_MAP_TYPE_REFERENCE));
         userChatMessageService.updateById(message);
 
-        if (StringUtils.isNotEmpty(principal)) {
+        if (StringUtils.isNotEmpty(readPrincipal) && !message.getPrincipal().equals(readPrincipal)) {
 
-            UserChatMessageReadEntity userChatMessageRead = userChatMessageReadService.getByUserChatMessageIdAndPrincipal(message.getId(), principal);
+            UserChatMessageReadEntity userChatMessageRead = userChatMessageReadService.getByUserChatMessageIdAndPrincipal(message.getId(), readPrincipal);
             if (YesOrNo.Yes.equals(userChatMessageRead.getReadable())) {
                 userChatMessageRead.setReadable(YesOrNo.No);
                 userChatMessageRead.setReadTime(Instant.now());
                 userChatMessageReadService.updateById(userChatMessageRead);
             }
 
-            UserChatMessageResponseBody body = convertUserChatMessageResponseBody(message, principal, new LinkedList<>());
+            UserChatMessageResponseBody body = convertUserChatMessageResponseBody(message, readPrincipal, new LinkedList<>());
             return BroadcastMessageMetadata.of(message.getUserChatRoomId().toString(), CHAT_MESSAGE_UPDATE_EVENT_NAME, body);
         } else {
             return BroadcastMessageMetadata.of(message.getUserChatRoomId().toString(), CHAT_MESSAGE_UPDATE_EVENT_NAME, message);

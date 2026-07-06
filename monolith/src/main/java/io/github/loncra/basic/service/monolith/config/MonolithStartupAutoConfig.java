@@ -34,7 +34,6 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import io.github.loncra.framework.spring.security.core.entity.support.AccessTokenAuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import io.github.loncra.framework.spring.web.result.RestResponseBodyAdvice;
-import io.livekit.server.RoomServiceClient;
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -261,8 +260,30 @@ public class MonolithStartupAutoConfig {
         };
     }
 
-    @Bean
-    public RoomServiceClient roomServiceClient() {
-        return RoomServiceClient.createClient("http://127.0.0.1:7880","secret_key_abcdefg123456","secret");
+    /*@Bean
+    public RoomServiceClient roomServiceClient(
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.host:http://localhost:7800}")
+            String host,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.api-key}")
+            String apiKey,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.secret}")
+            String secret
+    ) {
+
+        return RoomServiceClient.createClient(
+                host,
+                apiKey,
+                secret
+        );
     }
+
+    @Bean
+    public WebhookReceiver webhookReceiver(
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.api-key}")
+            String apiKey,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.secret}")
+            String secret
+    ){
+        return new WebhookReceiver(apiKey, secret);
+    }*/
 }

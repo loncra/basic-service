@@ -1,6 +1,8 @@
 package io.github.loncra.basic.service.message.server.controller.chat;
 
 import feign.Param;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallEntity;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallParticipantEntity;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
 import io.github.loncra.basic.service.message.server.service.chat.call.UserChatCallManager;
 import io.github.loncra.framework.commons.CastUtils;
@@ -14,6 +16,7 @@ import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -34,7 +37,7 @@ public class UserChatCallController {
             SecurityContext securityContext,
             @RequestParam
             List<String> callingPrincipals
-    ) {
+    ) throws IOException {
         UserChatCallTypeEnum typeEnum = ValueEnum.ofEnum(UserChatCallTypeEnum.class, type);
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return userChatCallManager.create(typeEnum, userChatRoomId, token, callingPrincipals);
@@ -53,15 +56,14 @@ public class UserChatCallController {
     }
 
     @PutMapping("accept/{userChatCallId:\\d+}")
-    public ReturnValueSocketResult<Void> accept(
+    public ReturnValueSocketResult<UserChatCallParticipantEntity> accept(
             @PathVariable
             Long userChatCallId,
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.accept(userChatCallId, token);
-        return ReturnValueSocketResult.of(new LinkedList<>(messages));
+        return userChatCallManager.accept(userChatCallId, token);
     }
 
     @PutMapping("rejected/{userChatCallId:\\d+}")
@@ -74,5 +76,24 @@ public class UserChatCallController {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.rejected(userChatCallId, token);
         return ReturnValueSocketResult.of(new LinkedList<>(messages));
+    }
+
+    @GetMapping("/{userChatCallId:\\d+}")
+    public UserChatCallEntity get(
+            @PathVariable
+            Long userChatCallId,
+            @RequestParam(required = false, defaultValue = "false")
+            boolean responseBody,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        UserChatCallEntity entity = userChatCallManager.getUserChatCall(userChatCallId, token);
+
+        if (responseBody) {
+            return userChatCallManager.convertUserChatCallEntityToResponseBody(entity);
+        }
+
+        return entity;
     }
 }

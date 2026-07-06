@@ -33,7 +33,7 @@ import java.util.Map;
 @TableName(value = "tb_user_chat_call", autoResultMap = true)
 public class UserChatCallEntity extends LongVersionEntity<Integer> {
 
-    public static final String ROOM_ID_PREFIX = "user_chat_call";
+    public static final String ROOM_ID_PREFIX = "user_chat_call" + CacheProperties.DEFAULT_SEPARATOR;
 
     @Serial
     private static final long serialVersionUID = -3340328109918301095L;
@@ -80,12 +80,17 @@ public class UserChatCallEntity extends LongVersionEntity<Integer> {
     private UserChatCallSceneEnum scene;
 
     /**
+     * 媒体服务器
+     */
+    private String mediaServer;
+
+    /**
      * 名称
      */
     private String name;
 
     public String getRoomId() {
-        return ROOM_ID_PREFIX + CacheProperties.DEFAULT_SEPARATOR + getId();
+        return ROOM_ID_PREFIX + getId();
     }
 
 }

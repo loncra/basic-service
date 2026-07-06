@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.message.server.domain.metadata.chat;
 
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallSceneEnum;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,6 +19,10 @@ public class CallMessageMetadata extends AbstractCustomMessageMetadata {
     private UserChatCallTypeEnum value;
 
     private UserChatCallParticipantStatusEnum status;
+
+    private String caller;
+
+    private UserChatCallSceneEnum scene;
 
     @Override
     public String getSlotKind() {

@@ -29,6 +29,7 @@ loncra:
         - "/user/password/reset/**"
         - "/system/users/**"
         - "/attachment/loncra.basic-service.resource.avatar/**"
+        - "/live/kit/webhooks/**"
     security:
       web:
         ignore-result-map:

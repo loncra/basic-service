@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.message.server.service.chat.call;
 
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.message.server.config.UserChatCallConfig;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatCallResponseBody;
+import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatParticipantEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatRoomEntity;
@@ -15,6 +17,7 @@ import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserCha
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallSceneEnum;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallStatusEnum;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;
+import io.github.loncra.basic.service.message.server.resolver.CallMediaServerResolver;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatManager;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.annotation.Time;
@@ -28,10 +31,14 @@ import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
 import io.github.loncra.framework.socketio.api.SocketResult;
 import io.github.loncra.framework.socketio.api.metadata.AbstractSocketMessageMetadata;
 import io.github.loncra.framework.socketio.api.metadata.BroadcastMessageMetadata;
+import io.github.loncra.framework.socketio.core.holder.SocketResultHolder;
+import io.github.loncra.framework.socketio.core.holder.annotation.SocketMessage;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +50,7 @@ import java.util.*;
 public class UserChatCallManager {
 
     public static final String CHAT_CALL_EVENT_NAME = "chat_call";
+    public static final String CHAT_CALL_EVENT_UPDATE_NAME = "chat_call_update";
 
     public static final String CHAT_CALL_COMPLETED_EVENT_NAME = "chat_call_completed";
 
@@ -57,6 +65,11 @@ public class UserChatCallManager {
     private final UserChatCallParticipantService userChatCallParticipantService;
 
     private final UserChatManager userChatManager;
+
+    private final List<CallMediaServerResolver> callMediaServerResolvers;
+
+    @Getter
+    private final UserChatCallConfig userChatCallConfig;
 
     @Transactional(rollbackFor = Exception.class)
     @Concurrent(value = CONCURRENT_PREFIX + "create:[#userChatRoomId]", waitTime = @Time(5000))
@@ -86,27 +99,17 @@ public class UserChatCallManager {
 
         ReturnValueSocketResult<UserChatCallResponseBody> result = new ReturnValueSocketResult<>();
 
-        UserChatCallParticipantEntity callParticipant = convertCallParticipant(participant);
-        callParticipant.setUserChatCallId(call.getId());
-        callParticipant.setJoinTime(Instant.now());
-        callParticipant.setType(UserChatParticipantTypeEnum.CALLER);
-        callParticipant.setStatus(UserChatCallParticipantStatusEnum.INITIATING);
+        UserChatCallParticipantEntity caller = convertCallParticipant(participant);
+        caller.setUserChatCallId(call.getId());
+        caller.setJoinTime(Instant.now());
+        caller.setType(UserChatParticipantTypeEnum.CALLER);
+        caller.setStatus(UserChatCallParticipantStatusEnum.INITIATING);
 
         IdValueMetadata<Long, Object> metadata = IdValueMetadata.of(
                 call.getId(),
-                callParticipant.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY)
+                caller.getMetadata().get(AuditAuthenticationToken.DETAILS_KEY)
         );
-
-        CallMessageMetadata callMessageMetadata = new CallMessageMetadata();
-        callMessageMetadata.setValue(call.getType());
-        callMessageMetadata.setUserChatCallId(call.getId());
-        callMessageMetadata.setStatus(UserChatCallParticipantStatusEnum.INITIATING);
-
-        List<Map<String, Object>> content = CastUtils.convertValue(List.of(callMessageMetadata), CastUtils.LIST_MAP_TYPE_REFERENCE);
-        ReturnValueSocketResult<UserChatMessageEntity> socketResult = userChatManager.send(userChatRoomId, content, token, UserChatMessageTypeEnum.CALL);
-        result.getMessages().addAll(socketResult.getMessages());
-        call.setUserChatMessageId(socketResult.getReturnValue().getId());
-
+        List<UserChatCallParticipantEntity> callParticipants = new ArrayList<>();
         if (UserChatRoomTypeEnum.PRIVATE_CHAT.equals(room.getType())){
             SystemException.isTrue(callingPrincipals.size() == 1,room.getType().getName() + "会话必须要有一个接听方，且不能是自己");
             SystemException.isTrue(callingPrincipals.stream().noneMatch(s -> Strings.CS.equals(s, token.getName())),"不能向自己发起通话");
@@ -119,9 +122,11 @@ public class UserChatCallManager {
             targetParticipant.setUserChatCallId(call.getId());
             targetParticipant.setStatus(UserChatCallParticipantStatusEnum.RINGING);
             userChatCallParticipantService.insert(targetParticipant);
+            callParticipants.add(targetParticipant);
             call.setScene(UserChatCallSceneEnum.PRIVATE);
+
         } else if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
-            callParticipant.setType(UserChatParticipantTypeEnum.OWNER);
+            caller.setType(UserChatParticipantTypeEnum.OWNER);
             List<UserChatCallParticipantEntity> participants = userChatManager.getUserChatParticipantService()
                     .findByChatRoomIdAndPrincipals(room.getId(), callingPrincipals)
                     .stream()
@@ -133,6 +138,7 @@ public class UserChatCallManager {
                     .toList();
             if (CollectionUtils.isNotEmpty(participants)) {
                 call.setScene(UserChatCallSceneEnum.MEETING);
+                callParticipants.addAll(participants);
             } else {
                 call.setScene(UserChatCallSceneEnum.GROUP);
                 BroadcastMessageMetadata<IdValueMetadata<Long, Object>> message = BroadcastMessageMetadata.of(
@@ -142,11 +148,32 @@ public class UserChatCallManager {
                 );
                 result.getMessages().add(message);
             }
+        } else {
+            throw new UnsupportedOperationException(room.getType().getName() + "类型房间不支持通话房间创建");
         }
-        userChatCallService.updateById(call);
-        userChatCallParticipantService.insert(callParticipant);
 
-        UserChatCallResponseBody body = createResponseBody(call);
+        CallMessageMetadata callMessageMetadata = new CallMessageMetadata();
+        callMessageMetadata.setValue(call.getType());
+        callMessageMetadata.setUserChatCallId(call.getId());
+        callMessageMetadata.setCaller(token.getName());
+        callMessageMetadata.setStatus(UserChatCallParticipantStatusEnum.INITIATING);
+        callMessageMetadata.setScene(call.getScene());
+
+        List<Map<String, Object>> content = CastUtils.convertValue(List.of(callMessageMetadata), CastUtils.LIST_MAP_TYPE_REFERENCE);
+        ReturnValueSocketResult<UserChatMessageEntity> socketResult = userChatManager.send(userChatRoomId, content, token, UserChatMessageTypeEnum.CALL);
+        result.getMessages().addAll(socketResult.getMessages());
+        call.setUserChatMessageId(socketResult.getReturnValue().getId());
+
+        userChatCallParticipantService.insert(caller);
+
+        callMediaServerResolvers.stream()
+                .filter(s -> userChatCallConfig.getMediaServer().equals(s.getType()))
+                .findFirst()
+                .ifPresent(s -> s.create(call, caller, callParticipants));
+
+        userChatCallService.updateById(call);
+
+        UserChatCallResponseBody body = convertUserChatCallEntityToResponseBody(call);
         metadata.setMetadata(CastUtils.convertValue(body, CastUtils.MAP_TYPE_REFERENCE));
 
         for (UserChatCallParticipantEntity callee: body.getParticipants()) {
@@ -173,7 +200,7 @@ public class UserChatCallManager {
         );
     }
 
-    public UserChatCallResponseBody createResponseBody(UserChatCallEntity userChatCallEntity) {
+    public UserChatCallResponseBody convertUserChatCallEntityToResponseBody(UserChatCallEntity userChatCallEntity) {
         if (Objects.isNull(userChatCallEntity)) {
             return null;
         }
@@ -199,24 +226,48 @@ public class UserChatCallManager {
         participant.setLeaveTime(Instant.now());
         participant.setStatus(UserChatCallParticipantStatusEnum.COMPLETED);
 
+        return doCompleted(call, participant);
+    }
+
+    private @NonNull List<AbstractSocketMessageMetadata<Object>> doCompleted(
+            UserChatCallEntity call,
+            UserChatCallParticipantEntity participant
+    ) {
+        List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
         UserChatRoomEntity room = Objects.requireNonNull(userChatManager.getUserChatRoomService().get(call.getUserChatRoomId()), "找不到 ID 为 [" + call.getUserChatRoomId() + "] 的会话记录");
         if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
-            return completedByGroupChat(participant, call);
+            result.addAll(completedByGroupChat(participant, call));
         } else if (UserChatRoomTypeEnum.PRIVATE_CHAT.equals(room.getType())) {
-            return completedByPrivateChat(participant, call);
+            result.addAll(completedByPrivateChat(participant, call));
         } else {
             throw new UnsupportedOperationException("不支持房间类型为 [" + room.getType() + "] 的结束通话操作");
         }
+
+        UserChatCallResponseBody body = convertUserChatCallEntityToResponseBody(call);
+        callMediaServerResolvers.stream()
+                .filter(s -> body.getMediaServer().equals(s.getType()))
+                .findFirst()
+                .ifPresent(s -> s.completed(body));
+
+        return result;
     }
 
     private List<AbstractSocketMessageMetadata<Object>> completedByPrivateChat(
             UserChatCallParticipantEntity participant,
             UserChatCallEntity call
     ) {
-
-        if (UserChatCallParticipantStatusEnum.CONNECTING.equals(participant.getStatus())) {
+        if (UserChatCallParticipantStatusEnum.NO_ANSWER.equals(participant.getStatus())) {
+            userChatCallParticipantService.updateAllStatus(
+                    call.getId(),
+                    UserChatCallParticipantStatusEnum.NO_ANSWER,
+                    s -> s.setLeaveTime(Instant.now()),
+                    participant.getPrincipal()
+            );
+        }
+        else if (UserChatCallParticipantStatusEnum.CONNECTING.equals(participant.getStatus())) {
             participant.setStatus(UserChatCallParticipantStatusEnum.CANCELED);
-        } else {
+        }
+        else {
 
             UserChatCallParticipantStatusEnum status = participant.getType().equals(UserChatParticipantTypeEnum.CALLEE)
                     ? UserChatCallParticipantStatusEnum.COMPLETED_BY_CALLEE
@@ -237,8 +288,7 @@ public class UserChatCallManager {
         userChatCallService.updateById(call);
 
         List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
-
-        result.add(userChatManager.updateCallMessage(call.getUserChatMessageId(), UserChatCallParticipantStatusEnum.COMPLETED, null));
+        result.add(userChatManager.updateCallMessage(call.getUserChatMessageId(), participant.getStatus(), null));
         result.add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_COMPLETED_EVENT_NAME, call));
 
         return result;
@@ -265,7 +315,7 @@ public class UserChatCallManager {
 
     @Transactional(rollbackFor = Exception.class)
     @Concurrent(value = CONCURRENT_PREFIX + "confirm:[#userChatCallId]:[#token.name]")
-    public List<AbstractSocketMessageMetadata<Object>> accept(
+    public ReturnValueSocketResult<UserChatCallParticipantEntity> accept(
             Long userChatCallId,
             AuditAuthenticationToken token
     ) {
@@ -274,30 +324,35 @@ public class UserChatCallManager {
                 "找不到 ID 为 [" + userChatCallId + "] 的通话记录"
         );
         SystemException.isTrue (UserChatCallSceneEnum.ACCEPT_SCENE.contains(call.getScene()), "通话场景非接受场景");
-
+        SystemException.isTrue(UserChatCallStatusEnum.CONNECTING.equals(call.getStatus()), "该通过非连接中状态");
         UserChatCallParticipantEntity callee = Objects.requireNonNull(
                 userChatCallParticipantService.getByUserChatCallIdAndPrincipal(call.getId(), token.getName()),
                 "您不是该通话中邀请的对象"
         );
-        SystemException.isTrue(
-                UserChatParticipantTypeEnum.CALLEE.equals(callee.getType()),
-                "类型出现错误，您应该属于被叫对象，当前您的类型为 [" + callee.getType().getName() + "],无法接受此通话"
-        );
         callee.setStatus(UserChatCallParticipantStatusEnum.ACTIVE);
         callee.setJoinTime(Instant.now());
+
+        ReturnValueSocketResult<UserChatCallParticipantEntity> result = new ReturnValueSocketResult<>(callee);
+
+        result.getMessages().add(userChatManager.updateCallMessage(call.getUserChatMessageId(), UserChatCallParticipantStatusEnum.CONNECTING, token.getName()));
+        result.getMessages().add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_CONFIRM_EVENT_NAME, callee));
+
+        callMediaServerResolvers.stream()
+                .filter(s -> call.getMediaServer().equals(s.getType()))
+                .findFirst()
+                .ifPresent(s -> s.accept(call, callee));
+
         userChatCallParticipantService.updateById(callee);
+        if (UserChatCallSceneEnum.PRIVATE.equals(call.getScene())) {
+            List<UserChatCallParticipantEntity> participants = userChatCallParticipantService.findByUserChatCallId(call.getId());
+            if (participants.stream().allMatch(s -> UserChatCallParticipantStatusEnum.ACTIVE.equals(s.getStatus()))) {
+                call.setStatus(UserChatCallStatusEnum.ACTIVE);
+                call.setStartTime(Instant.now());
+                userChatCallService.updateById(call);
+                result.getMessages().add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_EVENT_UPDATE_NAME, call));
+            }
+        }
 
-        UserChatCallParticipantEntity caller = userChatCallParticipantService.getByUserChatCallIdAndType(call.getId(), UserChatParticipantTypeEnum.CALLER);
-        caller.setStatus(UserChatCallParticipantStatusEnum.ACTIVE);
-        userChatCallParticipantService.updateById(caller);
-
-        call.setStatus(UserChatCallStatusEnum.ACTIVE);
-        call.setStartTime(Instant.now());
-        userChatCallService.updateById(call);
-
-        List<AbstractSocketMessageMetadata<Object>> result = new ArrayList<>();
-        result.add(userChatManager.updateCallMessage(call.getUserChatMessageId(), UserChatCallParticipantStatusEnum.CONNECTING, token.getName()));
-        result.add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_CONFIRM_EVENT_NAME, callee));
         return result;
     }
 
@@ -312,6 +367,7 @@ public class UserChatCallManager {
                 "找不到 ID 为 [" + userChatCallId + "] 的通话记录"
         );
         SystemException.isTrue (UserChatCallSceneEnum.ACCEPT_SCENE.contains(call.getScene()), "通话场景非接受/拒绝场景");
+        SystemException.isTrue(UserChatCallStatusEnum.CONNECTING.equals(call.getStatus()), "该通过非连接中状态");
 
         UserChatCallParticipantEntity callee = Objects.requireNonNull(
                 userChatCallParticipantService.getByUserChatCallIdAndPrincipal(call.getId(), token.getName()),
@@ -331,9 +387,45 @@ public class UserChatCallManager {
         if (UserChatCallSceneEnum.PRIVATE.equals(call.getScene())) {
             call.setStatus(UserChatCallStatusEnum.COMPLETED);
             userChatCallService.updateById(call);
+            UserChatCallParticipantEntity caller = userChatCallParticipantService.getByUserChatCallIdAndType(call.getId(), UserChatParticipantTypeEnum.CALLER);
+            caller.setStatus(UserChatCallParticipantStatusEnum.COMPLETED);
+            userChatCallParticipantService.updateById(caller);
+
             result.add(BroadcastMessageMetadata.of(call.getRoomId(), CHAT_CALL_COMPLETED_EVENT_NAME, call));
+
+            callMediaServerResolvers.stream()
+                    .filter(s -> call.getMediaServer().equals(s.getType()))
+                    .findFirst()
+                    .ifPresent(s -> s.privateSceneRejected(call, caller, callee));
         }
         result.add(userChatManager.updateCallMessage(call.getUserChatMessageId(), UserChatCallParticipantStatusEnum.REJECTED, token.getName()));
         return result;
+    }
+
+    public UserChatCallEntity getUserChatCall(
+            Long userChatCallId,
+            AuditAuthenticationToken token
+    ) {
+        UserChatCallEntity call = userChatCallService.get(userChatCallId);
+        UserChatConversationEntity conversation = userChatManager.getChatConversationByPrincipal(token.getName(), call.getUserChatRoomId(),false);
+        SystemException.isTrue(Objects.nonNull(conversation), "您无权访问该通话");
+        return call;
+    }
+
+    @SocketMessage
+    @Transactional(rollbackFor = Exception.class)
+    @Concurrent(value = CONCURRENT_PREFIX + "completed:[#userChatCallId]", waitTime = @Time(5000))
+    public void timeout(Long userChatCallId) {
+        UserChatCallEntity call = Objects.requireNonNull(
+                userChatCallService.get(userChatCallId),
+                "找不到 ID 为 [" + userChatCallId + "] 的通话记录"
+        );
+        SystemException.isTrue(UserChatCallStatusEnum.CONNECTING.equals(call.getStatus()), "该通过非连接中状态");
+
+        UserChatCallParticipantEntity participant = userChatCallParticipantService.getByUserChatCallIdAndType(call.getId(), UserChatParticipantTypeEnum.CALLER);
+        participant.setLeaveTime(Instant.now());
+        participant.setStatus(UserChatCallParticipantStatusEnum.NO_ANSWER);
+
+        SocketResultHolder.get().getMessages().addAll(doCompleted(call, participant));
     }
 }

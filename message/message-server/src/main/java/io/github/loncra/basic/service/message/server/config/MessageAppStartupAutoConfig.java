@@ -30,4 +30,36 @@ public class MessageAppStartupAutoConfig {
     ) {
         return new RedissonCaptchaStorageManager(redissonClient, captchaProperties);
     }
+
+    /*@Bean
+    public RoomServiceClient roomServiceClient(
+            UserChatCallConfig userChatCallConfig
+    ) {
+
+        return RoomServiceClient.createClient(
+                userChatCallConfig.getLivekit().getHost(),
+                userChatCallConfig.getLivekit().getSecret().getSecretId(),
+                userChatCallConfig.getLivekit().getSecret().getSecretKey()
+        );
+    }
+
+    @Bean
+    public WebhookReceiver webhookReceiver(
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.api-key}")
+            String apiKey,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.secret}")
+            String secret
+    ){
+        return new WebhookReceiver(apiKey, secret);
+    }*/
+
+    /*@Bean
+    public AccessToken accessToken(
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.api-key}")
+            String apiKey,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.secret}")
+            String secret
+    ) {
+        return new AccessToken(apiKey, secret);
+    }*/
 }

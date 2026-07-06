@@ -19,5 +19,4 @@ import org.springframework.stereotype.Component;
 public class MonolithAppConfig {
 
     private SnowflakeProperties snowflake;
-
 }

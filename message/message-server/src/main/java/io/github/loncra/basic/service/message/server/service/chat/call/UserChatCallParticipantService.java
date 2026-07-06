@@ -50,16 +50,17 @@ public class UserChatCallParticipantService extends BasicService<UserChatCallPar
                 .one();
     }
 
-    public void updateAllStatus(
+    public List<UserChatCallParticipantEntity> updateAllStatus(
             Long userChatCallId,
             UserChatCallParticipantStatusEnum status,
             Consumer<UserChatCallParticipantEntity> preUpdate,
             String... ignorePrincipals
     ) {
-        findByUserChatCallId(userChatCallId, ignorePrincipals).stream()
+        return findByUserChatCallId(userChatCallId, ignorePrincipals).stream()
                 .peek(s -> s.setStatus(status))
                 .peek(preUpdate)
-                .forEach(this::updateById);
+                .peek(this::updateById)
+                .toList();
     }
 
     public UserChatCallParticipantEntity getByUserChatCallIdAndType(
