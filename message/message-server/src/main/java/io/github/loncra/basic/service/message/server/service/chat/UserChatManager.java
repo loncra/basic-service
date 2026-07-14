@@ -1027,7 +1027,8 @@ public class UserChatManager {
         SystemException.isTrue(Objects.nonNull(owner), "您非会话的参与者，无法执行此操作");
         SystemException.isTrue(UserChatParticipantTypeEnum.OWNER.equals(owner.getType()), "您不是群主，无法完成此操作。");
 
-        userChatRoomService.deleteByEntity(room);
+        room.setEnabled(YesOrNo.No);
+        userChatRoomService.updateById(room);
         List<AbstractSocketMessageMetadata<Object>> result = new LinkedList<>();
         List<UserChatParticipantEntity> participants = userChatParticipantService.findByRoomId(room.getId());
 
