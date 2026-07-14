@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.enumerate;
+package io.github.loncra.basic.service.message.server.enumerate.chat;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,10 +7,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum UserChatMessageCustomSlotKindEnum implements NameValueEnum<String> {
+public enum UserChatMessageContentTypeEnum implements NameValueEnum<String> {
 
-    FILE("文件消息","file"),
+    TEXT("普通文本消息","text"),
 
+    custom("自定义消息","custom"),
     ;
 
     private final String name;

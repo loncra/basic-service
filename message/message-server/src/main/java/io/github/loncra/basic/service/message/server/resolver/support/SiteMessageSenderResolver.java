@@ -10,7 +10,7 @@ import io.github.loncra.basic.service.message.server.config.SiteConfig;
 import io.github.loncra.basic.service.message.server.domain.body.site.SiteMessageBody;
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.SiteMessageEntity;
-import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UnreadQuantityGroupEnum;
 import io.github.loncra.basic.service.message.server.resolver.AttachmentResolver;
 import io.github.loncra.basic.service.message.server.resolver.MessageTypeResolver;
 import io.github.loncra.basic.service.message.server.resolver.UnreadQuantityMessageResolver;
@@ -274,8 +274,8 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
     }
 
     @Override
-    public Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token) {
-        return siteMessageService.countUnreadQuantity(token);
+    public Map<Long, Object> countUnreadQuantity(AuditAuthenticationToken token) {
+        return new LinkedHashMap<>(siteMessageService.countUnreadQuantity(token));
     }
 
     @Override

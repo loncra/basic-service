@@ -11,7 +11,7 @@
  Target Server Version : 80403 (8.4.3)
  File Encoding         : 65001
 
- Date: 23/06/2026 13:47:33
+ Date: 29/06/2026 22:35:12
 */
 
 SET NAMES utf8mb4;
@@ -32,7 +32,7 @@ CREATE TABLE `tb_batch_message`  (
                                      `fail_number` smallint NULL DEFAULT NULL COMMENT '失败发送数量',
                                      `type` smallint NOT NULL COMMENT '类型:10.站内信,20.邮件,30.短信',
                                      PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_bin COMMENT = '批量消息' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_bin COMMENT = '批量消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_batch_message
@@ -56,7 +56,7 @@ CREATE TABLE `tb_carousel`  (
                                 `expiration_time` datetime NULL DEFAULT NULL COMMENT '过期时间',
                                 `showtime` datetime NULL DEFAULT NULL COMMENT '展示时间',
                                 PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '轮播图表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '轮播图表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_carousel
@@ -91,12 +91,12 @@ CREATE TABLE `tb_console_user`  (
                                     UNIQUE INDEX `ux_username`(`username` ASC) USING BTREE,
                                     UNIQUE INDEX `ux_email`(`email` ASC) USING BTREE,
                                     UNIQUE INDEX `ux_phone_number`(`phone_number` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '后台用户表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 107 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '后台用户表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_console_user
 -- ----------------------------
-INSERT INTO `tb_console_user` VALUES (1, '2021-08-18 09:40:46.953', 1, 'WkdTZQXTbCu4LfuuNAmhE/6HagxSLfZzEnuCX+nn7YM=', '$2a$10$boM5YDZtGH.m1FLhwGmPUOsJHQFXIDGx1TaBjMf7z/6md2DD35cJK', 1, 'admin', 10, '超级管理员', 0, 'SFwjCWNb58W9IWle9MsZuQ==', '2026-06-22 11:57:14', 1, 1, NULL, NULL, NULL, '[1]', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 43, 46, 47, 48, 49, 50, 51, 56, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 81, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 106, 107, 108, 109, 111, 114, 115, 117, 119]');
+INSERT INTO `tb_console_user` VALUES (1, '2021-08-18 09:40:46.953', 1, 'WkdTZQXTbCu4LfuuNAmhE/6HagxSLfZzEnuCX+nn7YM=', '$2a$10$boM5YDZtGH.m1FLhwGmPUOsJHQFXIDGx1TaBjMf7z/6md2DD35cJK', 1, 'admin', 10, '超级管理员', 0, 'SFwjCWNb58W9IWle9MsZuQ==', '2026-06-29 08:38:04', 1, 1, NULL, NULL, NULL, '[1]', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 43, 46, 47, 48, 49, 50, 51, 56, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 81, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 106, 107, 108, 109, 111, 114, 115, 117, 119]', '{\"id\": \"ebbca097e1bede8a54a3af4c151efe9f\", \"etag\": \"ce1d4bbcf5878a24829d6842ad1585dd\", \"size\": 261779, \"bucketName\": \"loncra.basic-service.resource.avatar\", \"objectName\": \"CONSOLE:1/f6f86f1ea4a41d6e18b1887500523271.jpg\", \"extraHeaders\": {\"content-type\": \"image/jpeg\", \"X-Amz-Meta-Tenant-Id\": \"CONSOLE:1\", \"X-Amz-Meta-Uploader-Id\": \"CONSOLE:1\", \"X-Amz-Meta-Original-Filename\": \"微信图片_20250215091805_32.jpg\"}, \"lastModified\": 1781484372905000}');
 
 -- ----------------------------
 -- Table structure for tb_data_dictionary
@@ -3438,7 +3438,7 @@ CREATE TABLE `tb_email_message`  (
                                      PRIMARY KEY (`id`) USING BTREE,
                                      INDEX `ix_from_user`(`from_email` ASC) USING BTREE,
                                      INDEX `ix_to_user`(`to_email` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '邮件消息' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '邮件消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_email_message
@@ -3524,7 +3524,7 @@ CREATE TABLE `tb_personal_user`  (
                                      `tenant_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '租户 id',
                                      `avatar` json NULL COMMENT '头像',
                                      PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '个人用户表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '个人用户表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_personal_user
@@ -3637,7 +3637,7 @@ INSERT INTO `tb_resource` VALUES (107, '2026-05-27 14:36:24', '2.0.0-SNAPSHOT', 
 INSERT INTO `tb_resource` VALUES (108, '2026-05-27 14:36:24', '2.0.0-SNAPSHOT', '查看明细', '285167c0634879996a4d2547c9f1a961', 'perms[message_server_sms:get]', 'message-server', 'security', '[\"CONSOLE\"]', '51', 0, NULL, NULL, NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (109, '2026-05-27 14:36:24', '2.0.0-SNAPSHOT', '删除信息', '7383ff339620cebda0ac9aa297a4672a', 'perms[message_server_sms:delete]', 'message-server', 'security', '[\"CONSOLE\"]', '51', 0, NULL, NULL, NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (111, '2026-05-27 14:36:24', '2.0.0-SNAPSHOT', '查看明细', '866efd58df1774b317da7c66551fe84f', 'perms[message_server_sms_template:get]', 'message-server', 'security', '[\"CONSOLE\"]', '61', 0, NULL, NULL, NULL, 10, 1);
-INSERT INTO `tb_resource` VALUES (114, '2026-06-02 14:24:18', '2.0.0-SNAPSHOT', '我的消息', 'my_message', NULL, 'commons', 'tool', '[\"CONSOLE\"]', NULL, 0, 'loncra-message-circle', '/commons/my/message', NULL, 10, 1);
+INSERT INTO `tb_resource` VALUES (114, '2026-06-02 14:24:18', '2.0.0-SNAPSHOT', '我的消息', 'my_message', NULL, 'commons', 'tool', '[\"CONSOLE\"]', NULL, 1, 'loncra-message-circle', '/commons/my/message', NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (115, '2026-06-03 18:10:27', '2.0.0-SNAPSHOT', '我的站内信', 'my_site_message', 'isAuthenticated', 'message-server', 'navigationData', '[\"CONSOLE\"]', '114', 0, 'loncra-message-square-text', '/commons/my/message/site', NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (117, '2026-06-05 23:39:51', '2.0.0-SNAPSHOT', '我的聊天', 'my_chat_message', 'isFullyAuthenticated()', 'message-server', 'navigationData', '[\"CONSOLE\"]', '114', 0, 'loncra-messages-square', '/commons/my/message/chat', NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (119, '2026-06-23 12:36:26', '2.0.0-SNAPSHOT', '流程定义', 'process', 'perms[workflow_server_process:page]', 'workflow-server', 'menu', '[\"CONSOLE\"]', '4', 0, 'loncra-workflow', '/workflow-server/process', NULL, 10, 1);
@@ -3695,7 +3695,7 @@ CREATE TABLE `tb_site_message`  (
                                     `cover` json NULL COMMENT '封面',
                                     `retry_time` datetime NULL DEFAULT NULL COMMENT '重试事件',
                                     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1070 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '站内信消息' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '站内信消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_site_message
@@ -3724,11 +3724,8 @@ CREATE TABLE `tb_sms_message`  (
                                    `retry_time` datetime NULL DEFAULT NULL COMMENT '重试时间',
                                    PRIMARY KEY (`id`) USING BTREE,
                                    INDEX `ix_phone_number`(`phone_number` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 101 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '短信消息' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '短信消息' ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Records of tb_sms_message
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for tb_user_chat_conversation
@@ -3742,19 +3739,15 @@ CREATE TABLE `tb_user_chat_conversation`  (
                                               `user_chat_room_id` bigint NOT NULL COMMENT '房间 id',
                                               `pinned` tinyint NOT NULL COMMENT '是否置顶',
                                               `muted` tinyint NOT NULL COMMENT '是否免打扰',
-                                              `draft` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '草稿内容',
                                               `last_user_chat_message_id` bigint NULL DEFAULT NULL COMMENT '最后一条消息内容',
                                               `last_message_time` datetime NULL DEFAULT NULL COMMENT '最后收到消息时间',
                                               `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '会话名称',
                                               `cover` json NULL COMMENT '封面',
                                               `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
+                                              `mentions` json NULL COMMENT '提及内容',
                                               PRIMARY KEY (`id`) USING BTREE,
                                               UNIQUE INDEX `ux_principal_user_chat_room_id`(`principal` ASC, `user_chat_room_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户聊天会话记录' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tb_user_chat_conversation
--- ----------------------------
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户聊天会话记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for tb_user_chat_message
@@ -3764,15 +3757,16 @@ CREATE TABLE `tb_user_chat_message`  (
                                          `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
                                          `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
                                          `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                         `chat_room_id` bigint NOT NULL COMMENT '聊天房间 id',
+                                         `user_chat_room_id` bigint NOT NULL COMMENT '聊天房间 id',
                                          `content` json NOT NULL COMMENT '内容',
                                          `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送者',
                                          `undo` tinyint NOT NULL DEFAULT 0 COMMENT '是否撤销',
                                          `undo_time` datetime NULL DEFAULT NULL COMMENT '撤销时间',
                                          `type` tinyint NOT NULL DEFAULT 10 COMMENT '消息类型:10.用户消息, 20.系统消息',
+                                         `undoable_time` datetime NULL DEFAULT NULL COMMENT '可撤销时间',
                                          PRIMARY KEY (`id`) USING BTREE,
-                                         INDEX `ix_chat_room_id`(`chat_room_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 156 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间消息' ROW_FORMAT = Dynamic;
+                                         INDEX `ix_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 68 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_user_chat_message
@@ -3786,13 +3780,13 @@ CREATE TABLE `tb_user_chat_message_read`  (
                                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
                                               `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
                                               `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                              `chat_message_id` bigint NOT NULL COMMENT '业务  id',
+                                              `user_chat_message_id` bigint NOT NULL COMMENT '业务  id',
                                               `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送者',
                                               `readable` tinyint NOT NULL COMMENT '是否可读',
                                               `read_time` datetime NULL DEFAULT NULL COMMENT '读取时间',
                                               PRIMARY KEY (`id`) USING BTREE,
-                                              INDEX `ix_chat_message_id`(`chat_message_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 205 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天消息已读列表' ROW_FORMAT = Dynamic;
+                                              INDEX `ix_chat_message_id`(`user_chat_message_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 134 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天消息已读列表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_user_chat_message_read
@@ -3806,17 +3800,13 @@ CREATE TABLE `tb_user_chat_participant`  (
                                              `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
                                              `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
                                              `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                             `chat_room_id` bigint NOT NULL COMMENT '业务  id',
+                                             `user_chat_room_id` bigint NOT NULL COMMENT '业务  id',
                                              `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '参与者',
                                              `type` tinyint NOT NULL COMMENT '类型',
                                              `metadata` json NULL COMMENT '元数据信息',
                                              PRIMARY KEY (`id`) USING BTREE,
-                                             INDEX `ix_chat_room_id`(`chat_room_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间参与者' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tb_user_chat_participant
--- ----------------------------
+                                             INDEX `ix_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间参与者' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for tb_user_chat_room
@@ -3830,14 +3820,10 @@ CREATE TABLE `tb_user_chat_room`  (
                                       `type` tinyint NOT NULL COMMENT '房间类型',
                                       `metadata` json NULL COMMENT '元数据信息',
                                       `business_scene` tinyint NOT NULL COMMENT '业务场景',
-                                      `deleted` tinyint NOT NULL DEFAULT 1 COMMENT '是否已删除',
+                                      `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
                                       `name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '名称',
                                       PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间' ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of tb_user_chat_room
--- ----------------------------
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for tb_wechat_authentication

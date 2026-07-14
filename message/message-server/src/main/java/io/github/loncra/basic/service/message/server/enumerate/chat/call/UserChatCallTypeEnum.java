@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.enumerate;
+package io.github.loncra.basic.service.message.server.enumerate.chat.call;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -6,18 +6,23 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 聊天房间类型
+ * 通话类型
  *
  * @author maurice.chen
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum UserChatRoomBuisnessScenEnum implements NameValueEnum<Integer> {
+public enum UserChatCallTypeEnum implements NameValueEnum<Integer> {
 
     /**
-     * 即时聊天
+     * 视频通话
      */
-    IM("即时聊天", 10),
+    VIDEO("视频通话", 10),
+
+    /**
+     * 单聊
+     */
+    VOICE("语音通话", 20);
 
     ;
 

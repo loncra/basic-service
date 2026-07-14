@@ -32,7 +32,7 @@ public class UserChatMessageReadEntity extends LongVersionEntity<Integer> {
      * 业务  id
      */
     @NonNull
-    private Long chatMessageId;
+    private Long userChatMessageId;
 
     /**
      * 发送者

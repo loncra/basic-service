@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.message.server.config;
 
+import io.github.loncra.framework.commons.TimeProperties;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -19,9 +20,16 @@ public class UserChatConfig {
 
     private String existRoomText = "{0} 退出了群聊";
 
+    private String disbandRoomText = "管理员 {0} 解散了群聊";
+
     private String ownerChangeText = "{0} 成为了群主";
 
     private Integer conversationCoverLimit = 3;
 
     private Integer conversationNameLimit = 3;
+
+    private TimeProperties groupChatUndoableTime = TimeProperties.ofMinutes(3);
+
+    private TimeProperties privateChatUndoableTime = TimeProperties.ofMinutes(2);
+
 }

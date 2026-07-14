@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatMessageTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatMessageTypeEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +39,13 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
 
     public final static String READABLE_ANCHOR_PAGE_KEY = "readableAnchorPage";
 
-    public final static String ROOM_ID_TABLE_FIELD_NAME = "`chat_room_id`";
+    public final static String ROOM_ID_TABLE_FIELD_NAME = "`user_chat_room_id`";
     public final static String UNDO_TABLE_FIELD_NAME = "`undo`";
 
     /**
-     * 业务  id
+     * 聊天房间 id
      */
-    private Long chatRoomId;
+    private Long userChatRoomId;
 
     /**
      * 内容
@@ -62,10 +62,16 @@ public class UserChatMessageEntity extends LongVersionEntity<Integer> implements
      * 是否撤销
      */
     private YesOrNo undo = YesOrNo.No;
+
     /**
      * 撤销时间
      */
-    private Date undoTime;
+    private Instant undoTime;
+
+    /**
+     * 可撤销时间
+     */
+    private Instant undoableTime;
 
     private UserChatMessageTypeEnum type;
 

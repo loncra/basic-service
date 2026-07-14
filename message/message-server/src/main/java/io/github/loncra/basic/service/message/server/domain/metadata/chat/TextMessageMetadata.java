@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.message.server.domain.metadata.chat;
 
 import io.github.loncra.basic.service.message.server.domain.UserChatMessageContent;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatMessageContentTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatMessageContentTypeEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;

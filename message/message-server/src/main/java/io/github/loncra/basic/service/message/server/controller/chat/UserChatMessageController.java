@@ -4,18 +4,14 @@ import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChat
 import io.github.loncra.basic.service.message.server.service.chat.UserChatMessageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.socketio.api.ReturnValueSocketResult;
-import io.github.loncra.framework.socketio.api.SocketResult;
-import io.github.loncra.framework.socketio.api.metadata.AbstractSocketMessageMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.LinkedList;
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 
 /**
@@ -42,17 +38,6 @@ public class UserChatMessageController {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         long count = userChatMessageService.countReadable(chatRoomId, token.getName());
         return RestResult.ofSuccess(count);
-    }
-
-    @DeleteMapping("undo")
-    @PreAuthorize("isFullyAuthenticated()")
-    public SocketResult undo(
-            @RequestParam List<String> ids,
-            @CurrentSecurityContext SecurityContext securityContext
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        List<AbstractSocketMessageMetadata<Object>> messages = userChatMessageService.undo(ids, token);
-        return ReturnValueSocketResult.of("操作成功", new LinkedList<>(messages));
     }
 
     @GetMapping("positioning/page/number/{chatRoomId:\\d+}/{messageId:\\d+}/{pageSize:\\d+}")

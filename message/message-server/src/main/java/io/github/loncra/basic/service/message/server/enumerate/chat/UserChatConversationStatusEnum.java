@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.enumerate;
+package io.github.loncra.basic.service.message.server.enumerate.chat;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum UserChatConversationStatus implements NameValueEnum<Integer> {
+public enum UserChatConversationStatusEnum implements NameValueEnum<Integer> {
 
     /**
      * 启用

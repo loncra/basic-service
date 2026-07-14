@@ -39,7 +39,7 @@ public class UserChatAuthorizationInterceptor implements AuthorizationIntercepto
         AuthorizationInterceptor.super.onConnect(client, socketAuthenticationToken);
         List<UserChatParticipantEntity> chatParticipants = userChatParticipantService.findByPrincipal(socketAuthenticationToken.getName());
         Set<String> ids = chatParticipants.stream()
-                .map(UserChatParticipantEntity::getChatRoomId)
+                .map(UserChatParticipantEntity::getUserChatRoomId)
                 .map(Objects::toString)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());

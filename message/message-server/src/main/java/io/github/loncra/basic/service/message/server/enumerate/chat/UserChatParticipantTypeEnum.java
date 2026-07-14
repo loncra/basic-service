@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.enumerate;
+package io.github.loncra.basic.service.message.server.enumerate.chat;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -24,7 +24,17 @@ public enum UserChatParticipantTypeEnum implements NameValueEnum<Integer> {
     /**
      * 普通成员
      */
-    MEMBER(30, "成员");
+    MEMBER(30, "成员"),
+
+    /**
+     * 主叫
+     */
+    CALLER(31,"主叫"),
+
+    /**
+     * 被叫
+     */
+    CALLEE(32, "被叫"),
     ;
 
     private final Integer value;

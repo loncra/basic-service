@@ -33,8 +33,8 @@ public class UserChatMessageReadController {
 
     @GetMapping("/{id:\\d+}")
     @PreAuthorize("isAuthenticated()")
-    public List<UserChatMessageReadEntity> getByChatMessageId(@PathVariable Long id) {
-        return userChatMessageReadService.getByChatMessageId(id);
+    public List<UserChatMessageReadEntity> findByUserChatMessageId(@PathVariable Long id) {
+        return userChatMessageReadService.findByUserChatMessageId(id);
     }
 
 }

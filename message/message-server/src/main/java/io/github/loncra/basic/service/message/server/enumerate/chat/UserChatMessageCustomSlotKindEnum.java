@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.enumerate;
+package io.github.loncra.basic.service.message.server.enumerate.chat;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,14 +7,13 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum UnreadQuantityGroupEnum implements NameValueEnum<String> {
+public enum UserChatMessageCustomSlotKindEnum implements NameValueEnum<String> {
 
-    SITE("站内信","site"),
-    USER_CHAT("即时聊天","userChat"),
+    FILE("文件消息","file"),
+
     ;
 
     private final String name;
 
     private final String value;
-
 }

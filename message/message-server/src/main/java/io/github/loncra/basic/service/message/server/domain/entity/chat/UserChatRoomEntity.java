@@ -2,10 +2,11 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomBuisnessScenEnum;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatRoomTypeEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatRoomBuisnessScenEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatRoomTypeEnum;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
-import io.github.loncra.framework.mybatis.plus.baisc.support.LongLogicDeleteEntity;
+import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -27,7 +28,7 @@ import java.util.Map;
 @Alias("chatRoom")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_user_chat_room", autoResultMap = true)
-public class UserChatRoomEntity extends LongLogicDeleteEntity  {
+public class UserChatRoomEntity extends LongVersionEntity<Integer> {
 
     @Serial
     private static final long serialVersionUID = 670440513421342484L;
@@ -52,6 +53,8 @@ public class UserChatRoomEntity extends LongLogicDeleteEntity  {
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata;
+
+    private YesOrNo enabled;
 
     /**
      * 名称

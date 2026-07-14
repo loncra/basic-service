@@ -32,11 +32,11 @@ public interface UserChatMessageDao extends BaseMapper<UserChatMessageEntity> {
             LEFT JOIN 
               tb_user_chat_room chat_room 
             ON 
-              chat_room.id = chat_message.chat_room_id 
+              chat_room.id = chat_message.user_chat_room_id 
             LEFT JOIN 
               tb_user_chat_message_read chat_message_read 
             ON 
-              chat_message_read.chat_message_id = chat_message.id 
+              chat_message_read.user_chat_message_id = chat_message.id 
             WHERE 
               chat_message_read.principal = #{principal} 
               AND chat_message.undo = 0
@@ -55,11 +55,11 @@ public interface UserChatMessageDao extends BaseMapper<UserChatMessageEntity> {
             LEFT JOIN
               tb_user_chat_room chat_room
             ON
-              chat_room.id = chat_message.chat_room_id
+              chat_room.id = chat_message.user_chat_room_id
             LEFT JOIN
               tb_user_chat_message_read chat_message_read
             ON
-              chat_message_read.chat_message_id = chat_message.id
+              chat_message_read.user_chat_message_id = chat_message.id
             WHERE
               chat_message_read.principal = #{principal} 
               AND chat_message.undo = 0

@@ -2,7 +2,8 @@ package io.github.loncra.basic.service.message.server.domain.entity.chat;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.message.server.enumerate.UserChatConversationStatus;
+import io.github.loncra.basic.service.message.server.domain.metadata.chat.MessageContentMentionMetadata;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatConversationStatusEnum;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.minio.FileObject;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -27,20 +29,19 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @Alias("userChatConversation")
-@TableName(value = "tb_user_chat_conversation", autoResultMap = true)
 @EqualsAndHashCode(callSuper = true)
+@TableName(value = "tb_user_chat_conversation", autoResultMap = true)
 public class UserChatConversationEntity extends LongVersionEntity<Integer> {
 
     @Serial
     private static final long serialVersionUID = -2739967825296343790L;
-
     /**
      * 所属用户
      */
     private String principal;
 
     /**
-     * 房间 id
+     * 聊天房间 id
      */
     private Long userChatRoomId;
 
@@ -55,11 +56,6 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
     private YesOrNo muted;
 
     /**
-     * 草稿内容
-     */
-    private String draft;
-
-    /**
      * 最后一条消息内容
      */
     private Long lastUserChatMessageId;
@@ -72,7 +68,14 @@ public class UserChatConversationEntity extends LongVersionEntity<Integer> {
     /**
      * 状态
      */
-    private UserChatConversationStatus status;
+    private UserChatConversationStatusEnum status;
+
+    /**
+     * 提及内容
+     */
+    @JsonCollectionGenericType(MessageContentMentionMetadata.class)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private List<MessageContentMentionMetadata> mentions = new LinkedList<>();
 
     @JsonCollectionGenericType(FileObject.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)

@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.message.server.resolver;
 
-import io.github.loncra.basic.service.message.server.enumerate.UnreadQuantityGroupEnum;
+import io.github.loncra.basic.service.message.server.enumerate.chat.UnreadQuantityGroupEnum;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 
 import java.util.Map;
@@ -21,7 +21,7 @@ public interface UnreadQuantityMessageResolver {
      *
      * @return kye 为消息类型，value 为未读数量
      */
-    Map<Long, Long> countUnreadQuantity(AuditAuthenticationToken token);
+    Map<Long, Object> countUnreadQuantity(AuditAuthenticationToken token);
 
 
     UnreadQuantityGroupEnum getGroup();

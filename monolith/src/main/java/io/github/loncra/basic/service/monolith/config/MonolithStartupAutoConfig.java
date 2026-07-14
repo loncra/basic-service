@@ -259,4 +259,31 @@ public class MonolithStartupAutoConfig {
             }
         };
     }
+
+    /*@Bean
+    public RoomServiceClient roomServiceClient(
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.host:http://localhost:7800}")
+            String host,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.api-key}")
+            String apiKey,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.secret}")
+            String secret
+    ) {
+
+        return RoomServiceClient.createClient(
+                host,
+                apiKey,
+                secret
+        );
+    }
+
+    @Bean
+    public WebhookReceiver webhookReceiver(
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.api-key}")
+            String apiKey,
+            @Value("${loncra.basic-service.message.app.chat.call.live-kit.secret}")
+            String secret
+    ){
+        return new WebhookReceiver(apiKey, secret);
+    }*/
 }
