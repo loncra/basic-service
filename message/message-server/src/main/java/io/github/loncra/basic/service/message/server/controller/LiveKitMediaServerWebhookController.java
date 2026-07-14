@@ -1,13 +1,13 @@
 package io.github.loncra.basic.service.message.server.controller;
 
-import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallEntity;
+import io.github.loncra.basic.service.message.server.event.LiveKitMediaServerWebhookEventListener;
 import io.github.loncra.basic.service.message.server.service.chat.call.UserChatCallManager;
 import io.livekit.server.WebhookReceiver;
+import livekit.LivekitModels;
 import livekit.LivekitWebhook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 public class LiveKitMediaServerWebhookController {
 
     private final UserChatCallManager userChatCallManager;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @PostMapping
     public void handleLiveKitWebhook(
@@ -33,23 +35,12 @@ public class LiveKitMediaServerWebhookController {
 
             // 2. 识别事件类型
             String eventName = event.getEvent();
-            var roomInfo = event.getRoom(); // 获取当前事件关联的房间信息
-
-            if (log.isDebugEnabled()) {
-                log.debug("收到 LiveKit 事件: {}, 房间名: {}", eventName, roomInfo.getName());
-            }
-
-            // 3. 根据不同的事件写你的业务逻辑
-            switch (eventName) {
-                case "room_finished":
-                    Long id = NumberUtils.toLong(StringUtils.substringAfter(roomInfo.getName(), UserChatCallEntity.ROOM_ID_PREFIX));
-                    userChatCallManager.timeout(id);
-                    break;
-
-                case "participant_left":
-                    // 用户挂断离开
-                    System.out.println("用户 " + event.getParticipant().getIdentity() + " 离开了房间");
-                    break;
+            // 获取当前事件关联的房间信息
+            LivekitModels.Room roomInfo = event.getRoom();
+            if (eventName.equals("room_finished")) {
+                userChatCallManager.timeout(LiveKitMediaServerWebhookEventListener.getUserChatCallId(roomInfo.getName()));
+            } else {
+                applicationEventPublisher.publishEvent(event);
             }
 
         } catch (Exception e) {

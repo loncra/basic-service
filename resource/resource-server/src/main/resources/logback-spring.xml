@@ -12,9 +12,6 @@
         </encoder>
     </appender>
 
-    <logger name="io.github.loncra.basic.service.commons" level="DEBUG"/>
-    <logger name="io.github.loncra.basic.service.resource.server" level="DEBUG"/>
-
     <springProfile name="default">
         <root level="INFO">
             <appender-ref ref="CONSOLE-APPENDER"/>

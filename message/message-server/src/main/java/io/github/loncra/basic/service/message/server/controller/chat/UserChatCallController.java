@@ -51,7 +51,7 @@ public class UserChatCallController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.completed(userChatCallId, token);
+        List<AbstractSocketMessageMetadata<Object>> messages = userChatCallManager.completed(userChatCallId, token.getName());
         return ReturnValueSocketResult.of(new LinkedList<>(messages));
     }
 

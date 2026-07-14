@@ -62,4 +62,9 @@ public class UserChatCallParticipantEntity extends UserChatParticipantMetadata i
      */
     private Instant leaveTime;
 
+    /**
+     * 重连时间
+     */
+    private Instant reconnectTime;
+
 }

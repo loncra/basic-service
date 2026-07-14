@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.message.server.enumerate.chat.UserChatPart
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,10 +29,14 @@ import java.util.function.Consumer;
 @RequiredArgsConstructor
 public class UserChatCallParticipantService extends BasicService<UserChatCallParticipantDao, UserChatCallParticipantEntity> {
 
-    public boolean isBusy(String principal) {
+    public List<Long> getCallingChatCallIds(String principal, Long... userChatCallIds) {
         return lambdaQuery().eq(UserChatParticipantMetadata::getPrincipal, principal)
-                .notIn(UserChatCallParticipantEntity::getStatus, UserChatCallParticipantStatusEnum.NOT_BUSY_STATUS.stream().map(UserChatCallParticipantStatusEnum::getValue).toList())
-                .exists();
+                .in(UserChatCallParticipantEntity::getStatus, UserChatCallParticipantStatusEnum.BUSY_STATUS.stream().map(UserChatCallParticipantStatusEnum::getValue).toList())
+                .notIn(ArrayUtils.isNotEmpty(userChatCallIds), UserChatCallParticipantEntity::getUserChatCallId, List.of(userChatCallIds))
+                .list()
+                .stream()
+                .map(UserChatCallParticipantEntity::getUserChatCallId)
+                .toList();
     }
 
     public List<UserChatCallParticipantEntity> findByUserChatCallId(

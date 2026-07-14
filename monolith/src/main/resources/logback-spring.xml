@@ -11,8 +11,6 @@
         </encoder>
     </appender>
 
-    <logger name="io.github.loncra.basic.service" level="DEBUG"/>
-
     <springProfile name="dev">
         <root level="INFO">
             <appender-ref ref="CONSOLE-APPENDER"/>

@@ -10,22 +10,29 @@ public interface CallMediaServerResolver {
 
     String getType();
 
-    void create(
+    default void create(
             UserChatCallEntity call,
             UserChatCallParticipantEntity caller,
             List<UserChatCallParticipantEntity> callParticipants
-    );
+    ) {
 
-    void completed(UserChatCallResponseBody body);
+    }
 
-    void accept(
+    default void completed(UserChatCallResponseBody body) {
+
+    }
+
+    default void accept(
             UserChatCallEntity call,
             UserChatCallParticipantEntity callee
-    );
+    ) {
 
-    void privateSceneRejected(
-            UserChatCallEntity call,
-            UserChatCallParticipantEntity caller,
-            UserChatCallParticipantEntity callee
-    );
+    }
+
+    default void rejected(
+            UserChatCallResponseBody body
+    ) {
+
+
+    }
 }

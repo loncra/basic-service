@@ -34,14 +34,15 @@ public enum UserChatCallParticipantStatusEnum implements NameValueEnum<Integer> 
 
     REJECTED(60, "已拒绝"),
     CANCELED(61, "已取消"),
-    NO_ANSWER(62, "无应答/超时"),
-    BUSY(63, "忙线中"),
-
+    NO_ANSWER(62, "无应答"),
+    DIS_CONNECTION(63, "链接断开")
     ;
 
     private final Integer value;
 
     private final String name;
 
-    public static final List<UserChatCallParticipantStatusEnum> NOT_BUSY_STATUS = List.of(COMPLETED, REJECTED, CANCELED, NO_ANSWER);
+    public static final List<UserChatCallParticipantStatusEnum> NO_ANSWER_STATUS = List.of(NO_ANSWER, CANCELED, DIS_CONNECTION);
+
+    public static final List<UserChatCallParticipantStatusEnum> BUSY_STATUS = List.of(INITIATING, RINGING, CONNECTING, ACTIVE);
 }

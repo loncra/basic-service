@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.message.server.resolver.support.chat.call;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.message.server.config.UserChatCallConfig;
@@ -14,8 +15,11 @@ import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.livekit.server.*;
 import livekit.LivekitModels;
+import livekit.LivekitWebhook;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -24,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class LiveKitCallMediaServerResolver implements CallMediaServerResolver {
@@ -109,11 +114,9 @@ public class LiveKitCallMediaServerResolver implements CallMediaServerResolver {
     }
 
     @Override
-    public void privateSceneRejected(
-            UserChatCallEntity call,
-            UserChatCallParticipantEntity caller,
-            UserChatCallParticipantEntity callee
+    public void rejected(
+            UserChatCallResponseBody body
     ) {
-        SystemException.convertSupplier(() -> getRoomServiceClient().deleteRoom(call.getRoomId()).execute());
+        SystemException.convertSupplier(() -> getRoomServiceClient().deleteRoom(body.getRoomId()).execute());
     }
 }

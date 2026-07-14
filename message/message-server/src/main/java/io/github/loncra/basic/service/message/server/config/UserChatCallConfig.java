@@ -21,6 +21,8 @@ public class UserChatCallConfig {
 
     private TimeProperties meetingCallingExpirationTime = TimeProperties.ofMinutes(30);
 
+    private TimeProperties delayCompletedTime = TimeProperties.ofSeconds(30);
+
     private String mediaServer = LiveKitCallMediaServerResolver.DEFAULT_TYPE;
 
     private LiveKitConfig livekit = new  LiveKitConfig();
