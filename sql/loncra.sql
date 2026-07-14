@@ -11,7 +11,7 @@
  Target Server Version : 80403 (8.4.3)
  File Encoding         : 65001
 
- Date: 29/06/2026 22:35:12
+ Date: 14/07/2026 11:33:49
 */
 
 SET NAMES utf8mb4;
@@ -22,16 +22,16 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_batch_message`;
 CREATE TABLE `tb_batch_message`  (
-                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                                     `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                     `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                     `complete_time` datetime NULL DEFAULT NULL COMMENT '完成时间',
-                                     `execute_status` tinyint NOT NULL COMMENT '状态:0.执行中、1.执行成功，99.执行失败',
-                                     `count` smallint NOT NULL COMMENT '总数',
-                                     `success_number` smallint NULL DEFAULT NULL COMMENT '成功发送数量',
-                                     `fail_number` smallint NULL DEFAULT NULL COMMENT '失败发送数量',
-                                     `type` smallint NOT NULL COMMENT '类型:10.站内信,20.邮件,30.短信',
-                                     PRIMARY KEY (`id`) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `complete_time` datetime NULL DEFAULT NULL COMMENT '完成时间',
+  `execute_status` tinyint NOT NULL COMMENT '状态:0.执行中、1.执行成功，99.执行失败',
+  `count` smallint NOT NULL COMMENT '总数',
+  `success_number` smallint NULL DEFAULT NULL COMMENT '成功发送数量',
+  `fail_number` smallint NULL DEFAULT NULL COMMENT '失败发送数量',
+  `type` smallint NOT NULL COMMENT '类型:10.站内信,20.邮件,30.短信',
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_bin COMMENT = '批量消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -43,19 +43,19 @@ CREATE TABLE `tb_batch_message`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_carousel`;
 CREATE TABLE `tb_carousel`  (
-                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
-                                `type` tinyint NOT NULL COMMENT '类型',
-                                `link` json NOT NULL COMMENT '链接',
-                                `status` tinyint NOT NULL COMMENT '状态',
-                                `cover` json NULL COMMENT '封面',
-                                `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
-                                `sort` smallint NOT NULL DEFAULT 0 COMMENT '顺序值',
-                                `expiration_time` datetime NULL DEFAULT NULL COMMENT '过期时间',
-                                `showtime` datetime NULL DEFAULT NULL COMMENT '展示时间',
-                                PRIMARY KEY (`id`) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
+  `type` tinyint NOT NULL COMMENT '类型',
+  `link` json NOT NULL COMMENT '链接',
+  `status` tinyint NOT NULL COMMENT '状态',
+  `cover` json NULL COMMENT '封面',
+  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `sort` smallint NOT NULL DEFAULT 0 COMMENT '顺序值',
+  `expiration_time` datetime NULL DEFAULT NULL COMMENT '过期时间',
+  `showtime` datetime NULL DEFAULT NULL COMMENT '展示时间',
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '轮播图表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -67,60 +67,62 @@ CREATE TABLE `tb_carousel`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_console_user`;
 CREATE TABLE `tb_console_user`  (
-                                    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                    `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                    `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                    `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '邮箱',
-                                    `password` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '密码',
-                                    `status` tinyint NOT NULL COMMENT '状态:1.启用、2.禁用、3.锁定',
-                                    `username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '登录帐号',
-                                    `gender` tinyint NULL DEFAULT NULL COMMENT '性别:10.男,20.女',
-                                    `real_name` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '真实姓名',
-                                    `real_name_authentication` tinyint NULL DEFAULT 0 COMMENT '是否实名认证:1.是，0.否',
-                                    `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '电话号码',
-                                    `last_authentication_time` datetime NULL DEFAULT NULL COMMENT '最后认证(登入)时间',
-                                    `phone_number_verified` tinyint NULL DEFAULT 0 COMMENT '是验证码手机号码',
-                                    `email_verified` tinyint NULL DEFAULT 0 COMMENT '是否验证邮箱',
-                                    `remark` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
-                                    `metadata` json NULL COMMENT '元数据信息',
-                                    `initialization` json NULL COMMENT '初始化元数据信息',
-                                    `role_ids` json NULL COMMENT '组信息',
-                                    `resource_ids` json NULL COMMENT '资源信息',
-                                    `avatar` json NULL COMMENT '头像',
-                                    PRIMARY KEY (`id`) USING BTREE,
-                                    UNIQUE INDEX `ux_username`(`username` ASC) USING BTREE,
-                                    UNIQUE INDEX `ux_email`(`email` ASC) USING BTREE,
-                                    UNIQUE INDEX `ux_phone_number`(`phone_number` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '邮箱',
+  `password` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '密码',
+  `status` tinyint NOT NULL COMMENT '状态:1.启用、2.禁用、3.锁定',
+  `username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '登录帐号',
+  `gender` tinyint NULL DEFAULT NULL COMMENT '性别:10.男,20.女',
+  `real_name` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '真实姓名',
+  `real_name_authentication` tinyint NULL DEFAULT 0 COMMENT '是否实名认证:1.是，0.否',
+  `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '电话号码',
+  `last_authentication_time` datetime NULL DEFAULT NULL COMMENT '最后认证(登入)时间',
+  `phone_number_verified` tinyint NULL DEFAULT 0 COMMENT '是验证码手机号码',
+  `email_verified` tinyint NULL DEFAULT 0 COMMENT '是否验证邮箱',
+  `remark` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
+  `metadata` json NULL COMMENT '元数据信息',
+  `initialization` json NULL COMMENT '初始化元数据信息',
+  `role_ids` json NULL COMMENT '组信息',
+  `resource_ids` json NULL COMMENT '资源信息',
+  `avatar` json NULL COMMENT '头像',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_username`(`username` ASC) USING BTREE,
+  UNIQUE INDEX `ux_email`(`email` ASC) USING BTREE,
+  UNIQUE INDEX `ux_phone_number`(`phone_number` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 107 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '后台用户表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_console_user
 -- ----------------------------
-INSERT INTO `tb_console_user` VALUES (1, '2021-08-18 09:40:46.953', 1, 'WkdTZQXTbCu4LfuuNAmhE/6HagxSLfZzEnuCX+nn7YM=', '$2a$10$boM5YDZtGH.m1FLhwGmPUOsJHQFXIDGx1TaBjMf7z/6md2DD35cJK', 1, 'admin', 10, '超级管理员', 0, 'SFwjCWNb58W9IWle9MsZuQ==', '2026-06-29 08:38:04', 1, 1, NULL, NULL, NULL, '[1]', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 43, 46, 47, 48, 49, 50, 51, 56, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 81, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 106, 107, 108, 109, 111, 114, 115, 117, 119]', '{\"id\": \"ebbca097e1bede8a54a3af4c151efe9f\", \"etag\": \"ce1d4bbcf5878a24829d6842ad1585dd\", \"size\": 261779, \"bucketName\": \"loncra.basic-service.resource.avatar\", \"objectName\": \"CONSOLE:1/f6f86f1ea4a41d6e18b1887500523271.jpg\", \"extraHeaders\": {\"content-type\": \"image/jpeg\", \"X-Amz-Meta-Tenant-Id\": \"CONSOLE:1\", \"X-Amz-Meta-Uploader-Id\": \"CONSOLE:1\", \"X-Amz-Meta-Original-Filename\": \"微信图片_20250215091805_32.jpg\"}, \"lastModified\": 1781484372905000}');
+INSERT INTO `tb_console_user` VALUES (1, '2021-08-18 09:40:46.953', 1, 'WkdTZQXTbCu4LfuuNAmhE/6HagxSLfZzEnuCX+nn7YM=', '$2a$10$boM5YDZtGH.m1FLhwGmPUOsJHQFXIDGx1TaBjMf7z/6md2DD35cJK', 1, 'admin', 10, '超级管理员', 0, 'SFwjCWNb58W9IWle9MsZuQ==', '2026-07-14 08:17:41', 1, 1, NULL, NULL, NULL, '[1]', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 43, 46, 47, 48, 49, 50, 51, 56, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 81, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 106, 107, 108, 109, 111, 114, 115, 117, 119]', '{\"id\": \"ebbca097e1bede8a54a3af4c151efe9f\", \"etag\": \"ce1d4bbcf5878a24829d6842ad1585dd\", \"size\": 261779, \"bucketName\": \"loncra.basic-service.resource.avatar\", \"objectName\": \"CONSOLE:1/f6f86f1ea4a41d6e18b1887500523271.jpg\", \"extraHeaders\": {\"content-type\": \"image/jpeg\", \"X-Amz-Meta-Tenant-Id\": \"CONSOLE:1\", \"X-Amz-Meta-Uploader-Id\": \"CONSOLE:1\", \"X-Amz-Meta-Original-Filename\": \"微信图片_20250215091805_32.jpg\"}, \"lastModified\": 1781484372905000}');
+INSERT INTO `tb_console_user` VALUES (105, '2026-05-28 08:11:43.332', 1, '3Fzt7m0YNp7ynJS4UMxVqL5X/mKFFriB672NSoLbN3w=', '$2a$10$7cyNZ1b0GVMO2j22xetNAeIyN5jUlofhkWXcrKqT7fVTNwrIOGFu6', 1, '18776975533', 30, '5533', 0, 'za30fiPRYSFmZi8EjJWrrw==', '2026-07-14 08:19:27', 0, 0, '', NULL, '{\"randomPassword\": {\"name\": \"是\", \"value\": 1}, \"randomUsername\": {\"name\": \"是\", \"value\": 1}}', '[1]', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 43, 46, 47, 48, 49, 50, 51, 56, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 81, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 106, 107, 108, 109, 111, 114, 115, 117, 119]', '{\"id\": \"7fe7974d1697ffbc6708d5075659f5b4\", \"etag\": \"\\\"d8aa2b9c72646ca8ce68cb7ebcb468c0-2\\\"\", \"size\": 5515705, \"bucketName\": \"loncra.basic-service.resource.avatar\", \"objectName\": \"CONSOLE:105/0dfac2a4a74fc6c7bfe0371858366105.JPG\", \"extraHeaders\": {\"Content-Type\": \"image/jpeg\", \"x-amz-meta-tenant-id\": \"CONSOLE:105\", \"x-amz-meta-uploader-id\": \"CONSOLE:105\", \"x-amz-meta-original-filename\": \"IMG_0153.JPG\"}}');
+INSERT INTO `tb_console_user` VALUES (106, '2026-05-28 08:12:33.838', 1, 'SAlc4VmzUsNSB+H08SiFir5X/mKFFriB672NSoLbN3w=', '$2a$10$7cyNZ1b0GVMO2j22xetNAeIyN5jUlofhkWXcrKqT7fVTNwrIOGFu6', 1, '18776975544', 30, '5544', 0, 'ocDuXv1LOKdDIA21N1gGtw==', '2026-06-28 15:37:24', 0, 0, '', NULL, '{\"randomPassword\": {\"name\": \"是\", \"value\": 1}, \"randomUsername\": {\"name\": \"是\", \"value\": 1}}', '[1]', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 43, 46, 47, 48, 49, 50, 51, 56, 61, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 76, 78, 79, 81, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 106, 107, 108, 109, 111, 114, 115, 117, 119]', NULL);
 
 -- ----------------------------
 -- Table structure for tb_data_dictionary
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_data_dictionary`;
 CREATE TABLE `tb_data_dictionary`  (
-                                       `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                       `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                       `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                       `code` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '键名称',
-                                       `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '名称',
-                                       `level` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '等级',
-                                       `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '值',
-                                       `value_type` smallint NULL DEFAULT NULL COMMENT '值类型',
-                                       `metadata` json NULL,
-                                       `enabled` tinyint NULL DEFAULT 1 COMMENT '状态:0.禁用,1.启用',
-                                       `type_id` bigint NOT NULL COMMENT '对应字典类型',
-                                       `parent_id` bigint NULL DEFAULT NULL COMMENT '根节点为 null',
-                                       `sort` smallint NULL DEFAULT NULL COMMENT '顺序值',
-                                       `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
-                                       PRIMARY KEY (`id`) USING BTREE,
-                                       UNIQUE INDEX `ux_code`(`code` ASC) USING BTREE,
-                                       INDEX `ix_parent_id`(`parent_id` ASC) USING BTREE,
-                                       INDEX `ix_type_id`(`type_id` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `code` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '键名称',
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '名称',
+  `level` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '等级',
+  `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '值',
+  `value_type` smallint NULL DEFAULT NULL COMMENT '值类型',
+  `metadata` json NULL,
+  `enabled` tinyint NULL DEFAULT 1 COMMENT '状态:0.禁用,1.启用',
+  `type_id` bigint NOT NULL COMMENT '对应字典类型',
+  `parent_id` bigint NULL DEFAULT NULL COMMENT '根节点为 null',
+  `sort` smallint NULL DEFAULT NULL COMMENT '顺序值',
+  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_code`(`code` ASC) USING BTREE,
+  INDEX `ix_parent_id`(`parent_id` ASC) USING BTREE,
+  INDEX `ix_type_id`(`type_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3654 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '数据字典' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3380,15 +3382,15 @@ INSERT INTO `tb_data_dictionary` VALUES (3653, '2026-06-18 11:47:29.086', 1, 'sy
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_dictionary_type`;
 CREATE TABLE `tb_dictionary_type`  (
-                                       `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                       `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                       `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                       `code` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '键名称',
-                                       `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '类型名称',
-                                       `parent_id` bigint NULL DEFAULT NULL COMMENT '父字典类型,根节点为 null',
-                                       `remark` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
-                                       PRIMARY KEY (`id`) USING BTREE,
-                                       UNIQUE INDEX `ux_type`(`code` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `code` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '键名称',
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '类型名称',
+  `parent_id` bigint NULL DEFAULT NULL COMMENT '父字典类型,根节点为 null',
+  `remark` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_type`(`code` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 50 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '数据字典类型' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3415,29 +3417,29 @@ INSERT INTO `tb_dictionary_type` VALUES (49, '2026-06-22 09:48:49.661', 1, 'syst
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_email_message`;
 CREATE TABLE `tb_email_message`  (
-                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                                     `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                     `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                     `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
-                                     `from_email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送邮件',
-                                     `to_email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '收取邮件',
-                                     `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标题',
-                                     `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '内容',
-                                     `retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '重试次数',
-                                     `max_retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '最大重试次数',
-                                     `retry_time` datetime(3) NULL DEFAULT NULL COMMENT '最后发送时间',
-                                     `execute_status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0.执行中、1.执行成功，99.执行失败',
-                                     `success_time` datetime(3) NULL DEFAULT NULL COMMENT '发送成功时间',
-                                     `exception` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '异常信息',
-                                     `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
-                                     `has_attachment` tinyint NULL DEFAULT NULL COMMENT '是否存在附件:0.否,1.是',
-                                     `batch_id` bigint NULL DEFAULT NULL COMMENT '批量消息 id',
-                                     `attachment_list` json NULL COMMENT '附件集合',
-                                     `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '收件人',
-                                     `metadata` json NULL COMMENT '元数据信息',
-                                     PRIMARY KEY (`id`) USING BTREE,
-                                     INDEX `ix_from_user`(`from_email` ASC) USING BTREE,
-                                     INDEX `ix_to_user`(`to_email` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
+  `from_email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送邮件',
+  `to_email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '收取邮件',
+  `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '内容',
+  `retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `max_retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '最大重试次数',
+  `retry_time` datetime(3) NULL DEFAULT NULL COMMENT '最后发送时间',
+  `execute_status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0.执行中、1.执行成功，99.执行失败',
+  `success_time` datetime(3) NULL DEFAULT NULL COMMENT '发送成功时间',
+  `exception` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '异常信息',
+  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `has_attachment` tinyint NULL DEFAULT NULL COMMENT '是否存在附件:0.否,1.是',
+  `batch_id` bigint NULL DEFAULT NULL COMMENT '批量消息 id',
+  `attachment_list` json NULL COMMENT '附件集合',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '收件人',
+  `metadata` json NULL COMMENT '元数据信息',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_from_user`(`from_email` ASC) USING BTREE,
+  INDEX `ix_to_user`(`to_email` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '邮件消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3449,18 +3451,18 @@ CREATE TABLE `tb_email_message`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_open_platform_merchant`;
 CREATE TABLE `tb_open_platform_merchant`  (
-                                              `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                                              `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                              `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                              `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
-                                              `app_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'app id',
-                                              `app_key` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'aes key',
-                                              `private_key` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'rsa 公共密钥',
-                                              `public_key` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'rsa 私有密钥',
-                                              `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
-                                              `enabled` tinyint NOT NULL COMMENT '是否启用:0.否, 1.是',
-                                              PRIMARY KEY (`id`) USING BTREE,
-                                              UNIQUE INDEX `ux_app_id`(`app_id` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
+  `app_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'app id',
+  `app_key` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'aes key',
+  `private_key` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'rsa 公共密钥',
+  `public_key` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT 'rsa 私有密钥',
+  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `enabled` tinyint NOT NULL COMMENT '是否启用:0.否, 1.是',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_app_id`(`app_id` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '开放平台商户表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3472,25 +3474,25 @@ CREATE TABLE `tb_open_platform_merchant`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_open_platform_merchant_client`;
 CREATE TABLE `tb_open_platform_merchant_client`  (
-                                                     `id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '主键 id',
-                                                     `version` int NOT NULL DEFAULT 1 COMMENT '版本号',
-                                                     `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                                     `merchant_id` bigint NOT NULL COMMENT '商户 id',
-                                                     `client_id` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端 id',
-                                                     `client_id_issued_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '客户端 id 发放时间',
-                                                     `client_secret` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端密钥',
-                                                     `client_secret_expires_at` datetime NOT NULL COMMENT '客户端密钥过期时间',
-                                                     `client_name` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端名称',
-                                                     `client_authentication_methods` json NOT NULL COMMENT '授权方法',
-                                                     `authorization_grant_types` json NOT NULL COMMENT '认证类型',
-                                                     `redirect_uris` json NULL COMMENT '重定向 url',
-                                                     `scopes` json NOT NULL COMMENT '授权作用域',
-                                                     `client_settings` json NOT NULL COMMENT '客户端设置',
-                                                     `token_settings` json NOT NULL COMMENT 'token 设置',
-                                                     `enabled` tinyint NOT NULL COMMENT '是否启用:0.否,1.是',
-                                                     PRIMARY KEY (`id`) USING BTREE,
-                                                     UNIQUE INDEX `ux_client_id`(`client_id` ASC) USING BTREE,
-                                                     UNIQUE INDEX `ux_merchant_id`(`merchant_id` ASC) USING BTREE
+  `id` char(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '主键 id',
+  `version` int NOT NULL DEFAULT 1 COMMENT '版本号',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `merchant_id` bigint NOT NULL COMMENT '商户 id',
+  `client_id` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端 id',
+  `client_id_issued_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '客户端 id 发放时间',
+  `client_secret` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端密钥',
+  `client_secret_expires_at` datetime NOT NULL COMMENT '客户端密钥过期时间',
+  `client_name` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端名称',
+  `client_authentication_methods` json NOT NULL COMMENT '授权方法',
+  `authorization_grant_types` json NOT NULL COMMENT '认证类型',
+  `redirect_uris` json NULL COMMENT '重定向 url',
+  `scopes` json NOT NULL COMMENT '授权作用域',
+  `client_settings` json NOT NULL COMMENT '客户端设置',
+  `token_settings` json NOT NULL COMMENT 'token 设置',
+  `enabled` tinyint NOT NULL COMMENT '是否启用:0.否,1.是',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_client_id`(`client_id` ASC) USING BTREE,
+  UNIQUE INDEX `ux_merchant_id`(`merchant_id` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '商家 OAuth 2 客户端注册信息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3503,28 +3505,28 @@ INSERT INTO `tb_open_platform_merchant_client` VALUES ('1', 1, '2026-03-14 20:52
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_personal_user`;
 CREATE TABLE `tb_personal_user`  (
-                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                     `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                     `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                     `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '邮箱',
-                                     `password` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '密码',
-                                     `status` tinyint NOT NULL COMMENT '状态:1.启用、2.禁用、3.锁定',
-                                     `username` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '登录帐号',
-                                     `gender` tinyint NOT NULL COMMENT '性别:10.男,20.女',
-                                     `real_name` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '真实姓名',
-                                     `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '电话号码',
-                                     `role_ids` json NULL COMMENT '组信息',
-                                     `resource_ids` json NULL COMMENT '资源信息',
-                                     `last_authentication_time` datetime NULL DEFAULT NULL COMMENT '最后认证(登入)时间',
-                                     `phone_number_verified` tinyint NULL DEFAULT 0 COMMENT '是验证码手机号码',
-                                     `email_verified` tinyint NULL DEFAULT 0 COMMENT '是否验证邮箱',
-                                     `nickname` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '昵称',
-                                     `initialization` json NOT NULL COMMENT '用户初始化信息',
-                                     `promo_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '推荐人',
-                                     `tenant_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '租户 id',
-                                     `avatar` json NULL COMMENT '头像',
-                                     PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '个人用户表' ROW_FORMAT = Dynamic;
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `email` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '邮箱',
+  `password` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '密码',
+  `status` tinyint NOT NULL COMMENT '状态:1.启用、2.禁用、3.锁定',
+  `username` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '登录帐号',
+  `gender` tinyint NOT NULL COMMENT '性别:10.男,20.女',
+  `real_name` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '真实姓名',
+  `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '电话号码',
+  `role_ids` json NULL COMMENT '组信息',
+  `resource_ids` json NULL COMMENT '资源信息',
+  `last_authentication_time` datetime NULL DEFAULT NULL COMMENT '最后认证(登入)时间',
+  `phone_number_verified` tinyint NULL DEFAULT 0 COMMENT '是验证码手机号码',
+  `email_verified` tinyint NULL DEFAULT 0 COMMENT '是否验证邮箱',
+  `nickname` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '昵称',
+  `initialization` json NOT NULL COMMENT '用户初始化信息',
+  `promo_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '推荐人',
+  `tenant_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '租户 id',
+  `avatar` json NULL COMMENT '头像',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '个人用户表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_personal_user
@@ -3535,26 +3537,26 @@ CREATE TABLE `tb_personal_user`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_resource`;
 CREATE TABLE `tb_resource`  (
-                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                                `creation_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                `version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '1' COMMENT '版本号',
-                                `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
-                                `code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '代码',
-                                `authority` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '拦截值',
-                                `application_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '应用名称',
-                                `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
-                                `sources` json NOT NULL COMMENT '所属来源',
-                                `parent_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '父类 id',
-                                `sort` int NOT NULL DEFAULT 0 COMMENT '顺序值',
-                                `icon` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '图标',
-                                `page` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '前端页面路径',
-                                `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
-                                `category` tinyint NULL DEFAULT 20 COMMENT '类别',
-                                `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
-                                PRIMARY KEY (`id`) USING BTREE,
-                                UNIQUE INDEX `ux_code`(`code` ASC) USING BTREE,
-                                INDEX `idx_resource_application_name`(`application_name` ASC) USING BTREE,
-                                INDEX `idx_resource_type`(`type` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '1' COMMENT '版本号',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
+  `code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '代码',
+  `authority` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '拦截值',
+  `application_name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '应用名称',
+  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
+  `sources` json NOT NULL COMMENT '所属来源',
+  `parent_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '父类 id',
+  `sort` int NOT NULL DEFAULT 0 COMMENT '顺序值',
+  `icon` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '图标',
+  `page` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '前端页面路径',
+  `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `category` tinyint NULL DEFAULT 20 COMMENT '类别',
+  `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_code`(`code` ASC) USING BTREE,
+  INDEX `idx_resource_application_name`(`application_name` ASC) USING BTREE,
+  INDEX `idx_resource_type`(`type` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 120 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '资源表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3647,19 +3649,19 @@ INSERT INTO `tb_resource` VALUES (119, '2026-06-23 12:36:26', '2.0.0-SNAPSHOT', 
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_role`;
 CREATE TABLE `tb_role`  (
-                            `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                            `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                            `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                            `name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '名称',
-                            `authority` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT 'spring security role 的 authority 值',
-                            `sources` json NOT NULL COMMENT '来源',
-                            `parent_id` bigint NULL DEFAULT NULL COMMENT '父类 id',
-                            `removable` tinyint NOT NULL COMMENT '是否可删除:0.否、1.是',
-                            `modifiable` tinyint NOT NULL COMMENT '是否可修改:0.否、1.是',
-                            `remark` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
-                            `resource_ids` json NULL COMMENT '资源信息',
-                            `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
-                            PRIMARY KEY (`id`) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '名称',
+  `authority` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT 'spring security role 的 authority 值',
+  `sources` json NOT NULL COMMENT '来源',
+  `parent_id` bigint NULL DEFAULT NULL COMMENT '父类 id',
+  `removable` tinyint NOT NULL COMMENT '是否可删除:0.否、1.是',
+  `modifiable` tinyint NOT NULL COMMENT '是否可修改:0.否、1.是',
+  `remark` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL DEFAULT NULL COMMENT '备注',
+  `resource_ids` json NULL COMMENT '资源信息',
+  `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户组表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -3672,30 +3674,30 @@ INSERT INTO `tb_role` VALUES (1, '2026-05-06 16:36:13.890', 1, '超高级管理�
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_site_message`;
 CREATE TABLE `tb_site_message`  (
-                                    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                                    `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                    `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                    `channels` json NULL COMMENT '渠道名称',
-                                    `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
-                                    `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标题',
-                                    `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '内容',
-                                    `pushable` tinyint NOT NULL DEFAULT 1 COMMENT '是否推送消息：0.否，1.是',
-                                    `readable` tinyint NOT NULL COMMENT '是否已读：0.否，1.是',
-                                    `read_time` datetime(3) NULL DEFAULT NULL COMMENT '读取时间',
-                                    `metadata` json NULL COMMENT '元数据信息',
-                                    `retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '重试次数',
-                                    `max_retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '最大重试次数',
-                                    `exception` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '异常信息',
-                                    `execute_status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0.执行中、1.执行成功，99.执行失败',
-                                    `success_time` datetime(3) NULL DEFAULT NULL COMMENT '发送成功时间',
-                                    `attachment_list` json NULL COMMENT '附件信息',
-                                    `batch_id` bigint NULL DEFAULT NULL COMMENT '批量消息 id',
-                                    `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
-                                    `to_user` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '收信人',
-                                    `cover` json NULL COMMENT '封面',
-                                    `retry_time` datetime NULL DEFAULT NULL COMMENT '重试事件',
-                                    PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '站内信消息' ROW_FORMAT = Dynamic;
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `channels` json NULL COMMENT '渠道名称',
+  `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
+  `title` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '内容',
+  `pushable` tinyint NOT NULL DEFAULT 1 COMMENT '是否推送消息：0.否，1.是',
+  `readable` tinyint NOT NULL COMMENT '是否已读：0.否，1.是',
+  `read_time` datetime(3) NULL DEFAULT NULL COMMENT '读取时间',
+  `metadata` json NULL COMMENT '元数据信息',
+  `retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `max_retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '最大重试次数',
+  `exception` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '异常信息',
+  `execute_status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0.执行中、1.执行成功，99.执行失败',
+  `success_time` datetime(3) NULL DEFAULT NULL COMMENT '发送成功时间',
+  `attachment_list` json NULL COMMENT '附件信息',
+  `batch_id` bigint NULL DEFAULT NULL COMMENT '批量消息 id',
+  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `to_user` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '收信人',
+  `cover` json NULL COMMENT '封面',
+  `retry_time` datetime NULL DEFAULT NULL COMMENT '重试事件',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '站内信消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_site_message
@@ -3706,67 +3708,124 @@ CREATE TABLE `tb_site_message`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_sms_message`;
 CREATE TABLE `tb_sms_message`  (
-                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
-                                   `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                   `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                   `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
-                                   `channel` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '渠道名称',
-                                   `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '手机号码',
-                                   `content` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '内容',
-                                   `metadata` json NULL COMMENT '附加元数据信息',
-                                   `retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '重试次数',
-                                   `max_retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '最大重试次数',
-                                   `execute_status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0.执行中、1.执行成功，99.执行失败',
-                                   `success_time` datetime NULL DEFAULT NULL COMMENT '成功时间',
-                                   `exception` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '异常信息',
-                                   `batch_id` bigint NULL DEFAULT NULL COMMENT '批量消息 id',
-                                   `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
-                                   `retry_time` datetime NULL DEFAULT NULL COMMENT '重试时间',
-                                   PRIMARY KEY (`id`) USING BTREE,
-                                   INDEX `ix_phone_number`(`phone_number` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键 id',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '类型',
+  `channel` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '渠道名称',
+  `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '手机号码',
+  `content` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '内容',
+  `metadata` json NULL COMMENT '附加元数据信息',
+  `retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `max_retry_count` tinyint NOT NULL DEFAULT 0 COMMENT '最大重试次数',
+  `execute_status` tinyint NOT NULL DEFAULT 0 COMMENT '状态：0.执行中、1.执行成功，99.执行失败',
+  `success_time` datetime NULL DEFAULT NULL COMMENT '成功时间',
+  `exception` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '异常信息',
+  `batch_id` bigint NULL DEFAULT NULL COMMENT '批量消息 id',
+  `remark` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `retry_time` datetime NULL DEFAULT NULL COMMENT '重试时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_phone_number`(`phone_number` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '短信消息' ROW_FORMAT = Dynamic;
 
+-- ----------------------------
+-- Records of tb_sms_message
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for tb_user_chat_call
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_user_chat_call`;
+CREATE TABLE `tb_user_chat_call`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime NOT NULL COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `user_chat_room_id` bigint NOT NULL COMMENT '业务  id',
+  `type` tinyint NOT NULL COMMENT '房间类型',
+  `metadata` json NULL COMMENT '元数据信息',
+  `start_time` datetime NULL DEFAULT NULL COMMENT '开始时间',
+  `end_time` datetime NULL DEFAULT NULL COMMENT '结束时间',
+  `status` tinyint NOT NULL COMMENT '状态',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '名称',
+  `scene` tinyint NULL DEFAULT NULL COMMENT '场景',
+  `user_chat_message_id` bigint NULL DEFAULT NULL COMMENT '对应消息 id',
+  `media_server` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '媒体服务器',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_user_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天通话表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_user_chat_call
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for tb_user_chat_call_participant
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_user_chat_call_participant`;
+CREATE TABLE `tb_user_chat_call_participant`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `user_chat_call_id` bigint NOT NULL COMMENT '聊天通话逐渐 id',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '参与者',
+  `type` tinyint NOT NULL COMMENT '类型',
+  `metadata` json NULL COMMENT '元数据信息',
+  `status` tinyint NOT NULL COMMENT '状态',
+  `join_time` datetime NULL DEFAULT NULL COMMENT '加入时间',
+  `leave_time` datetime NULL DEFAULT NULL COMMENT '离开时间',
+  `reconnect_time` datetime NULL DEFAULT NULL COMMENT '重连时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_user_chat_call_id`(`user_chat_call_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 37 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间参与者' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_user_chat_call_participant
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for tb_user_chat_conversation
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_user_chat_conversation`;
 CREATE TABLE `tb_user_chat_conversation`  (
-                                              `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                              `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                              `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                              `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '所属用户',
-                                              `user_chat_room_id` bigint NOT NULL COMMENT '房间 id',
-                                              `pinned` tinyint NOT NULL COMMENT '是否置顶',
-                                              `muted` tinyint NOT NULL COMMENT '是否免打扰',
-                                              `last_user_chat_message_id` bigint NULL DEFAULT NULL COMMENT '最后一条消息内容',
-                                              `last_message_time` datetime NULL DEFAULT NULL COMMENT '最后收到消息时间',
-                                              `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '会话名称',
-                                              `cover` json NULL COMMENT '封面',
-                                              `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
-                                              `mentions` json NULL COMMENT '提及内容',
-                                              PRIMARY KEY (`id`) USING BTREE,
-                                              UNIQUE INDEX `ux_principal_user_chat_room_id`(`principal` ASC, `user_chat_room_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户聊天会话记录' ROW_FORMAT = Dynamic;
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '所属用户',
+  `user_chat_room_id` bigint NOT NULL COMMENT '房间 id',
+  `pinned` tinyint NOT NULL COMMENT '是否置顶',
+  `muted` tinyint NOT NULL COMMENT '是否免打扰',
+  `last_user_chat_message_id` bigint NULL DEFAULT NULL COMMENT '最后一条消息内容',
+  `last_message_time` datetime NULL DEFAULT NULL COMMENT '最后收到消息时间',
+  `name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '会话名称',
+  `cover` json NULL COMMENT '封面',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态',
+  `mentions` json NULL COMMENT '提及内容',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_principal_user_chat_room_id`(`principal` ASC, `user_chat_room_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '用户聊天会话记录' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_user_chat_conversation
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for tb_user_chat_message
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_user_chat_message`;
 CREATE TABLE `tb_user_chat_message`  (
-                                         `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                         `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                         `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                         `user_chat_room_id` bigint NOT NULL COMMENT '聊天房间 id',
-                                         `content` json NOT NULL COMMENT '内容',
-                                         `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送者',
-                                         `undo` tinyint NOT NULL DEFAULT 0 COMMENT '是否撤销',
-                                         `undo_time` datetime NULL DEFAULT NULL COMMENT '撤销时间',
-                                         `type` tinyint NOT NULL DEFAULT 10 COMMENT '消息类型:10.用户消息, 20.系统消息',
-                                         `undoable_time` datetime NULL DEFAULT NULL COMMENT '可撤销时间',
-                                         PRIMARY KEY (`id`) USING BTREE,
-                                         INDEX `ix_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 68 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间消息' ROW_FORMAT = Dynamic;
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `user_chat_room_id` bigint NOT NULL COMMENT '聊天房间 id',
+  `content` json NOT NULL COMMENT '内容',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送者',
+  `undo` tinyint NOT NULL DEFAULT 0 COMMENT '是否撤销',
+  `undo_time` datetime NULL DEFAULT NULL COMMENT '撤销时间',
+  `type` tinyint NOT NULL DEFAULT 10 COMMENT '消息类型:10.用户消息, 20.系统消息',
+  `undoable_time` datetime NULL DEFAULT NULL COMMENT '可撤销时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_user_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间消息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_user_chat_message
@@ -3777,16 +3836,16 @@ CREATE TABLE `tb_user_chat_message`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_user_chat_message_read`;
 CREATE TABLE `tb_user_chat_message_read`  (
-                                              `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                              `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                              `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                              `user_chat_message_id` bigint NOT NULL COMMENT '业务  id',
-                                              `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送者',
-                                              `readable` tinyint NOT NULL COMMENT '是否可读',
-                                              `read_time` datetime NULL DEFAULT NULL COMMENT '读取时间',
-                                              PRIMARY KEY (`id`) USING BTREE,
-                                              INDEX `ix_chat_message_id`(`user_chat_message_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 134 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天消息已读列表' ROW_FORMAT = Dynamic;
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `user_chat_message_id` bigint NOT NULL COMMENT '业务  id',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '发送者',
+  `readable` tinyint NOT NULL COMMENT '是否可读',
+  `read_time` datetime NULL DEFAULT NULL COMMENT '读取时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_chat_message_id`(`user_chat_message_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天消息已读列表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of tb_user_chat_message_read
@@ -3797,48 +3856,56 @@ CREATE TABLE `tb_user_chat_message_read`  (
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_user_chat_participant`;
 CREATE TABLE `tb_user_chat_participant`  (
-                                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                             `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                             `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                             `user_chat_room_id` bigint NOT NULL COMMENT '业务  id',
-                                             `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '参与者',
-                                             `type` tinyint NOT NULL COMMENT '类型',
-                                             `metadata` json NULL COMMENT '元数据信息',
-                                             PRIMARY KEY (`id`) USING BTREE,
-                                             INDEX `ix_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `user_chat_room_id` bigint NOT NULL COMMENT '业务  id',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '参与者',
+  `type` tinyint NOT NULL COMMENT '类型',
+  `metadata` json NULL COMMENT '元数据信息',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `ix_user_chat_room_id`(`user_chat_room_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间参与者' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_user_chat_participant
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for tb_user_chat_room
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_user_chat_room`;
 CREATE TABLE `tb_user_chat_room`  (
-                                      `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                      `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                      `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                      `business_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '业务  id',
-                                      `type` tinyint NOT NULL COMMENT '房间类型',
-                                      `metadata` json NULL COMMENT '元数据信息',
-                                      `business_scene` tinyint NOT NULL COMMENT '业务场景',
-                                      `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
-                                      `name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '名称',
-                                      PRIMARY KEY (`id`) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `business_id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '业务  id',
+  `type` tinyint NOT NULL COMMENT '房间类型',
+  `metadata` json NULL COMMENT '元数据信息',
+  `business_scene` tinyint NOT NULL COMMENT '业务场景',
+  `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用',
+  `name` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '名称',
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '聊天房间' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_user_chat_room
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for tb_wechat_authentication
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_wechat_authentication`;
 CREATE TABLE `tb_wechat_authentication`  (
-                                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                             `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-                                             `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
-                                             `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '认证用户',
-                                             `session_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'session key',
-                                             `open_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'open id',
-                                             `union_Id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'union id',
-                                             `metadata` json NULL COMMENT '其他元数据信息',
-                                             PRIMARY KEY (`id`) USING BTREE
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '认证用户',
+  `session_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'session key',
+  `open_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'open id',
+  `union_Id` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'union id',
+  `metadata` json NULL COMMENT '其他元数据信息',
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方认证信息' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
