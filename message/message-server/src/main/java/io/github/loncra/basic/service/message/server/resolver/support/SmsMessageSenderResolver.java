@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.message.server.resolver.support;
 
-import com.rabbitmq.client.Channel;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -8,6 +7,7 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.api.domian.metadata.MessageConstants;
 import io.github.loncra.basic.service.message.api.enumerate.MessageTypeEnum;
 import io.github.loncra.basic.service.message.server.config.SmsConfig;
+import io.github.loncra.basic.service.message.server.constants.MessageMqConstants;
 import io.github.loncra.basic.service.message.server.domain.body.sms.SmsMessageBody;
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.SmsMessageEntity;
@@ -29,16 +29,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -52,8 +45,6 @@ import java.util.stream.Stream;
 @Component
 @RequiredArgsConstructor
 public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver<SmsMessageBody, SmsMessageEntity> implements MessageTypeResolver {
-
-    public static final String DEFAULT_QUEUE_NAME = "message.sms.queue";
 
     @Getter
     private final SmsMessageService smsMessageService;
@@ -70,25 +61,6 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
     @Override
     protected int getMaxRetryCount() {
         return config.getMaxRetryCount();
-    }
-
-    /**
-     * 发送短信
-     *
-     * @param id 短信实体 id
-     */
-    @RabbitListener(
-            bindings = @QueueBinding(
-                    value = @Queue(value = DEFAULT_QUEUE_NAME, durable = "true"),
-                    exchange = @Exchange(value = SystemConstants.SYS_MESSAGE_RABBITMQ_EXCHANGE),
-                    key = DEFAULT_QUEUE_NAME
-            )
-    )
-    public void onMessage(Long id,
-                          Channel channel,
-                          @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
-        super.sendMessage(id);
-        channel.basicAck(tag, false);
     }
 
     /**
@@ -169,7 +141,7 @@ public class SmsMessageSenderResolver extends AbstractBatchMessageSenderResolver
     @Override
     public RestResult<Object> send(List<SmsMessageEntity> entities) {
 
-       entities.forEach(e -> amqpTemplate.convertAndSend(SystemConstants.SYS_MESSAGE_RABBITMQ_EXCHANGE, DEFAULT_QUEUE_NAME, e.getId()));
+       entities.forEach(e -> amqpTemplate.convertAndSend(SystemConstants.SYS_MESSAGE_RABBITMQ_EXCHANGE, MessageMqConstants.SMS_QUEUE, e.getId()));
 
         return RestResult.ofSuccess(
                 "发送 " + entities.size() + " 条短信消息完成",

@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.message.server.event;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
+import io.github.loncra.basic.service.message.server.constants.LiveKitWebhookEventConstants;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.call.UserChatCallParticipantEntity;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
@@ -89,7 +90,7 @@ public class LiveKitMediaServerWebhookEventListener {
             log.debug("收到 LiveKit 事件, 数据内容为: {}", JsonFormat.printer().print(event));
         }
 
-        if (!"participant_left".equals(event.getEvent())) {
+        if (!LiveKitWebhookEventConstants.PARTICIPANT_LEFT.equals(event.getEvent())) {
             return ;
         }
 

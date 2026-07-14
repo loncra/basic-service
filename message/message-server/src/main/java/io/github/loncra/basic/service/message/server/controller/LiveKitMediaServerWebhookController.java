@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.message.server.controller;
 
+import io.github.loncra.basic.service.message.server.constants.LiveKitWebhookEventConstants;
 import io.github.loncra.basic.service.message.server.event.LiveKitMediaServerWebhookEventListener;
 import io.github.loncra.basic.service.message.server.service.chat.call.UserChatCallManager;
 import io.livekit.server.WebhookReceiver;
@@ -37,7 +38,7 @@ public class LiveKitMediaServerWebhookController {
             String eventName = event.getEvent();
             // 获取当前事件关联的房间信息
             LivekitModels.Room roomInfo = event.getRoom();
-            if (eventName.equals("room_finished")) {
+            if (LiveKitWebhookEventConstants.ROOM_FINISHED.equals(eventName)) {
                 userChatCallManager.timeout(LiveKitMediaServerWebhookEventListener.getUserChatCallId(roomInfo.getName()));
             } else {
                 applicationEventPublisher.publishEvent(event);

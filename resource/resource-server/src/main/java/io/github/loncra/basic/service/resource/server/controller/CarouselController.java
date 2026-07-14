@@ -164,7 +164,7 @@ public class CarouselController {
     @OperationDataTrace
     @Plugin(name = "排序")
     @PutMapping("sort")
-    @PreAuthorize("hasAuthority('perms[resource_server_data_dictionary:sort]')")
+    @PreAuthorize("hasAuthority('perms[resource_server_carousel:sort]')")
     public RestResult<Void> sort(
             @Valid
             @RequestBody

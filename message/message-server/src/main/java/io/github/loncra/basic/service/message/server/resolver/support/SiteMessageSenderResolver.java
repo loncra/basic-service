@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.basic.service.message.api.domian.metadata.MessageConstants;
 import io.github.loncra.basic.service.message.api.enumerate.MessageTypeEnum;
 import io.github.loncra.basic.service.message.server.config.SiteConfig;
+import io.github.loncra.basic.service.message.server.constants.MessageMqConstants;
 import io.github.loncra.basic.service.message.server.domain.body.site.SiteMessageBody;
 import io.github.loncra.basic.service.message.server.domain.entity.BasicMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.SiteMessageEntity;
@@ -55,8 +56,6 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolver<SiteMessageBody, SiteMessageEntity> implements AttachmentResolver, MessageTypeResolver, UnreadQuantityMessageResolver {
 
-    public static final String DEFAULT_QUEUE_NAME = "message.site.queue";
-
     private final SystemUserServiceClient systemUserServiceClient;
 
     @Getter
@@ -85,15 +84,6 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
     @Override
     protected int getMaxRetryCount() {
         return config.getMaxRetryCount();
-    }
-
-    /**
-     * 发送站内信
-     *
-     * @param id 站内信实体 id
-     */
-    public void onMessage(Long id) {
-        super.sendMessage(id);
     }
 
     /**
@@ -237,7 +227,7 @@ public class SiteMessageSenderResolver extends AbstractBatchMessageSenderResolve
 
     @Override
     public RestResult<Object> send(List<SiteMessageEntity> entities) {
-        entities.forEach(e -> amqpTemplate.convertAndSend(SystemConstants.SYS_MESSAGE_RABBITMQ_EXCHANGE, DEFAULT_QUEUE_NAME, e.getId()));
+        entities.forEach(e -> amqpTemplate.convertAndSend(SystemConstants.SYS_MESSAGE_RABBITMQ_EXCHANGE, MessageMqConstants.SITE_QUEUE, e.getId()));
 
         return RestResult.ofSuccess(
                 "发送 " + entities.size() + " 条站内信消息完成",

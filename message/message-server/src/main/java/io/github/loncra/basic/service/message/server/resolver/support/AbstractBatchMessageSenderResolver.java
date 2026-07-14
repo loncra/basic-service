@@ -191,7 +191,7 @@ public abstract class AbstractBatchMessageSenderResolver<T extends BasicMessageE
     protected void onBatchMessageComplete(BatchMessageEntity batchMessage) {
     }
 
-    protected void sendMessage(Long id) {
+    public void sendMessage(Long id) {
         S entity = doSendMessage(id);
 
         if (Objects.isNull(entity)) {
