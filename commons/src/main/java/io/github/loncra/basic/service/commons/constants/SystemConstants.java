@@ -52,11 +52,6 @@ public interface SystemConstants {
     String SYS_AI_NAME = "ai-server";
 
     /**
-     * ai 系统名称
-     */
-    String SYS_VIDEO_ASSEMBLY = "video-assembly-server";
-
-    /**
      * socket 系统名称
      */
     String SYS_SOCKET_SERVER_NAME = "netty-socket-server";
@@ -83,11 +78,6 @@ public interface SystemConstants {
     String SYS_RESOURCE_RABBITMQ_EXCHANGE = RABBIT_EXCHANGE + CastUtils.DOT + SYS_RESOURCE_NAME;
 
     /**
-     * 资源系统 rabbitmq 交换机队列
-     */
-    String SYS_VIDEO_ASSEMBLY_RABBITMQ_EXCHANGE = RABBIT_EXCHANGE + CastUtils.DOT + SYS_VIDEO_ASSEMBLY;
-
-    /**
      * 开放平台商户创建广播交换机
      */
     String RESOURCE_OPEN_PLATFORM_MERCHANT_SAVE_FANOUT_EXCHANGE = RABBIT_FANOUT_EXCHANGE + CastUtils.DOT + SYS_RESOURCE_NAME + CastUtils.DOT + "open.platform.merchant.create";
@@ -98,6 +88,8 @@ public interface SystemConstants {
     String RESOURCE_OPEN_PLATFORM_MERCHANT_DELETE_FANOUT_EXCHANGE = RABBIT_FANOUT_EXCHANGE + CastUtils.DOT + SYS_RESOURCE_NAME + CastUtils.DOT + "open.platform.merchant.delete";
 
     String RESOURCE_ATTACHMENT_FANOUT_EXCHANGE = RABBIT_FANOUT_EXCHANGE + CastUtils.DOT + SYS_RESOURCE_NAME + CastUtils.DOT + "attachment.delete";
+
+    String USER_AUTH_SUCCESS_FANOUT_EXCHANGE = RABBIT_FANOUT_EXCHANGE + CastUtils.DOT + SYS_AUTH_NAME + CastUtils.DOT + "user.auth.success";
 
     String YEAR_FORMATTER_PATTERN = "yyyy";
 

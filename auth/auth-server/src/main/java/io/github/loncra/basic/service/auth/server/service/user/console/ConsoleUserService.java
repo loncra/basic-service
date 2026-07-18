@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.auth.server.service.user.console;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.consumer.ConsoleUserConsumer;
@@ -210,6 +211,6 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
             return ;
         }
         bucket.set(dto, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
-        amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, ConsoleUserConsumer.DEFAULT_EXPORT_QUEUE_NAME, dto.toExportCacheName());
+        amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, AuthenticationMqConstants.CONSOLE_USER_EXPORT_QUEUE_NAME, dto.toExportCacheName());
     }
 }

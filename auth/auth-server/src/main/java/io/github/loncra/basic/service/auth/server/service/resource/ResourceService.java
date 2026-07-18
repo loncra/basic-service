@@ -1,10 +1,10 @@
 package io.github.loncra.basic.service.auth.server.service.resource;
 
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.server.dao.ResourceDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
 import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
+import io.github.loncra.basic.service.commons.enumerate.DefaultOperateCategoryEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
@@ -92,7 +92,7 @@ public class ResourceService extends BasicService<ResourceDao, ResourceEntity> {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deleteByEntity(ResourceEntity entity) {
-        SystemException.isTrue(ResourceCategoryEnum.CUSTOMIZE.equals(entity.getCategory()), entity.getCategory().getName() + "资源不能删除");
+        SystemException.isTrue(DefaultOperateCategoryEnum.CUSTOMIZE.equals(entity.getCategory()), entity.getCategory().getName() + "资源不能删除");
         findByParentId(entity.getId()).forEach(this::deleteByEntity);
 
         return super.deleteByEntity(entity);

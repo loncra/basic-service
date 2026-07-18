@@ -18,5 +18,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("loncra.basic-service.ai.app")
 public class AiAppConfig {
 
+    private String defaultWorkspaceName = "default";
 
 }

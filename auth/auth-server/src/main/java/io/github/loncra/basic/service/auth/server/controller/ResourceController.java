@@ -1,12 +1,12 @@
 package io.github.loncra.basic.service.auth.server.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.service.resource.ResourceService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
+import io.github.loncra.basic.service.commons.enumerate.DefaultOperateCategoryEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.tree.TreeUtils;
@@ -94,7 +94,7 @@ public class ResourceController {
             ResourceEntity entity
     ) {
         if (Objects.isNull(entity.getId())) {
-            entity.setCategory(ResourceCategoryEnum.CUSTOMIZE);
+            entity.setCategory(DefaultOperateCategoryEnum.CUSTOMIZE);
         }
         resourceService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());

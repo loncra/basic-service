@@ -9,6 +9,7 @@ import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
 import io.github.loncra.basic.service.auth.server.domain.metdata.SyncPluginResourceMetadata;
 import io.github.loncra.basic.service.auth.server.service.resource.ResourceService;
+import io.github.loncra.basic.service.commons.enumerate.DefaultOperateCategoryEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
@@ -121,7 +122,7 @@ public abstract class AbstractPluginResourceService implements PluginResourceSer
                     .findFirst();
 
             ResourceEntity newResourceEntity = CastUtils.of(newResource, ResourceEntity.class);
-            newResourceEntity.setCategory(ResourceCategoryEnum.PLUGIN);
+            newResourceEntity.setCategory(DefaultOperateCategoryEnum.SYSTEM);
             if (optional.isPresent()) {
                 ResourceEntity existing = optional.get();
                 // 比较版本号，只有当新版本大于现有版本时才更新

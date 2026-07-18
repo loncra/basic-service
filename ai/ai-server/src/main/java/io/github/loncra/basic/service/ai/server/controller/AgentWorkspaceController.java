@@ -7,14 +7,12 @@ import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
-import io.github.loncra.framework.security.plugin.Plugin;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import lombok.RequiredArgsConstructor;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import java.util.List;
 
 
@@ -76,7 +74,6 @@ public class AgentWorkspaceController {
      * @see AgentWorkspaceEntity
      */
     @PutMapping
-    @PreAuthorize("hasAuthority('perms[agent_workspace:save]')")
     public RestResult<Long> save(@Valid @RequestBody AgentWorkspaceEntity entity) {
         agentWorkspaceService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());
@@ -90,7 +87,6 @@ public class AgentWorkspaceController {
      * @see AgentWorkspaceEntity
      */
     @DeleteMapping
-    @PreAuthorize("hasAuthority('perms[agent_workspace:delete]')")
     public RestResult<Void> delete(@RequestParam List<Integer> ids) {
         agentWorkspaceService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");

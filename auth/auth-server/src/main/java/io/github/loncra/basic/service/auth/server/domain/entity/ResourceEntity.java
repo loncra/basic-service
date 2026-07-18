@@ -1,8 +1,8 @@
 package io.github.loncra.basic.service.auth.server.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.server.domain.metdata.ResourceMetadata;
+import io.github.loncra.basic.service.commons.enumerate.DefaultOperateCategoryEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import lombok.Data;
@@ -60,7 +60,7 @@ public class ResourceEntity extends ResourceMetadata implements VersionEntity<St
      * 类别
      */
     @ToString.Exclude
-    private ResourceCategoryEnum category;
+    private DefaultOperateCategoryEnum category;
 
     /**
      * 是否禁用

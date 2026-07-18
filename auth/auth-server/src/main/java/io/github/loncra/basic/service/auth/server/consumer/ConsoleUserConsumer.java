@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.consumer;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.rabbitmq.client.Channel;
+import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
 import io.github.loncra.basic.service.auth.server.service.user.console.ConsoleUserService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -40,13 +41,14 @@ public class ConsoleUserConsumer {
 
     private final AttachmentServiceClient attachmentServiceClient;
 
-    public static final String DEFAULT_EXPORT_QUEUE_NAME = "auth.server.console.user.export";
-
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(value = DEFAULT_EXPORT_QUEUE_NAME, durable = "true"),
+                    value = @Queue(
+                            value = AuthenticationMqConstants.CONSOLE_USER_EXPORT_QUEUE_NAME,
+                            durable = "true"
+                    ),
                     exchange = @Exchange(value = SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE),
-                    key = DEFAULT_EXPORT_QUEUE_NAME
+                    key = AuthenticationMqConstants.CONSOLE_USER_EXPORT_QUEUE_NAME
             )
     )
     @Transactional(rollbackFor = Exception.class)

@@ -2,9 +2,11 @@ package io.github.loncra.basic.service.auth.server.security.handler;
 
 import io.github.loncra.basic.service.auth.server.domain.AuthenticationInfo;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.address.IpRegionMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.handler.JsonAuthenticationSuccessResponse;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
@@ -30,7 +32,7 @@ public class CaptchaAuthenticationSuccessResponse implements JsonAuthenticationS
 
     private final CaptchaAuthenticationFailureResponse jsonAuthenticationFailureHandler;
 
-    private final AmqpTemplate amqpTemplate;
+    //private final AmqpTemplate amqpTemplate;
 
     @Override
     public void setting(
@@ -67,7 +69,7 @@ public class CaptchaAuthenticationSuccessResponse implements JsonAuthenticationS
         info.setPrincipal(authenticationToken.getName());
 
         /*amqpTemplate.convertAndSend(
-                SystemConstants.SYS_AUTHENTICATION_RABBITMQ_EXCHANGE,
+                SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE,
                 AuthenticationInfoConsumer.DEFAULT_QUEUE_NAME,
                 SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(info))
         );*/

@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.github.loncra.basic.service.commons.enumerate.DefaultOperateCategoryEnum;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
@@ -43,5 +44,10 @@ public class AgentWorkspaceEntity extends LongVersionEntity<Integer> implements 
      * 当前用户
      */
     private String principal;
+
+    /**
+     * 操作类别
+     */
+    private DefaultOperateCategoryEnum operateCategory = DefaultOperateCategoryEnum.CUSTOMIZE;
 
 }

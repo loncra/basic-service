@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.auth.server.service.user.personal;
 
+import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.server.consumer.PersonalUserConsumer;
 import io.github.loncra.basic.service.auth.server.dao.user.PersonalUserDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
@@ -57,6 +58,6 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
             return ;
         }
         bucket.set(dto, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
-        amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, PersonalUserConsumer.DEFAULT_EXPORT_QUEUE_NAME, dto.toExportCacheName());
+        amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, AuthenticationMqConstants.PERSONAL_USER_EXPORT_QUEUE_NAME, dto.toExportCacheName());
     }
 }
