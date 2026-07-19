@@ -16,6 +16,9 @@ loncra:
           message-server:
             - io.github.loncra.basic.service.message.api.enumerate
             - io.github.loncra.basic.service.message.server.enumerate
+          ai-server:
+            - io.github.loncra.basic.service.ai.api.enumerate
+            - io.github.loncra.basic.service.ai.server.enumerate
   framework:
     captcha:
       tianai:

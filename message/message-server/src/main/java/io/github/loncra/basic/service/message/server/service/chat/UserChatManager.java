@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.corundumstudio.socketio.SocketIOClient;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.config.UserChatConfig;
 import io.github.loncra.basic.service.message.server.domain.body.chat.ParticipantMetadataMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatConversationResponseBody;
@@ -12,7 +13,6 @@ import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMe
 import io.github.loncra.basic.service.message.server.domain.entity.chat.*;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.CallMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.ChatUnreadQuantityMetadata;
-import io.github.loncra.basic.service.message.server.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.UserChatParticipantMetadata;
 import io.github.loncra.basic.service.message.server.enumerate.chat.*;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;

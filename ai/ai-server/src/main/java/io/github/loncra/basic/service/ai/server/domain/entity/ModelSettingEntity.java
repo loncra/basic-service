@@ -2,14 +2,9 @@ package io.github.loncra.basic.service.ai.server.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.ai.server.domain.ModelDefinition;
-import io.github.loncra.basic.service.ai.server.enumerate.ChatModelEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.ImageModelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.ModelTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.VideoModelEnum;
-import io.github.loncra.framework.commons.enumerate.ValueEnum;
+import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
-import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import lombok.Data;
@@ -45,10 +40,9 @@ public class ModelSettingEntity extends LongVersionEntity<Integer> {
     private String name;
 
     /**
-     * 封面
+     * 图标
      */
-    @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private ObjectWriteResult cover;
+    private String icon;
 
     /**
      * 类型
@@ -63,7 +57,8 @@ public class ModelSettingEntity extends LongVersionEntity<Integer> {
     /**
      * 厂商
      */
-    private Integer manufacturer;
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private DataDictionaryMetadata manufacturer;
 
     /**
      * 是否启用
@@ -85,15 +80,4 @@ public class ModelSettingEntity extends LongVersionEntity<Integer> {
      * 描述
      */
     private String description;
-
-    public ModelDefinition getManufacturerModelDefinition() {
-        if (ModelTypeEnum.CHAT.equals(type)) {
-            return ValueEnum.ofEnum(ChatModelEnum.class, manufacturer);
-        } else if (ModelTypeEnum.IMAGE.equals(type)) {
-            return ValueEnum.ofEnum(ImageModelEnum.class, manufacturer);
-        } else if (ModelTypeEnum.VIDEO.equals(type)) {
-            return ValueEnum.ofEnum(VideoModelEnum.class, manufacturer);
-        }
-        return null;
-    }
 }

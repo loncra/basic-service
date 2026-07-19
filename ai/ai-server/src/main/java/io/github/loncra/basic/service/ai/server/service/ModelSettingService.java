@@ -2,13 +2,9 @@ package io.github.loncra.basic.service.ai.server.service;
 
 import io.github.loncra.basic.service.ai.server.dao.ModelSettingDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
-import io.github.loncra.basic.service.ai.server.resolver.ModelGroupingResolver;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  *
@@ -25,14 +21,5 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ModelSettingService extends BasicService<ModelSettingDao, ModelSettingEntity> {
-
-    private final List<ModelGroupingResolver> modelGroupingResolvers;
-
-    public List<IdValueMetadata<String, String>> getModelMetadataByGroup(Integer group) {
-        return modelGroupingResolvers.stream()
-                .filter(s -> s.getGrouping().getValue().equals(group))
-                .flatMap(s -> s.getModelMetadata().stream())
-                .toList();
-    }
 
 }

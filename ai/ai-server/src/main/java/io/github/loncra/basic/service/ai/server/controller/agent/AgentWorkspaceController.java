@@ -1,16 +1,10 @@
-package io.github.loncra.basic.service.ai.server.controller;
+package io.github.loncra.basic.service.ai.server.controller.agent;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentWorkspaceEntity;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentWorkspaceService;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.commons.id.IdEntity;
-import io.github.loncra.framework.commons.page.Page;
-import io.github.loncra.framework.commons.page.PageRequest;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,25 +26,6 @@ import java.util.List;
 public class AgentWorkspaceController {
 
     private final AgentWorkspaceService agentWorkspaceService;
-
-    /**
-     * 获取分页
-     *
-     * @param pageRequest 分页信息
-     * @param request  http servlet request
-     *
-     * @return 分页实体
-     *
-     * @see AgentWorkspaceEntity
-     */
-    @PostMapping
-    public Page<AgentWorkspaceEntity> page(PageRequest pageRequest, HttpServletRequest request) {
-        QueryWrapper<AgentWorkspaceEntity> query = agentWorkspaceService
-                .getQueryGenerator()
-                .getQueryWrapperByHttpRequest(request);
-        query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return agentWorkspaceService.findPage(pageRequest, query);
-    }
 
     /**
      * 获取明细

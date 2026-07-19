@@ -1,6 +1,6 @@
-package io.github.loncra.basic.service.message.server.domain.metadata.chat;
+package io.github.loncra.basic.service.commons.domain.metadata.chat;
 
-import io.github.loncra.basic.service.message.server.domain.UserChatMessageContent;
+import io.github.loncra.basic.service.commons.domain.ChatMessageContent;
 import io.github.loncra.framework.commons.id.IdEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,7 +10,7 @@ import java.util.Map;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public abstract class AbstractCustomMessageMetadata extends IdEntity<String> implements UserChatMessageContent {
+public abstract class AbstractCustomMessageMetadata extends IdEntity<String> implements ChatMessageContent {
 
     public static final String DEFAULT_TYPE_VALUE = "custom";
 

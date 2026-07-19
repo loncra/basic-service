@@ -76,6 +76,6 @@ public class PersonalUserConsumer {
         exportDataMetadata.setSuccessTime(Instant.now());
         bucket.set(exportDataMetadata, Duration.between(Instant.EPOCH, exportDataMetadata.getExpiresTime()));
 
-        channel.basicNack(tag, false, false);
+        channel.basicAck(tag, false);
     }
 }

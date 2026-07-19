@@ -6,6 +6,8 @@ import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  *
  * tb_agent_conversation 的业务逻辑
@@ -22,4 +24,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AgentConversationService extends BasicService<AgentConversationDao, AgentConversationEntity> {
 
+    public List<AgentConversationEntity> findByAgentWorkspaceId(Long agentWorkspaceId) {
+        return lambdaQuery().eq(AgentConversationEntity::getAgentWorkspaceId, agentWorkspaceId).list();
+    }
 }

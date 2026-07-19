@@ -1,13 +1,19 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
+import com.baomidou.mybatisplus.annotation.Version;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
+import io.github.loncra.framework.commons.tenant.TenantEntity;
+import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
+import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.time.Instant;
 
 
 /**
@@ -20,46 +26,31 @@ import java.io.Serial;
 @Data
 @NoArgsConstructor
 @Alias("agentMessage")
-@TableName("tb_agent_message")
 @EqualsAndHashCode(callSuper = true)
-public class AgentMessageEntity extends LongVersionEntity<Integer> {
+@TableName(value = "tb_agent_message", autoResultMap = true)
+public class AgentMessageEntity extends AgentChatMetadata implements VersionEntity<Integer, Long>, AuditPrincipal, TenantEntity<String> {
 
     @Serial
     private static final long serialVersionUID = -5121909839700678113L;
 
+    private Long id;
+
+    @Version
+    private Integer version;
+
+    private Instant creationTime;
+
     /**
      * 角色
      */
-    private Integer role;
+    private AgentMessageRoleEnum role;
 
     /**
      * 对话 id
      */
     private Long agentConversationId;
 
-    /**
-     * 内容
-     */
-    private String content;
-
-    /**
-     * 媒体内容
-     */
-    private String media;
-
-    /**
-     * 元数据信息
-     */
-    private String metadata;
-
-    /**
-     * 当前用户
-     */
     private String principal;
 
-    /**
-     * 租户 id
-     */
     private String tenantId;
-
 }

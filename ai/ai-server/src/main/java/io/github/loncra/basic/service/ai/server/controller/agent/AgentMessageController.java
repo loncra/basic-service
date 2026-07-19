@@ -1,17 +1,14 @@
-package io.github.loncra.basic.service.ai.server.controller;
+package io.github.loncra.basic.service.ai.server.controller.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
+import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,20 +16,20 @@ import java.util.List;
 
 /**
  *
- * tb_agent_conversation 的控制器
+ * tb_agent_message 的控制器
  *
- * @see AgentConversationEntity
+ * @see AgentMessageEntity
  *
  * @author maurice.chen
  *
  * @since 2026-07-15 09:32:24
  */
 @RestController
-@RequestMapping("agent/conversation")
+@RequestMapping("agent/message")
 @RequiredArgsConstructor
-public class AgentConversationController {
+public class AgentMessageController {
 
-    private final AgentConversationService agentConversationService;
+    private final AgentMessageService agentMessageService;
 
     /**
      * 获取分页
@@ -42,15 +39,15 @@ public class AgentConversationController {
      *
      * @return 分页实体
      *
-     * @see AgentConversationEntity
+     * @see AgentMessageEntity
      */
     @PostMapping
-    public Page<AgentConversationEntity> page(PageRequest pageRequest, HttpServletRequest request) {
-        QueryWrapper<AgentConversationEntity> query = agentConversationService
+    public Page<AgentMessageEntity> page(PageRequest pageRequest, HttpServletRequest request) {
+        QueryWrapper<AgentMessageEntity> query = agentMessageService
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return agentConversationService.findPage(pageRequest, query);
+        return agentMessageService.findPage(pageRequest, query);
     }
 
     /**
@@ -62,7 +59,7 @@ public class AgentConversationController {
      */
     @DeleteMapping
     public RestResult<Void> delete(@RequestParam List<Integer> ids) {
-        agentConversationService.deleteById(ids);
+        agentMessageService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 

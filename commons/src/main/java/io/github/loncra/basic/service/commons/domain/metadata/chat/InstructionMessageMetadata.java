@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.message.server.domain.metadata.chat;
+package io.github.loncra.basic.service.commons.domain.metadata.chat;
 
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.Data;

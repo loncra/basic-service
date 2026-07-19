@@ -134,6 +134,12 @@
             </dependency>
 
             <dependency>
+                <groupId>io.agentscope</groupId>
+                <artifactId>agentscope-extensions-model-ollama</artifactId>
+                <version>${agentscope.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-poi</artifactId>
                 <version>5.8.35</version>

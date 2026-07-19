@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.resolver;
 
+import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.enumerate.ModelTypeEnum;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 
 import java.util.List;
 
@@ -19,5 +19,5 @@ public interface ModelGroupingResolver {
      *
      * @return 模型映射元数据集合
      */
-    List<IdValueMetadata<String, String>> getModelMetadata();
+    List<ModelSettingEntity> getModelMetadata();
 }

@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.message.server.domain.metadata.chat;
 
+import io.github.loncra.basic.service.commons.domain.metadata.chat.AbstractCustomMessageMetadata;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallParticipantStatusEnum;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallSceneEnum;
 import io.github.loncra.basic.service.message.server.enumerate.chat.call.UserChatCallTypeEnum;

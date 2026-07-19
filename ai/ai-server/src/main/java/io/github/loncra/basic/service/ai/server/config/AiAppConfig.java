@@ -20,4 +20,6 @@ public class AiAppConfig {
 
     private String defaultWorkspaceName = "default";
 
+    private String newConversation = "新话题";
+
 }

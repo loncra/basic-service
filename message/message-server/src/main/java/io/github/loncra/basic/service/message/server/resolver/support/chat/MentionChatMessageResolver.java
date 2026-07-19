@@ -1,12 +1,12 @@
 package io.github.loncra.basic.service.message.server.resolver.support.chat;
 
 import com.corundumstudio.socketio.SocketIOClient;
+import io.github.loncra.basic.service.commons.domain.metadata.chat.AbstractCustomMessageMetadata;
+import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.body.chat.UserChatMessageResponseBody;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatConversationEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageEntity;
 import io.github.loncra.basic.service.message.server.domain.entity.chat.UserChatMessageReadEntity;
-import io.github.loncra.basic.service.message.server.domain.metadata.chat.AbstractCustomMessageMetadata;
-import io.github.loncra.basic.service.message.server.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.basic.service.message.server.domain.metadata.chat.MessageContentMentionMetadata;
 import io.github.loncra.basic.service.message.server.resolver.ChatMessageContentResolver;
 import io.github.loncra.basic.service.message.server.service.chat.UserChatConversationService;

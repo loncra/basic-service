@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
@@ -42,7 +43,7 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
     /**
      * 状态
      */
-    private Integer status;
+    private AgentChatStatusEnum status;
 
     private String principal;
 

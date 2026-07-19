@@ -16,7 +16,6 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -57,6 +56,6 @@ public class UserAuthSuccessConsumer {
 
         agentWorkspaceService.createDefaultIfNotExist(token);
 
-        channel.basicNack(tag, false, false);
+        channel.basicAck(tag, false);
     }
 }

@@ -16,7 +16,6 @@ import org.springframework.amqp.rabbit.config.ContainerCustomizer;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.boot.autoconfigure.amqp.RabbitTemplateCustomizer;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -92,7 +91,7 @@ public class SpringSecurityRabbitTemplateCustomizer implements RabbitTemplateCus
                 return message;
             }
             SecurityContext securityContext = accessTokenContextRepository.getSecurityContext(Objects.toString(accessToken));
-            if (Objects.nonNull(securityContext) && Optional.of(securityContext.getAuthentication()).map(Authentication::isAuthenticated).get()) {
+            if (Objects.nonNull(securityContext) && Optional.ofNullable(securityContext.getAuthentication()).isPresent()) {
                 SecurityContextHolder.setContext(securityContext);
             }
             SimpleTenantContext tenantContext = TenantContextSecurityFilter.resolveTenantContext(securityContext);
