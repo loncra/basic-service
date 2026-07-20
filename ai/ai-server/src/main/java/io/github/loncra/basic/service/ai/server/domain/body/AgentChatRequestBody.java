@@ -15,11 +15,6 @@ public class AgentChatRequestBody extends AgentChatMetadata {
 
     @Serial
     private static final long serialVersionUID = 7988680530512203651L;
-    /**
-     * 工作空间 id
-     */
-    @NotNull
-    private Long agentWorkspaceId;
 
     /**
      * 调用模型设置

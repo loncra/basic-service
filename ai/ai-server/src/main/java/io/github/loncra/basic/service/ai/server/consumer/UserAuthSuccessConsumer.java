@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.ai.server.consumer;
 
 import com.rabbitmq.client.Channel;
 import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentWorkspaceService;
+import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -26,7 +26,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class UserAuthSuccessConsumer {
 
-    private final AgentWorkspaceService agentWorkspaceService;
+    private final AgentConversationService agentConversationService;
 
     @RabbitListener(
             bindings = @QueueBinding(
@@ -54,7 +54,7 @@ public class UserAuthSuccessConsumer {
 
         AuditAuthenticationToken token = CastUtils.cast(SecurityContextHolder.getContext().getAuthentication());
 
-        agentWorkspaceService.createDefaultIfNotExist(token);
+        agentConversationService.createDefaultIfNotExist(token);
 
         channel.basicAck(tag, false);
     }

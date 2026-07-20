@@ -1,12 +1,20 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
+import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.dao.agent.AgentConversationDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Objects;
 
 /**
  *
@@ -24,7 +32,60 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AgentConversationService extends BasicService<AgentConversationDao, AgentConversationEntity> {
 
-    public List<AgentConversationEntity> findByAgentWorkspaceId(Long agentWorkspaceId) {
-        return lambdaQuery().eq(AgentConversationEntity::getAgentWorkspaceId, agentWorkspaceId).list();
+    private final AiAppConfig aiAppConfig;
+
+    public AgentConversationEntity getDefaultWorkspace(String getPrincipal) {
+        return lambdaQuery().eq(AgentConversationEntity::getPrincipal, getPrincipal)
+                .eq(AgentConversationEntity::getType, AgentConversationTypeEnum.DEFAULT_WORKSPACE.getValue())
+                .one();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public AgentConversationEntity createDefaultIfNotExist(AuditAuthenticationToken token) {
+
+        AgentConversationEntity entity = getDefaultWorkspace(token.getName());
+
+        if (Objects.isNull(entity)) {
+            entity = new AgentConversationEntity();
+            entity.setName(aiAppConfig.getDefaultWorkspaceName());
+            entity.setPrincipal(token.getName());
+            entity.setStatus(AgentChatStatusEnum.READY);
+            entity.setType(AgentConversationTypeEnum.DEFAULT_WORKSPACE);
+            insert(entity);
+        }
+
+        return entity;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteById(
+            Collection<? extends Serializable> ids,
+            boolean errorThrow,
+            boolean useFill
+    ) {
+        int result = ids.stream().mapToInt(this::deleteById).sum();
+        if (result != ids.size() && errorThrow) {
+            String msg = "删除智能体工作空间 ID 为 [" + ids + "] 的数据发生异常";
+            throw new SystemException(msg);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteById(
+            Serializable id,
+            boolean useFill
+    ) {
+        return deleteByEntity(get(id));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteByEntity(AgentConversationEntity entity) {
+        SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
+        lambdaQuery().eq(AgentConversationEntity::getParentId, entity.getId()).list().forEach(this::deleteByEntity);
+        return super.deleteByEntity(entity);
     }
 }

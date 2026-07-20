@@ -3,7 +3,6 @@ package io.github.loncra.basic.service.ai.server.controller.agent;
 
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
-import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentWorkspaceEntity;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -37,27 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AgentController {
 
     private final AgentManager agentManager;
-
-    /**
-     * 获取分页
-     *
-     * @param pageRequest 分页信息
-     * @param request  http servlet request
-     *
-     * @return 分页实体
-     *
-     * @see AgentWorkspaceEntity
-     */
-    @PostMapping("workspace/my")
-    public Page<AgentWorkspaceEntity> my(
-            PageRequest pageRequest,
-            HttpServletRequest request
-    ) {
-        MultiValueMap<String, String> parameter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
-        MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
-        parameter.forEach(filter::addAll);
-        return agentManager.my(filter, pageRequest);
-    }
 
     @PostMapping
     public AgentChatResponseBody chat(

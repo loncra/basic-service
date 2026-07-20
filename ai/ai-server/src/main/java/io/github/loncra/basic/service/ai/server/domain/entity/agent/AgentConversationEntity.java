@@ -1,8 +1,13 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
+import io.github.loncra.framework.commons.tree.Tree;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
@@ -11,6 +16,10 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -23,9 +32,9 @@ import java.io.Serial;
 @Data
 @NoArgsConstructor
 @Alias("agentConversation")
-@TableName("tb_agent_conversation")
 @EqualsAndHashCode(callSuper = true)
-public class AgentConversationEntity extends LongVersionEntity<Integer> implements TenantEntity<String>, AuditPrincipal {
+@TableName(value = "tb_agent_conversation", autoResultMap = true)
+public class AgentConversationEntity extends LongVersionEntity<Integer> implements TenantEntity<String>, AuditPrincipal, Tree<Long, AgentConversationEntity> {
 
     @Serial
     private static final long serialVersionUID = -4801789299046545458L;
@@ -36,11 +45,6 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
     private String name;
 
     /**
-     * 工作空间 id
-     */
-    private Long agentWorkspaceId;
-
-    /**
      * 状态
      */
     private AgentChatStatusEnum status;
@@ -49,4 +53,23 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
 
     private String tenantId;
 
+    private AgentConversationTypeEnum type;
+
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private Map<String, Object> metadata = new LinkedHashMap<>();
+
+    private Long parentId;
+
+    @TableField(exist = false)
+    private List<Tree<Long, AgentConversationEntity>> children = new LinkedList<>();
+
+    @Override
+    @JsonIgnore
+    public Long getParent() {
+        return parentId;
+    }
+
+    public String getKey() {
+        return getId().toString();
+    }
 }
