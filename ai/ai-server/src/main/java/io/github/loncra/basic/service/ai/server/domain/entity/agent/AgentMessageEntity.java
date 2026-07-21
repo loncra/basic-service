@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
@@ -49,6 +50,8 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
      * 对话 id
      */
     private Long agentConversationId;
+
+    private AgentChatStatusEnum status;
 
     private String principal;
 

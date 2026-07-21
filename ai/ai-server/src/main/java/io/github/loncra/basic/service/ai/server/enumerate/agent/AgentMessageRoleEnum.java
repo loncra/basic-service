@@ -7,13 +7,13 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum AgentMessageRoleEnum implements NameValueEnum<Integer> {
+public enum AgentMessageRoleEnum implements NameValueEnum<String> {
 
-    USER(10, "用户"),
+    USER("user", "用户"),
 
-    ASSISTANT(20, "助手");
+    ASSISTANT("ai", "助手");
 
-    private final Integer value;
+    private final String value;
 
     private final String name;
 }

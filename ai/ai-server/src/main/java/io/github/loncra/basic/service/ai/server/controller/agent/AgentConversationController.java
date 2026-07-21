@@ -6,6 +6,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessage
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
@@ -17,6 +18,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -51,12 +54,15 @@ public class AgentConversationController {
     @PostMapping
     public List<AgentConversationEntity> find(
             HttpServletRequest request,
+            @CurrentSecurityContext SecurityContext context,
             @RequestParam(required = false, defaultValue = "true")
             boolean mergeTree
     ) {
         QueryWrapper<AgentConversationEntity> query = agentConversationService
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
+
+        query.eq(SystemConstants.PRINCIPAL_FIELD_NAME, context.getAuthentication().getName());
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
         List<AgentConversationEntity> result = agentConversationService.find(query);
         if (mergeTree) {
