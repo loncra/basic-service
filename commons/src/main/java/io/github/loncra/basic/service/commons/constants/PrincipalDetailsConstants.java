@@ -86,7 +86,7 @@ public interface PrincipalDetailsConstants {
             AuditAuthenticationToken target
     ) {
         equals(source, target, "ID 为 [" + target.getSecurityPrincipal()
-                .getId() + "] 的用户无法操作不属于自己的数据");
+                .getId() + "] 的用户操作不属于自己的数据");
     }
 
     static void equals(
@@ -101,7 +101,7 @@ public interface PrincipalDetailsConstants {
             AuditPrincipal source,
             AuditPrincipal target
     ) {
-        equals(source, target, "ID 为 [" + target.getPrincipal() + "] 的用户无法操作不属于自己的数据");
+        equals(source, target, "ID 为 [" + target.getPrincipal() + "] 的用户操作不属于自己的数据");
     }
 
     static void equals(
@@ -116,7 +116,7 @@ public interface PrincipalDetailsConstants {
             List<AuditPrincipal> sources,
             AuditAuthenticationToken target
     ) {
-        contains(sources, target, "ID 为 [" + target.getName() + "] 的用户无法操作不属于自己的数据");
+        contains(sources, target, "ID 为 [" + target.getName() + "] 的用户操作不属于自己的数据");
     }
 
     static void contains(
@@ -135,7 +135,7 @@ public interface PrincipalDetailsConstants {
             List<AuditPrincipal> sources,
             AuditPrincipal target
     ) {
-        contains(sources, target, "ID 为 [" + target.getPrincipal() + "] 的用户无法操作不属于自己的数据");
+        contains(sources, target, "ID 为 [" + target.getPrincipal() + "] 的用户操作不属于自己的数据");
     }
 
     static void contains(

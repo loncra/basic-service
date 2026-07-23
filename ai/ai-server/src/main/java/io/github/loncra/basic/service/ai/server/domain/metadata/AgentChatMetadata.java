@@ -28,6 +28,8 @@ public class AgentChatMetadata implements Serializable {
      */
     private Long agentConversationId;
 
+    private Long modelId;
+
     /**
      * 应答类型:10.ask,20.plan,30.agent
      */

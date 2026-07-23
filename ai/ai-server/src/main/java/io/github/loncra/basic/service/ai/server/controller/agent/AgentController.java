@@ -4,6 +4,7 @@ package io.github.loncra.basic.service.ai.server.controller.agent;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -39,15 +40,10 @@ public class AgentController {
     @PostMapping
     public AgentChatResponseBody chat(
             @RequestBody
-            AgentChatRequestBody body,
+            AgentChatMetadata body,
             @CurrentSecurityContext SecurityContext securityContext
     ){
-        /*String textMessageMetadata = TextMessageMetadata.ofString(body.getContent());
-        ReActAgent agent = ReActAgent.builder()
-                        .model(body.getModel()) // 底层由 ModelRegistry.resolve(modelId) 解析
-                        .build();
 
-        return agent.streamEvents(textMessageMetadata).subscribe(System.out::println);*/
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.chat(body, token);
     }
@@ -65,11 +61,13 @@ public class AgentController {
         MultiValueMap<String, String> parameter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
         MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
         parameter.forEach(filter::addAll);
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.histories(
                 pageRequest,
                 filter,
                 conversationId,
-                totalPage
+                totalPage,
+                token
         );
     }
 

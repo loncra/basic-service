@@ -2,13 +2,14 @@ package io.github.loncra.basic.service.ai.server.service.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
-import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
@@ -33,7 +34,7 @@ public class AgentManager {
     private final AiAppConfig aiAppConfig;
 
     public AgentChatResponseBody chat(
-            AgentChatRequestBody body,
+            AgentChatMetadata body,
             AuditAuthenticationToken token
     ) {
 
@@ -64,16 +65,19 @@ public class AgentManager {
         userMessage.setAgentConversationId(conversation.getId());
         messageService.insert(userMessage);
 
-        /*AgentMessageEntity assistantMessage = new AgentMessageEntity();
-        userMessage.setRole(AgentMessageRoleEnum.ASSISTANT);
-        userMessage.setPrincipal(token.getName());
-        userMessage.setStatus(AgentChatStatusEnum.RUNNING);
-        userMessage.setAgentConversationId(conversation.getId());
-        messageService.insert(userMessage);*/
+        AgentMessageEntity assistantMessage = new AgentMessageEntity();
+        assistantMessage.setRole(AgentMessageRoleEnum.ASSISTANT);
+        assistantMessage.setPrincipal(token.getName());
+        assistantMessage.setModelId(userMessage.getModelId());
+        assistantMessage.setStatus(AgentChatStatusEnum.RUNNING);
+        assistantMessage.setAgentConversationId(conversation.getId());
+        assistantMessage.setParentId(userMessage.getId());
+        messageService.insert(assistantMessage);
 
         AgentChatResponseBody responseBody = new AgentChatResponseBody();
         responseBody.setConversation(conversation);
         responseBody.setUserMessageId(userMessage.getId());
+        responseBody.setAssistantId(assistantMessage.getId());
 
         return responseBody;
     }
@@ -83,8 +87,11 @@ public class AgentManager {
             PageRequest request,
             MultiValueMap<String, Object> filter,
             Long conversationId,
-            boolean totalPage
+            boolean totalPage,
+            AuditAuthenticationToken token
     ) {
+        AgentConversationEntity conversation = conversationService.get(conversationId);
+        PrincipalDetailsConstants.equals(conversation, token);
         QueryWrapper<AgentMessageEntity> wrapper = messageService.getQueryGenerator()
                 .createQueryWrapperFromMap(filter);
         wrapper.eq(AgentMessageEntity.CONVERSATION_ID_TABLE_FIELD_NAME, conversationId)

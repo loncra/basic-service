@@ -1,11 +1,14 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
+import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
@@ -15,6 +18,8 @@ import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.time.Instant;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -29,7 +34,7 @@ import java.time.Instant;
 @Alias("agentMessage")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_agent_message", autoResultMap = true)
-public class AgentMessageEntity extends AgentChatMetadata implements VersionEntity<Integer, Long>, AuditPrincipal, TenantEntity<String> {
+public class AgentMessageEntity extends AgentChatMetadata implements VersionEntity<Integer, Long>, AuditPrincipal, TenantEntity<String>, Tree<Long, AgentMessageEntity> {
 
     @Serial
     private static final long serialVersionUID = -5121909839700678113L;
@@ -58,4 +63,15 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     private String principal;
 
     private String tenantId;
+
+    private Long parentId;
+
+    @TableField(exist = false)
+    private List<Tree<Long, AgentMessageEntity>> children = new LinkedList<>();
+
+    @Override
+    @JsonIgnore
+    public Long getParent() {
+        return parentId;
+    }
 }
