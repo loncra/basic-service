@@ -34,6 +34,8 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     @Serial
     private static final long serialVersionUID = -5121909839700678113L;
 
+    public static final String CONVERSATION_ID_TABLE_FIELD_NAME = "agent_conversation_id";
+
     private Long id;
 
     @Version

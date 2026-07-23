@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.corundumstudio.socketio.SocketIOClient;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.basic.service.message.server.config.UserChatConfig;
 import io.github.loncra.basic.service.message.server.domain.body.chat.ParticipantMetadataMessageResponseBody;
@@ -486,8 +487,8 @@ public class UserChatManager {
         if (anchorPage == 1) {
             return metadata;
         }
-        metadata.put(UserChatMessageEntity.READABLE_ANCHOR_ID_KEY, readableAnchorId);
-        metadata.put(UserChatMessageEntity.READABLE_ANCHOR_PAGE_KEY, anchorPage);
+        metadata.put(SystemConstants.READABLE_ANCHOR_ID_KEY, readableAnchorId);
+        metadata.put(SystemConstants.READABLE_ANCHOR_PAGE_KEY, anchorPage);
         return metadata;
     }
 

@@ -21,4 +21,15 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AgentMessageService extends BasicService<AgentMessageDao, AgentMessageEntity> {
+
+    public int positioningPageNumber(
+            Long agentConversationId,
+            Long messageId,
+            int pageSize
+    ) {
+        long newerCount = lambdaQuery().eq(AgentMessageEntity::getAgentConversationId, agentConversationId)
+                .gt(AgentMessageEntity::getId, messageId)
+                .count();
+        return (int) (newerCount / pageSize) + 1;
+    }
 }

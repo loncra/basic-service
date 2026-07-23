@@ -75,10 +75,14 @@ public class UserChatController {
     public Page<UserChatMessageEntity> histories(
             PageRequest pageRequest,
             HttpServletRequest request,
-            @RequestParam(required = false, defaultValue = "false") boolean withoutReadableAnchor,
-            @RequestParam(required = false, defaultValue = "false") boolean totalPage,
-            @PathVariable Long chatRoomId,
-            @CurrentSecurityContext SecurityContext securityContext
+            @RequestParam(required = false, defaultValue = "false")
+            boolean withoutReadableAnchor,
+            @RequestParam(required = false, defaultValue = "false")
+            boolean totalPage,
+            @PathVariable
+            Long chatRoomId,
+            @CurrentSecurityContext
+            SecurityContext securityContext
     ) {
         MultiValueMap<String, String> parameter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
         MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
@@ -90,7 +94,8 @@ public class UserChatController {
                 chatRoomId,
                 withoutReadableAnchor,
                 totalPage,
-                token);
+                token
+        );
     }
 
     @PostMapping("message/read")

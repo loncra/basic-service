@@ -187,4 +187,8 @@ public interface SystemConstants {
     String EXCEL_SUFFIX_NAME = ".xlsx";
 
     String SORT_FIELD = "sort";
+
+    String READABLE_ANCHOR_ID_KEY = "readableAnchorId";
+
+    String READABLE_ANCHOR_PAGE_KEY = "readableAnchorPage";
 }

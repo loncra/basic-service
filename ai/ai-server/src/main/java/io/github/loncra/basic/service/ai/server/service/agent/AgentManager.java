@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -9,10 +10,16 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusE
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.page.Page;
+import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MultiValueMap;
 
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -71,5 +78,39 @@ public class AgentManager {
         return responseBody;
     }
 
+
+    public Page<AgentMessageEntity> histories(
+            PageRequest request,
+            MultiValueMap<String, Object> filter,
+            Long conversationId,
+            boolean totalPage
+    ) {
+        QueryWrapper<AgentMessageEntity> wrapper = messageService.getQueryGenerator()
+                .createQueryWrapperFromMap(filter);
+        wrapper.eq(AgentMessageEntity.CONVERSATION_ID_TABLE_FIELD_NAME, conversationId)
+                .orderByDesc(IdEntity.ID_FIELD_NAME);
+
+        Page<AgentMessageEntity> page;
+        if (totalPage) {
+            page = messageService.findTotalPage(request, wrapper);
+        } else {
+            page = messageService.findPage(request, wrapper);
+        }
+
+        List<AgentMessageEntity> messages = page.getElements();
+        if (CollectionUtils.isEmpty(messages)) {
+            return page;
+        }
+
+        return page;
+    }
+
+    public int positioningMessagePageNumber(
+            Long conversationId,
+            Long messageId,
+            int pageSize
+    ) {
+        return messageService.positioningPageNumber(conversationId, messageId, pageSize);
+    }
 
 }
