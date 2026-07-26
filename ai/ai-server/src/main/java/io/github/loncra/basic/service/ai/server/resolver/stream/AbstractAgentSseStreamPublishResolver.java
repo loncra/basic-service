@@ -181,6 +181,4 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
     );
 
     protected abstract List<AgentAssistantMessageContent> getStreamContentList(String conversationId, String lastSseId);
-
-    protected abstract boolean isCompleted(String conversationId);
 }

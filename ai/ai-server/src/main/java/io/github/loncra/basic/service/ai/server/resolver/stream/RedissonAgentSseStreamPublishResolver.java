@@ -132,7 +132,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
     }
 
     @Override
-    protected boolean isCompleted(String conversationId) {
+    public boolean isCompleted(String conversationId) {
         return !getStream(conversationId).isExists();
     }
 

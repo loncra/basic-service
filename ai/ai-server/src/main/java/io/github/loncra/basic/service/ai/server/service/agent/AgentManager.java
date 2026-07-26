@@ -12,6 +12,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusChangeContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
@@ -88,6 +89,8 @@ public class AgentManager {
             AuditAuthenticationToken token
     ) {
 
+        SystemException.isTrue(agentSseStreamPublishResolver.isCompleted(body.getAgentConversationId().toString()), "该会话正在应答。");
+
         AgentConversationEntity conversation;
 
         if (Objects.isNull(body.getAgentConversationId())) {
@@ -151,6 +154,8 @@ public class AgentManager {
         responseBody.setConversation(conversation);
         responseBody.setUserMessageId(userMessage.getId());
         responseBody.setAssistantId(assistantMessage.getId());
+
+        agentSseStreamPublishResolver.publish(conversation.getId().toString(), new AgentAssistantMessageContent());
 
         return responseBody;
     }
@@ -297,7 +302,16 @@ public class AgentManager {
                 .eq(AgentMessageEntity::getId, assistant.getId())
                 .update();
 
-        return Flux.just(textContent);
+        AgentStatusChangeContentMetadata agentEndContent = new AgentStatusChangeContentMetadata();
+        agentEndContent.setId(assistant.getAgentConversationId().toString());
+        agentEndContent.setStatus(AgentChatStatusEnum.FAILED);
+
+        conversationService.lambdaUpdate()
+                .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.FAILED.getValue())
+                .eq(IdEntity::getId, assistant.getAgentConversationId())
+                .update();
+
+        return Flux.just(agentEndContent, textContent);
     }
 
     private Flux<AgentAssistantMessageContent> postStreamEvent(

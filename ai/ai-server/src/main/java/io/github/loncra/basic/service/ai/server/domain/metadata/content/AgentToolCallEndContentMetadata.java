@@ -13,20 +13,16 @@ import java.time.Instant;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class AgentToolCallContentMetadata extends AgentAssistantMessageContent {
+public class AgentToolCallEndContentMetadata extends AgentAssistantMessageContent {
 
     @Serial
-    private static final long serialVersionUID = -4568583911618929598L;
-
-    private Instant creationTime;
+    private static final long serialVersionUID = 6052070035325088880L;
 
     private Instant endTime;
 
-    private String name;
-
-    private Object input;
-
     private Object output;
+
+    private String name;
 
     private AgentToolCallStatusEnum status;
 
@@ -34,6 +30,6 @@ public class AgentToolCallContentMetadata extends AgentAssistantMessageContent {
 
     @Override
     public String getType() {
-        return AgentMessageContentTypeEnum.TOOL_START.getValue();
+        return AgentMessageContentTypeEnum.TOOL_END.getValue();
     }
 }

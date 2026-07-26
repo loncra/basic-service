@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.enumerate.agent;
 
 
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusChangeContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallContentMetadata;
@@ -18,15 +19,15 @@ public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
 
     THINK("思考", "think", AgentTextContentMetadata.class),
 
-    TOOL("工具调用", "tool", AgentToolCallContentMetadata.class),
+    TOOL_START("执行工具调用", "toolStart", AgentToolCallContentMetadata.class),
+
+    TOOL_END("工具调用完成", "toolEnd", AgentToolCallContentMetadata.class),
 
     ANSWER("回答", "answer", AgentTextContentMetadata.class),
 
     ERROR("错误", "error", AgentTextContentMetadata.class),
 
-    AGENT_START("智能体开始执行", "agentStart", AgentTextContentMetadata.class),
-
-    AGENT_END("智能体执行完成", "agentEnd", AgentTextContentMetadata.class),
+    AGENT_STATUS_CHANGE("智能体状态变更", "agentStatusChange", AgentStatusChangeContentMetadata.class),
 
     MODEL_COMPLETED("模型执行完成", "modelCompleted", AgentTokenUsageContentMetadata.class),
 
@@ -45,5 +46,5 @@ public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
 
     public static final List<String> COMPLETED_STATUS = List.of(ERROR.getValue(), COMPLETED.getValue());
 
-    public static final List<AgentMessageContentTypeEnum> TEXT_BLOCK_TYPE = List.of(THINK, ANSWER, ERROR, COMPLETED, GENERATE_CONVERSATION_NAME, AGENT_START, AGENT_END);
+    public static final List<AgentMessageContentTypeEnum> TEXT_BLOCK_TYPE = List.of(THINK, ANSWER, ERROR, COMPLETED, GENERATE_CONVERSATION_NAME);
 }
