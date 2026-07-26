@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum AgentChatStatusEnum implements NameValueEnum<Integer> {
@@ -22,4 +24,6 @@ public enum AgentChatStatusEnum implements NameValueEnum<Integer> {
     private final Integer value;
 
     private final String name;
+
+    public static final List<AgentChatStatusEnum> COMPLETED_STATUS = List.of(COMPLETED, FAILED);
 }

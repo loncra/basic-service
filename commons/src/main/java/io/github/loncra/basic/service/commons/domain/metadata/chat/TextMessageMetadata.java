@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -36,6 +37,9 @@ public class TextMessageMetadata implements ChatMessageContent {
     }
 
     public static String ofString(List<Map<String, Object>> content) {
+        if (CollectionUtils.isEmpty(content)) {
+            return StringUtils.EMPTY;
+        }
         return ofList(content).stream().map(TextMessageMetadata::getValue).collect(Collectors.joining(StringUtils.EMPTY));
     }
 }

@@ -52,7 +52,7 @@ public class ModelSettingController {
         QueryWrapper<ModelSettingEntity> query = modelSettingService
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
-        query.orderByDesc(IdEntity.ID_FIELD_NAME);
+        query.orderByAsc(SystemConstants.SORT_FIELD);
         query.eq(SystemConstants.ENABLED_FIELD_NAME, YesOrNo.Yes.getValue());
         return modelSettingService.find(query);
     }

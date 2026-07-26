@@ -1,25 +1,18 @@
 package io.github.loncra.basic.service.ai.server.config;
 
+import io.github.loncra.framework.commons.TimeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-/**
- * 全局应用配置
- *
- * @author maurice.chen
- */
 @Data
 @Component
 @NoArgsConstructor
 @EqualsAndHashCode
-@ConfigurationProperties("loncra.basic-service.ai.app")
-public class AiAppConfig {
+@ConfigurationProperties("loncra.basic-service.ai.app.stream")
+public class StreamConfig {
 
-    private Map<String, String> key = new LinkedHashMap<>();
+    TimeProperties pollInterval;
 }

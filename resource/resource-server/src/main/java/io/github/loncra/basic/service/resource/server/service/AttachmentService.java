@@ -22,7 +22,7 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
 import io.github.loncra.framework.commons.minio.*;
-import io.github.loncra.framework.commons.tenant.SimpleTenantContext;
+import io.github.loncra.framework.commons.tenant.TenantContext;
 import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.crypto.algorithm.CodecUtils;
 import io.github.loncra.framework.minio.MinioAsyncTemplate;
@@ -742,7 +742,7 @@ public class AttachmentService implements InitializingBean {
             extraHeaders = new LinkedHashMap<>();
         }
         extraHeaders.put(MinioAsyncTemplate.AMZ_META_UPLOADER_ID, token.getName());
-        SimpleTenantContext tenantContext = TenantContextHolder.get();
+        TenantContext tenantContext = TenantContextHolder.get();
         if (Objects.nonNull(tenantContext) && Objects.nonNull(tenantContext.getId())) {
             extraHeaders.put(MinioAsyncTemplate.AMZ_META_TENANT_ID, tenantContext.getId().toString());
         }

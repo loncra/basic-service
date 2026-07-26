@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
@@ -59,6 +61,9 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     private Long agentConversationId;
 
     private AgentChatStatusEnum status;
+
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private ModelSettingMetadata model;
 
     private String principal;
 

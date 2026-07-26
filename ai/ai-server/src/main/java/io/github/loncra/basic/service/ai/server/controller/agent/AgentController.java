@@ -4,7 +4,6 @@ package io.github.loncra.basic.service.ai.server.controller.agent;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -17,11 +16,14 @@ import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 @RestController
 @RequiredArgsConstructor
@@ -40,12 +42,22 @@ public class AgentController {
     @PostMapping
     public AgentChatResponseBody chat(
             @RequestBody
-            AgentChatMetadata body,
+            AgentChatRequestBody body,
             @CurrentSecurityContext SecurityContext securityContext
     ){
 
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.chat(body, token);
+    }
+
+    @PostMapping(value = "/stream/{assistantId:\\d+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> stream(
+            @PathVariable
+            Long assistantId,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return agentManager.stream(assistantId, token);
     }
 
     @PostMapping("message/history/{conversationId:\\d+}")

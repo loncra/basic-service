@@ -22,6 +22,17 @@
         </dependency>
 
         <dependency>
+            <groupId>io.github.loncra.basic.service</groupId>
+            <artifactId>resource-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.loncra.framework</groupId>
+            <artifactId>spring-boot-starter-spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
             <scope>provided</scope>

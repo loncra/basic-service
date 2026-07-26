@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -54,6 +55,8 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
     private String tenantId;
 
     private AgentConversationTypeEnum type;
+
+    private YesOrNo generateName;
 
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();
