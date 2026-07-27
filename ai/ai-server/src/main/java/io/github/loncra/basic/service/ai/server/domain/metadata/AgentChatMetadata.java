@@ -152,8 +152,11 @@ public class AgentChatMetadata implements Serializable {
         }
         AgentAssistantMessageContent content = obtainMessageContents().stream()
                 .filter(s -> StringUtils.isNotEmpty(s.getSseEventId()))
-                .toList()
-                .getLast();
+                .reduce((first, second) -> second)
+                .orElse(null);
+        if (content == null) {
+            return null;
+        }
         return content.getSseEventId();
     }
 
