@@ -4,7 +4,7 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ToolCallStartEvent;
 import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallStartContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallContentMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,7 +13,7 @@ import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
-public class ToolCallStartEventResolver extends AbstractAgentEventResolver<AgentToolCallStartContentMetadata> {
+public class ToolCallStartEventResolver extends AbstractAgentEventResolver<AgentToolCallContentMetadata> {
 
     @Override
     public boolean isSupport(AgentEvent event) {
@@ -21,13 +21,13 @@ public class ToolCallStartEventResolver extends AbstractAgentEventResolver<Agent
     }
 
     @Override
-    protected AgentToolCallStartContentMetadata createPublishPatchContent(
+    protected AgentToolCallContentMetadata createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
         ToolCallStartEvent start = CastUtils.cast(event);
 
-        AgentToolCallStartContentMetadata toolStart = new AgentToolCallStartContentMetadata();
+        AgentToolCallContentMetadata toolStart = new AgentToolCallContentMetadata();
         toolStart.setId(start.getReplyId());
         toolStart.setCreationTime(Instant.now());
         toolStart.setName(start.getToolCallName() + CastUtils.UNDERSCORE + start.getToolCallId());

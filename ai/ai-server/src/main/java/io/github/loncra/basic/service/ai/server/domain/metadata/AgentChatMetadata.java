@@ -150,7 +150,10 @@ public class AgentChatMetadata implements Serializable {
         if (MapUtils.isEmpty(last)) {
             return null;
         }
-        AgentAssistantMessageContent content = CastUtils.convertValue(last, AgentAssistantMessageContent.class);
+        AgentAssistantMessageContent content = obtainMessageContents().stream()
+                .filter(s -> StringUtils.isNotEmpty(s.getSseEventId()))
+                .toList()
+                .getLast();
         return content.getSseEventId();
     }
 

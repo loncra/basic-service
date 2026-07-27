@@ -3,15 +3,18 @@ package io.github.loncra.basic.service.ai.server.resolver.stream;
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
+import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.exception.ErrorCodeException;
 import io.github.loncra.framework.commons.exception.ServiceException;
+import io.github.loncra.framework.commons.exception.SystemException;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.Disposable;
@@ -161,7 +164,10 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
                     return;
                 }
                 else if (AgentMessageContentTypeEnum.ERROR.getValue().equals(serverSentEvent.event()) && Objects.nonNull(serverSentEvent.data())) {
-                    String error = StringUtils.defaultIfEmpty(serverSentEvent.data(), ErrorCodeException.DEFAULT_ERROR_MESSAGE);
+                    CustomizeContentMetadata metadata = SystemException.convertSupplier(
+                            () -> CastUtils.getObjectMapper().readValue(serverSentEvent.data(), CustomizeContentMetadata.class)
+                    );
+                    String error = metadata.getMetadata().getOrDefault(RestResult.DEFAULT_MESSAGE_NAME, ErrorCodeException.DEFAULT_ERROR_MESSAGE).toString();
                     sink.error(new ServiceException(error));
                     return;
                 }

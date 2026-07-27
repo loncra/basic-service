@@ -5,7 +5,6 @@ import io.agentscope.core.event.AgentEvent;
 import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.PersistenceAgentTextContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import org.springframework.beans.BeanUtils;
 
@@ -20,7 +19,7 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
             AgentMessageEntity assistant
     ) {
         String id = getReplyId(content.getEventSource());
-        PersistenceAgentTextContentMetadata metadata = assistant.obtainBlock(id, PersistenceAgentTextContentMetadata.class);
+        AgentTextContentMetadata metadata = assistant.obtainBlock(id, AgentTextContentMetadata.class);
         if (Objects.isNull(metadata)) {
             return false;
         }
@@ -35,7 +34,7 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
             AgentEvent event,
             RuntimeContext context
     ) {
-        PersistenceAgentTextContentMetadata metadata = new PersistenceAgentTextContentMetadata();
+        AgentTextContentMetadata metadata = new AgentTextContentMetadata();
         metadata.setEventType(getTextType());
         metadata.setId(getReplyId(event));
         metadata.setStatus(AgentBlockStatusEnum.DONE);

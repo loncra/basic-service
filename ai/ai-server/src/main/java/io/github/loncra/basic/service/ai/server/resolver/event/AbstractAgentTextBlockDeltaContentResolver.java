@@ -2,9 +2,9 @@ package io.github.loncra.basic.service.ai.server.resolver.event;
 
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.PersistenceAgentTextContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -20,11 +20,13 @@ public abstract class AbstractAgentTextBlockDeltaContentResolver extends Abstrac
             RuntimeContext context
     ) {
         String delta = getDelta(event);
-        return AgentTextContentMetadata.of(
-                getTextType(),
-                getReplyId(event),
-                delta
-        );
+        AgentTextContentMetadata content = new AgentTextContentMetadata();
+        content.setEventType(getTextType());
+        content.setId(getReplyId(event));
+        content.setValue(delta);
+        content.setStatus(AgentBlockStatusEnum.RUNNING);
+        content.setCreationTime(Instant.now());
+        return content;
     }
 
     protected abstract String getDelta(AgentEvent event);
@@ -37,12 +39,13 @@ public abstract class AbstractAgentTextBlockDeltaContentResolver extends Abstrac
             AgentMessageEntity assistant
     ) {
         String id = getReplyId(content.getEventSource());
-        PersistenceAgentTextContentMetadata metadata = assistant.obtainBlock(id, PersistenceAgentTextContentMetadata.class);
+        AgentTextContentMetadata metadata = assistant.obtainBlock(id, AgentTextContentMetadata.class);
         if (Objects.isNull(metadata)) {
-            metadata = CastUtils.of(content, PersistenceAgentTextContentMetadata.class);
+            metadata = CastUtils.of(content, AgentTextContentMetadata.class);
             metadata.setCreationTime(Instant.now());
+        } else {
+            metadata.setValue(metadata.getValue() + StringUtils.defaultIfEmpty(content.getValue(), StringUtils.EMPTY));
         }
-        metadata.setValue(metadata.getValue() + StringUtils.defaultIfEmpty(content.getValue(), StringUtils.EMPTY));
         assistant.updateContent(metadata);
 
         return false;

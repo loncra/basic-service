@@ -6,7 +6,6 @@ import io.agentscope.core.event.ToolResultEndEvent;
 import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallEndContentMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -17,7 +16,7 @@ import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
-public class ToolResultEndEventResolver extends AbstractAgentEventResolver<AgentToolCallEndContentMetadata> {
+public class ToolResultEndEventResolver extends AbstractAgentEventResolver<AgentToolCallContentMetadata> {
 
     @Override
     public boolean isSupport(AgentEvent event) {
@@ -25,12 +24,12 @@ public class ToolResultEndEventResolver extends AbstractAgentEventResolver<Agent
     }
 
     @Override
-    protected AgentToolCallEndContentMetadata createPublishPatchContent(
+    protected AgentToolCallContentMetadata createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
         ToolResultEndEvent end = CastUtils.cast(event);
-        AgentToolCallEndContentMetadata tool = new AgentToolCallEndContentMetadata();
+        AgentToolCallContentMetadata tool = new AgentToolCallContentMetadata();
         tool.setEndTime(Instant.now());
         tool.setId(end.getReplyId());
         tool.setName(end.getToolCallName() + CastUtils.UNDERSCORE + end.getToolCallId());
@@ -42,7 +41,7 @@ public class ToolResultEndEventResolver extends AbstractAgentEventResolver<Agent
 
     @Override
     public boolean postPublish(
-            AgentToolCallEndContentMetadata content,
+            AgentToolCallContentMetadata content,
             AgentMessageEntity assistant
     ) {
         ToolResultEndEvent end = CastUtils.cast(content.getEventSource());

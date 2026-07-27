@@ -13,7 +13,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusChangeContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
@@ -28,6 +28,7 @@ import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstant
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -39,7 +40,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
@@ -54,7 +54,6 @@ import reactor.core.publisher.Flux;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -157,7 +156,11 @@ public class AgentManager {
         responseBody.setUserMessageId(userMessage.getId());
         responseBody.setAssistantId(assistantMessage.getId());
 
-        agentSseStreamPublishResolver.publish(conversation.getId().toString(), new AgentAssistantMessageContent());
+        CustomizeContentMetadata metadata = new CustomizeContentMetadata();
+        metadata.setId(assistantMessage.getId().toString());
+        metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
+
+        agentSseStreamPublishResolver.publish(conversation.getId().toString(),metadata);
 
         return responseBody;
     }
@@ -276,13 +279,11 @@ public class AgentManager {
     private Flux<AgentAssistantMessageContent> onCompleted(
             AgentMessageEntity assistant
     ) {
-        AgentTextContentMetadata textContent = AgentTextContentMetadata.of(
-                AgentMessageContentTypeEnum.COMPLETED,
-                assistant.getId().toString(),
-                StringUtils.EMPTY
-        );
+        CustomizeContentMetadata content = new CustomizeContentMetadata();
+        content.setEventType(AgentMessageContentTypeEnum.COMPLETED);
+        content.setId(assistant.getId().toString());
 
-        return Flux.just(textContent);
+        return Flux.just(content);
     }
 
     public Flux<AgentAssistantMessageContent> onError(
@@ -290,12 +291,12 @@ public class AgentManager {
             AgentMessageEntity assistant
     ) {
         log.error("助手消息 [{}] 执行失败", assistant.getId(), t);
-        AgentAssistantMessageContent textContent = AgentTextContentMetadata.of(
-                AgentMessageContentTypeEnum.ERROR,
-                UUID.randomUUID().toString(),
-                t.getMessage()
-        );
-        assistant.updateContent(textContent);
+
+        CustomizeContentMetadata content = new CustomizeContentMetadata();
+        content.setEventType(AgentMessageContentTypeEnum.ERROR);
+        content.setId(assistant.getId().toString());
+        content.getMetadata().put(RestResult.DEFAULT_MESSAGE_NAME, t.getMessage());
+        assistant.updateContent(content);
         assistant.setStatus(AgentChatStatusEnum.FAILED);
 
         messageService.lambdaUpdate()
@@ -313,7 +314,7 @@ public class AgentManager {
                 .eq(IdEntity::getId, assistant.getAgentConversationId())
                 .update();
 
-        return Flux.just(agentEndContent, textContent);
+        return Flux.just(agentEndContent, content);
     }
 
     private Flux<AgentAssistantMessageContent> postStreamEvent(

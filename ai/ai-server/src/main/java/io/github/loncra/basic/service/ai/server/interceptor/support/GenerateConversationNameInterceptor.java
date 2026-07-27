@@ -7,14 +7,15 @@ import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,11 +71,10 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
         conversation.setGenerateName(YesOrNo.Yes);
         agentConversationService.updateById(conversation);
 
-        AgentTextContentMetadata content = AgentTextContentMetadata.of(
-                AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME,
-                conversation.getId().toString(),
-                conversation.getName()
-        );
+        CustomizeContentMetadata content = new CustomizeContentMetadata();
+        content.setEventType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
+        content.setId(conversation.getId().toString());
+        content.getMetadata().put(NameEnum.FIELD_NAME, conversation.getName());
 
         return List.of(content);
     }

@@ -1,11 +1,9 @@
 package io.github.loncra.basic.service.ai.server.domain.metadata;
 
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.exception.SystemException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import org.springframework.http.codec.ServerSentEvent;
 
 import java.io.Serial;
@@ -14,17 +12,11 @@ import java.io.Serial;
  * Agent 助手消息 content 块基类：id + lastSseEventId。
  */
 @Data
-@NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class AgentAssistantMessageContent extends AgentServerSentEventMessage {
+public abstract class AgentAssistantMessageContent extends AgentServerSentEventMessage {
 
     @Serial
     private static final long serialVersionUID = 8121665348839272979L;
-
-    @Override
-    public String getType() {
-        return AgentMessageContentTypeEnum.ASSISTANT.getValue();
-    }
 
     /**
      * 该块落库/推流对应的最后一条开始重放推流的 id。
