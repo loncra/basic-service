@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.resolver.event;
 
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.PersistenceAgentTextContentMetadata;
@@ -37,6 +38,7 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
         PersistenceAgentTextContentMetadata metadata = new PersistenceAgentTextContentMetadata();
         metadata.setEventType(getTextType());
         metadata.setId(getReplyId(event));
+        metadata.setStatus(AgentBlockStatusEnum.DONE);
         metadata.setEndTime(Instant.now());
         return metadata;
     }

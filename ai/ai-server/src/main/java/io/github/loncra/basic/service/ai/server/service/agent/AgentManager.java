@@ -89,7 +89,9 @@ public class AgentManager {
             AuditAuthenticationToken token
     ) {
 
-        SystemException.isTrue(agentSseStreamPublishResolver.isCompleted(body.getAgentConversationId().toString()), "该会话正在应答。");
+        if (Objects.nonNull(body.getAgentConversationId())) {
+            SystemException.isTrue(agentSseStreamPublishResolver.isCompleted(body.getAgentConversationId().toString()), "该会话正在应答。");
+        }
 
         AgentConversationEntity conversation;
 

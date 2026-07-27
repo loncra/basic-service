@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.ai.server.resolver.event;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
-import io.github.loncra.basic.service.ai.api.enumerate.AgentToolCallStatusEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallEndContentMetadata;
@@ -34,7 +34,7 @@ public class ToolResultEndEventResolver extends AbstractAgentEventResolver<Agent
         tool.setEndTime(Instant.now());
         tool.setId(end.getReplyId());
         tool.setName(end.getToolCallName() + CastUtils.UNDERSCORE + end.getToolCallId());
-        tool.setStatus(AgentToolCallStatusEnum.DONE);
+        tool.setStatus(AgentBlockStatusEnum.DONE);
         tool.setResultState(end.getState().name());
 
         return tool;

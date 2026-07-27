@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.metadata.content;
 
-import io.github.loncra.basic.service.ai.api.enumerate.AgentToolCallStatusEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import lombok.Data;
@@ -28,7 +28,7 @@ public class AgentToolCallContentMetadata extends AgentAssistantMessageContent {
 
     private Object output;
 
-    private AgentToolCallStatusEnum status;
+    private AgentBlockStatusEnum status;
 
     private String resultState;
 

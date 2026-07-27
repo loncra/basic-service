@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum AgentToolCallStatusEnum implements NameValueEnum<String> {
+public enum AgentBlockStatusEnum implements NameValueEnum<String> {
 
     RUNNING("进行中", "running"),
 

@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.resolver.model;
+package io.github.loncra.basic.service.ai.server.resolver.model.ollama;
 
 import io.agentscope.core.model.Model;
 import io.agentscope.extensions.model.ollama.OllamaChatModel;
@@ -30,6 +30,7 @@ public class OllamaModelResolver implements ModelResolver {
         if (Objects.isNull(options)) {
             return OllamaChatModel.builder()
                     .modelName(model.getModel())
+                    .formatter(new OllamaChatThinkingFormatter())
                     .build();
         } else {
             Object defaults = model.getMetadata().getOrDefault(ModelSettingMetadata.MODEL_DEFAULT_OPTIONS_KEY, new LinkedHashMap<>());
@@ -43,6 +44,7 @@ public class OllamaModelResolver implements ModelResolver {
             return OllamaChatModel.builder()
                     .modelName(model.getModel())
                     .defaultOptions(ollamaOptions)
+                    .formatter(new OllamaChatThinkingFormatter())
                     .build();
         }
     }

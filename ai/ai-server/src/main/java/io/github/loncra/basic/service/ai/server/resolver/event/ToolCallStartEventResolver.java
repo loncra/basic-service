@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.ai.server.resolver.event;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ToolCallStartEvent;
-import io.github.loncra.basic.service.ai.api.enumerate.AgentToolCallStatusEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentToolCallStartContentMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +31,7 @@ public class ToolCallStartEventResolver extends AbstractAgentEventResolver<Agent
         toolStart.setId(start.getReplyId());
         toolStart.setCreationTime(Instant.now());
         toolStart.setName(start.getToolCallName() + CastUtils.UNDERSCORE + start.getToolCallId());
-        toolStart.setStatus(AgentToolCallStatusEnum.RUNNING);
-
-        /*AgentToolCallContentMetadata tool = new AgentToolCallContentMetadata();
-        tool.setId(start.getReplyId());
-        tool.setCreationTime(Instant.now());
-        tool.setName(start.getToolCallName() + CastUtils.UNDERSCORE + start.getToolCallId());
-        tool.setStatus(AgentToolCallStatusEnum.RUNNING);*/
+        toolStart.setStatus(AgentBlockStatusEnum.RUNNING);
 
         return toolStart;
     }

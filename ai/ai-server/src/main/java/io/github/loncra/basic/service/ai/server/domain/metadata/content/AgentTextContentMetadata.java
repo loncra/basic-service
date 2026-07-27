@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.metadata.content;
 
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
@@ -23,6 +24,8 @@ public class AgentTextContentMetadata extends AgentAssistantMessageContent {
 
     private String value;
 
+    private AgentBlockStatusEnum status;
+
     /**
      * 块语义：仅允许 think / answer / error。
      */
@@ -33,15 +36,22 @@ public class AgentTextContentMetadata extends AgentAssistantMessageContent {
         return eventType.getValue();
     }
 
-    public static AgentTextContentMetadata of(AgentMessageContentTypeEnum type, String id, String value) {
+    public static AgentTextContentMetadata of(
+            AgentMessageContentTypeEnum type,
+            String id,
+            String value
+    ) {
         if (Objects.isNull(type) || !AgentMessageContentTypeEnum.TEXT_BLOCK_TYPE.contains(type)) {
             throw new SystemException(AgentTextContentMetadata.class.getSimpleName() + ".type 仅支持 " + AgentMessageContentTypeEnum.TEXT_BLOCK_TYPE + "，实际: " + type);
         }
 
         AgentTextContentMetadata block = new AgentTextContentMetadata();
+
         block.setEventType(type);
         block.setId(id);
         block.setValue(value);
+        block.setStatus(AgentBlockStatusEnum.RUNNING);
+
         return block;
     }
 }
