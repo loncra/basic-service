@@ -37,7 +37,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
             AgentAssistantMessageContent content
     ) {
         doPublish(conversationId, content);
-        if (AgentMessageContentTypeEnum.COMPLETED_STATUS.contains(content.getType())) {
+        if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(content.getType())) {
             remove(conversationId);
         }
     }
@@ -159,7 +159,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
 
                 ServerSentEvent<String> serverSentEvent = content.toServerSentEvent();
                 sink.next(serverSentEvent);
-                if (AgentMessageContentTypeEnum.COMPLETED.getValue().equals(serverSentEvent.event())) {
+                if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(serverSentEvent.event())) {
                     sink.complete();
                     return;
                 }

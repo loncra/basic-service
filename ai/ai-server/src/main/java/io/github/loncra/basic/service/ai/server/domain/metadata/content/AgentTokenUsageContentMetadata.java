@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.domain.metadata.content;
 
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentTokenUsageTypeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -20,10 +21,10 @@ public class AgentTokenUsageContentMetadata extends AgentAssistantMessageContent
     private int outputTokens;
     private int cachedTokens;
 
-    private AgentMessageContentTypeEnum tokenType;
+    private AgentTokenUsageTypeEnum usageType;
 
     @Override
     public String getType() {
-        return tokenType.getValue();
+        return AgentMessageContentTypeEnum.TOKEN_USAGE.getValue();
     }
 }

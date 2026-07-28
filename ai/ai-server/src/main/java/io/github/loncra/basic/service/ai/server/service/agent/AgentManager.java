@@ -279,9 +279,11 @@ public class AgentManager {
     private Flux<AgentAssistantMessageContent> onCompleted(
             AgentMessageEntity assistant
     ) {
+
         CustomizeContentMetadata content = new CustomizeContentMetadata();
-        content.setEventType(AgentMessageContentTypeEnum.COMPLETED);
+        content.setEventType(AgentMessageContentTypeEnum.STREAM_END);
         content.setId(assistant.getId().toString());
+        content.getMetadata().put(SystemConstants.STATUS_TABLE_FIELD_NAME, assistant.getStatus());
 
         return Flux.just(content);
     }

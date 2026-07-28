@@ -8,7 +8,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMe
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentTokenUsageTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
 import io.github.loncra.framework.commons.CastUtils;
@@ -20,34 +20,6 @@ import org.springframework.stereotype.Component;
 public class ModelCompletedEventResolver implements AgentEventResolver {
 
     private final AgentMessageService agentMessageService;
-
-    /*@Override
-    protected AgentTokenUsageContentMetadata createPublishPatchContent(
-            AgentEvent event,
-            RuntimeContext context
-    ) {
-        ModelCallEndEvent modelCallEndEvent = CastUtils.cast(event);
-
-        AgentTokenUsageContentMetadata usage = CastUtils.of(modelCallEndEvent.getUsage(), AgentTokenUsageContentMetadata.class);
-        usage.setTokenType(AgentMessageContentTypeEnum.MODEL_COMPLETED);
-        usage.setId();
-        return usage;
-    }*/
-
-    /*@Override
-    public boolean postPublish(
-            AgentTokenUsageContentMetadata content,
-            AgentMessageEntity assistant
-    ) {
-        assistant.saveAgentTokenUsageMetadata(content);
-        assistant.setStatus(AgentChatStatusEnum.COMPLETED);
-        getAgentMessageService().lambdaUpdate()
-                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.COMPLETED.getValue())
-                .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
-                .eq(AgentMessageEntity::getId, assistant.getId())
-                .update();
-        return true;
-    }*/
 
     @Override
     public boolean isSupport(AgentEvent event) {
@@ -63,7 +35,7 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
         ModelCallEndEvent modelCallEndEvent = CastUtils.cast(event);
 
         AgentTokenUsageContentMetadata usage = CastUtils.of(modelCallEndEvent.getUsage(), AgentTokenUsageContentMetadata.class);
-        usage.setTokenType(AgentMessageContentTypeEnum.MODEL_COMPLETED);
+        usage.setUsageType(AgentTokenUsageTypeEnum.MODEL_COMPLETED);
         usage.setId(assistant.getId().toString());
 
         assistant.saveAgentTokenUsageMetadata(usage);
@@ -73,7 +45,6 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
                 .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
                 .eq(AgentMessageEntity::getId, assistant.getId())
                 .update();
-
         return usage;
     }
 }

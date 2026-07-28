@@ -10,6 +10,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMe
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentTokenUsageTypeEnum;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
@@ -59,7 +60,9 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
         }
 
         AgentTokenUsageContentMetadata usage = CastUtils.of(msg.getChatUsage(), AgentTokenUsageContentMetadata.class);
-        usage.setTokenType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
+        usage.setUsageType(AgentTokenUsageTypeEnum.GENERATE_CONVERSATION_NAME);
+        usage.setId(conversation.getId().toString());
+
         assistant.saveAgentTokenUsageMetadata(usage);
 
         agentMessageService.lambdaUpdate()
@@ -76,6 +79,6 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
         content.setId(conversation.getId().toString());
         content.getMetadata().put(NameEnum.FIELD_NAME, conversation.getName());
 
-        return List.of(content);
+        return List.of(content, usage);
     }
 }

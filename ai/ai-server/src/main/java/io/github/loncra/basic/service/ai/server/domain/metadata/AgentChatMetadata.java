@@ -171,7 +171,7 @@ public class AgentChatMetadata implements Serializable {
     public void saveAgentTokenUsageMetadata(AgentTokenUsageContentMetadata tokenUsageMetadata) {
         List<AgentTokenUsageContentMetadata> agentTokenUsageContentMetadata = obtainTokenUsageMetadata();
         Optional<AgentTokenUsageContentMetadata> optional = agentTokenUsageContentMetadata.stream()
-                .filter(s -> s.getTokenType().equals(tokenUsageMetadata.getTokenType()))
+                .filter(s -> s.getUsageType().equals(tokenUsageMetadata.getUsageType()))
                 .findFirst();
         if (optional.isEmpty()) {
             agentTokenUsageContentMetadata.add(tokenUsageMetadata);
