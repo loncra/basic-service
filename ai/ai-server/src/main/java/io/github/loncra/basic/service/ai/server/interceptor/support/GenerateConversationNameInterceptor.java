@@ -20,6 +20,7 @@ import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -70,7 +71,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
                 .eq(AgentMessageEntity::getId, assistant.getId())
                 .update();
 
-        conversation.setName(msg.getTextContent());
+        conversation.setName(StringUtils.defaultIfEmpty(msg.getTextContent(), conversation.getName()));
         conversation.setGenerateName(YesOrNo.Yes);
         agentConversationService.updateById(conversation);
 
