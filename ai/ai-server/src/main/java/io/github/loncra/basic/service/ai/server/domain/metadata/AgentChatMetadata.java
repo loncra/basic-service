@@ -3,8 +3,7 @@ package io.github.loncra.basic.service.ai.server.domain.metadata;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTextContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
@@ -78,11 +77,28 @@ public class AgentChatMetadata implements Serializable {
     @TableField(exist = false)
     private String metadataJson;
 
-
-    public <T extends AgentAssistantMessageContent> T obtainBlock(String id, Class<T> targetClass) {
-        return getContent().stream()
+    public <T extends AbstractAssistantMessageContentMetadata> List<T> obtainBlock(String id) {
+        List<Map<String, Object>> contents = getContent().stream()
                 .filter(block -> Objects.equals(id, block.get(IdEntity.ID_FIELD_NAME)))
-                .map(s -> CastUtils.convertValue(s, targetClass))
+                .toList();
+        List<T> result = new LinkedList<>();
+
+        for (Map<String, Object> content : contents) {
+            String type = Objects.toString(content.get(TypeIdNameMetadata.TYPE_FIELD_NAME), StringUtils.EMPTY);
+            AgentMessageContentTypeEnum typeEnum = ValueEnum.ofEnum(AgentMessageContentTypeEnum.class, type);
+            T block = (T) CastUtils.convertValue(content, typeEnum.getTargetClass());
+            result.add(block);
+        }
+
+        return result;
+
+    }
+
+    public <T extends AbstractAssistantMessageContentMetadata> T obtainBlock(String id, AgentMessageContentTypeEnum type) {
+        return (T) getContent().stream()
+                .filter(block -> Objects.equals(id, block.get(IdEntity.ID_FIELD_NAME)))
+                .filter(block -> block.get(TypeIdNameMetadata.TYPE_FIELD_NAME).equals(type.getValue()))
+                .map(s -> CastUtils.convertValue(s, type.getTargetClass()))
                 .findFirst()
                 .orElse(null);
     }
@@ -91,8 +107,8 @@ public class AgentChatMetadata implements Serializable {
         return obtainMessageContents()
                 .stream()
                 .filter(s -> s.getType().equals(AgentMessageContentTypeEnum.ANSWER.getValue()))
-                .map(s -> CastUtils.cast(s, AgentTextContentMetadata.class))
-                .map(AgentTextContentMetadata::getValue)
+                .map(s -> CastUtils.cast(s, AbstractBlockDeltaContentMetadata.class))
+                .map(AbstractBlockDeltaContentMetadata::getValue)
                 .collect(Collectors.joining());
     }
 
@@ -100,11 +116,11 @@ public class AgentChatMetadata implements Serializable {
         return TextMessageMetadata.ofString(getContent());
     }
 
-    public List<AgentAssistantMessageContent> obtainMessageContents() {
+    public List<AbstractAssistantMessageContentMetadata> obtainMessageContents() {
         if (CollectionUtils.isEmpty(content)) {
             return List.of();
         }
-        List<AgentAssistantMessageContent> result = new LinkedList<>();
+        List<AbstractAssistantMessageContentMetadata> result = new LinkedList<>();
         for (Map<String, Object> block : content) {
             String id = Objects.toString(block.get(TypeIdNameMetadata.ID_FIELD_NAME), StringUtils.EMPTY);
             if (StringUtils.isEmpty(id)) {
@@ -116,7 +132,7 @@ public class AgentChatMetadata implements Serializable {
                 continue;
             }
             AgentMessageContentTypeEnum typeEnum = ValueEnum.ofEnum(AgentMessageContentTypeEnum.class, type);
-            AgentAssistantMessageContent messageContent = obtainBlock(id, typeEnum.getTargetClass());
+            AbstractAssistantMessageContentMetadata messageContent = obtainBlock(id, typeEnum);
             result.add(messageContent);
         }
         return result;
@@ -126,9 +142,10 @@ public class AgentChatMetadata implements Serializable {
         return StringUtils.defaultIfEmpty(contentJson, StringUtils.EMPTY);
     }
 
-    public void updateContent(AgentAssistantMessageContent item) {
+    public void updateContent(AbstractAssistantMessageContentMetadata item) {
         Optional<Map<String, Object>> optional = getContent().stream()
                 .filter(block -> Objects.equals(item.getId(), block.get(IdEntity.ID_FIELD_NAME)))
+                .filter(s -> s.get(TypeIdNameMetadata.TYPE_FIELD_NAME).equals(item.getType()))
                 .findFirst();
         Map<String, Object> block;
         if (optional.isEmpty()) {
@@ -150,7 +167,7 @@ public class AgentChatMetadata implements Serializable {
         if (MapUtils.isEmpty(last)) {
             return null;
         }
-        AgentAssistantMessageContent content = obtainMessageContents().stream()
+        AbstractAssistantMessageContentMetadata content = obtainMessageContents().stream()
                 .filter(s -> StringUtils.isNotEmpty(s.getSseEventId()))
                 .reduce((first, second) -> second)
                 .orElse(null);
@@ -160,7 +177,7 @@ public class AgentChatMetadata implements Serializable {
         return content.getSseEventId();
     }
 
-    public List<AgentTokenUsageContentMetadata> obtainTokenUsageMetadata() {
+    public List<AgentTokenUsageMetadata> obtainTokenUsageMetadata() {
         Object tokenUsage = metadata.get(TOKEN_USAGE_KEY);
         if (Objects.isNull(tokenUsage)) {
             return new LinkedList<>();
@@ -168,21 +185,21 @@ public class AgentChatMetadata implements Serializable {
         return CastUtils.convertValue(tokenUsage, new TypeReference<>() { });
     }
 
-    public void saveAgentTokenUsageMetadata(AgentTokenUsageContentMetadata tokenUsageMetadata) {
-        List<AgentTokenUsageContentMetadata> agentTokenUsageContentMetadata = obtainTokenUsageMetadata();
-        Optional<AgentTokenUsageContentMetadata> optional = agentTokenUsageContentMetadata.stream()
+    public void saveAgentTokenUsageMetadata(AgentTokenUsageMetadata tokenUsageMetadata) {
+        List<AgentTokenUsageMetadata> agentTokenUsageMetadata = obtainTokenUsageMetadata();
+        Optional<AgentTokenUsageMetadata> optional = agentTokenUsageMetadata.stream()
                 .filter(s -> s.getUsageType().equals(tokenUsageMetadata.getUsageType()))
                 .findFirst();
         if (optional.isEmpty()) {
-            agentTokenUsageContentMetadata.add(tokenUsageMetadata);
+            agentTokenUsageMetadata.add(tokenUsageMetadata);
         } else {
-            AgentTokenUsageContentMetadata exist = optional.get();
+            AgentTokenUsageMetadata exist = optional.get();
             exist.setCachedTokens(exist.getCachedTokens() + tokenUsageMetadata.getCachedTokens());
             exist.setInputTokens(exist.getInputTokens() + tokenUsageMetadata.getInputTokens());
             exist.setOutputTokens(exist.getOutputTokens() + tokenUsageMetadata.getOutputTokens());
         }
 
-        metadata.put(TOKEN_USAGE_KEY, agentTokenUsageContentMetadata);
+        metadata.put(TOKEN_USAGE_KEY, agentTokenUsageMetadata);
         metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
     }
 

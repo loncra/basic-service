@@ -13,7 +13,7 @@ import java.io.Serial;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public abstract class AgentAssistantMessageContent extends AgentServerSentEventMessage {
+public abstract class AbstractAssistantMessageContentMetadata extends AbstractAgentServerSentEventMetadata {
 
     @Serial
     private static final long serialVersionUID = 8121665348839272979L;

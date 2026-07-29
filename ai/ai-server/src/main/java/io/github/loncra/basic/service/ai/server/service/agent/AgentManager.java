@@ -11,9 +11,9 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBod
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusChangeContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
@@ -156,7 +156,7 @@ public class AgentManager {
         responseBody.setUserMessageId(userMessage.getId());
         responseBody.setAssistantId(assistantMessage.getId());
 
-        CustomizeContentMetadata metadata = new CustomizeContentMetadata();
+        CustomizeMetadata metadata = new CustomizeMetadata();
         metadata.setId(assistantMessage.getId().toString());
         metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
 
@@ -237,7 +237,7 @@ public class AgentManager {
                 .put(SecurityContext.class, SecurityContextHolder.getContext())
                 .build();
 
-        Flux<AgentAssistantMessageContent> flux =  agent.streamEvents(prompt, context)
+        Flux<AbstractAssistantMessageContentMetadata> flux =  agent.streamEvents(prompt, context)
                 .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
                 .filter(Objects::nonNull)
                 .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
@@ -251,7 +251,7 @@ public class AgentManager {
     }
 
     private void publishStreamEvent(
-            AgentAssistantMessageContent message,
+            AbstractAssistantMessageContentMetadata message,
             AgentMessageEntity assistant
     ) {
         agentSseStreamPublishResolver.publish(assistant.getAgentConversationId().toString(), message);
@@ -266,8 +266,8 @@ public class AgentManager {
     }
 
     private void resolverPostPublish(
-            AbstractAgentEventResolver<AgentAssistantMessageContent> resolver,
-            AgentAssistantMessageContent message,
+            AbstractAgentEventResolver<AbstractAssistantMessageContentMetadata> resolver,
+            AbstractAssistantMessageContentMetadata message,
             AgentMessageEntity assistant
     ) {
         boolean cleanStream = resolver.postPublish(message, assistant);
@@ -276,11 +276,11 @@ public class AgentManager {
         }
     }
 
-    private Flux<AgentAssistantMessageContent> onCompleted(
+    private Flux<AbstractAssistantMessageContentMetadata> onCompleted(
             AgentMessageEntity assistant
     ) {
 
-        CustomizeContentMetadata content = new CustomizeContentMetadata();
+        CustomizeMetadata content = new CustomizeMetadata();
         content.setEventType(AgentMessageContentTypeEnum.STREAM_END);
         content.setId(assistant.getId().toString());
         content.getMetadata().put(SystemConstants.STATUS_TABLE_FIELD_NAME, assistant.getStatus());
@@ -288,13 +288,13 @@ public class AgentManager {
         return Flux.just(content);
     }
 
-    public Flux<AgentAssistantMessageContent> onError(
+    public Flux<AbstractAssistantMessageContentMetadata> onError(
             Throwable t,
             AgentMessageEntity assistant
     ) {
         log.error("助手消息 [{}] 执行失败", assistant.getId(), t);
 
-        CustomizeContentMetadata content = new CustomizeContentMetadata();
+        CustomizeMetadata content = new CustomizeMetadata();
         content.setEventType(AgentMessageContentTypeEnum.ERROR);
         content.setId(assistant.getId().toString());
         content.getMetadata().put(RestResult.DEFAULT_MESSAGE_NAME, t.getMessage());
@@ -307,7 +307,7 @@ public class AgentManager {
                 .eq(AgentMessageEntity::getId, assistant.getId())
                 .update();
 
-        AgentStatusChangeContentMetadata agentEndContent = new AgentStatusChangeContentMetadata();
+        AgentStatusContentMetadata agentEndContent = new AgentStatusContentMetadata();
         agentEndContent.setId(assistant.getAgentConversationId().toString());
         agentEndContent.setStatus(AgentChatStatusEnum.FAILED);
 
@@ -315,11 +315,10 @@ public class AgentManager {
                 .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.FAILED.getValue())
                 .eq(IdEntity::getId, assistant.getAgentConversationId())
                 .update();
-
-        return Flux.just(agentEndContent, content);
+        return Flux.just(agentEndContent, content).concatWith(onCompleted(assistant));
     }
 
-    private Flux<AgentAssistantMessageContent> postStreamEvent(
+    private Flux<AbstractAssistantMessageContentMetadata> postStreamEvent(
             AgentMessageEntity assistant
     ) {
 
@@ -330,7 +329,7 @@ public class AgentManager {
                 );
     }
 
-    private Flux<AgentAssistantMessageContent> convertEventToMessageContent(
+    private Flux<AbstractAssistantMessageContentMetadata> convertEventToMessageContent(
             AgentEvent event,
             AgentMessageEntity assistant,
             RuntimeContext context
@@ -339,7 +338,7 @@ public class AgentManager {
             log.debug("助手消息 [{}] 收到事件 {}", assistant.getId(), CastUtils.convertValue(event, CastUtils.MAP_TYPE_REFERENCE));
         }
 
-        List<AgentAssistantMessageContent> contents = agentEventResolvers.stream()
+        List<AbstractAssistantMessageContentMetadata> contents = agentEventResolvers.stream()
                 .filter(s -> s.isSupport(event))
                 .map(s -> s.process(assistant, event, context))
                 .toList();

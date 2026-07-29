@@ -1,8 +1,7 @@
 package io.github.loncra.basic.service.ai.server.domain.metadata.content;
 
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentTokenUsageTypeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -12,7 +11,7 @@ import java.io.Serial;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class AgentTokenUsageContentMetadata extends AgentAssistantMessageContent {
+public class AgentTokenUsageMetadata extends AbstractAssistantMessageContentMetadata {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -21,7 +20,7 @@ public class AgentTokenUsageContentMetadata extends AgentAssistantMessageContent
     private int outputTokens;
     private int cachedTokens;
 
-    private AgentTokenUsageTypeEnum usageType;
+    private AgentMessageContentTypeEnum usageType;
 
     @Override
     public String getType() {

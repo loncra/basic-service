@@ -4,16 +4,20 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ModelCallEndEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentTokenUsageTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -27,17 +31,22 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
     }
 
     @Override
-    public AgentAssistantMessageContent process(
+    public AbstractAssistantMessageContentMetadata process(
             AgentMessageEntity assistant,
             AgentEvent event,
             RuntimeContext context
     ) {
         ModelCallEndEvent modelCallEndEvent = CastUtils.cast(event);
 
-        AgentTokenUsageContentMetadata usage = CastUtils.of(modelCallEndEvent.getUsage(), AgentTokenUsageContentMetadata.class);
-        usage.setUsageType(AgentTokenUsageTypeEnum.MODEL_COMPLETED);
+        AgentTokenUsageMetadata usage = CastUtils.of(modelCallEndEvent.getUsage(), AgentTokenUsageMetadata.class);
+        usage.setUsageType(AgentMessageContentTypeEnum.MODEL_CALL_END);
         usage.setId(assistant.getId().toString());
 
+        List<AbstractAssistantMessageContentMetadata> exist = assistant.obtainBlock(modelCallEndEvent.getReplyId());
+        if (exist.size() == BigDecimal.ONE.intValue()) {
+            AgentMessageContentTypeEnum usageType = ValueEnum.ofEnum(AgentMessageContentTypeEnum.class, exist.getLast().getType());
+            usage.setUsageType(usageType);
+        }
         assistant.saveAgentTokenUsageMetadata(usage);
         assistant.setStatus(AgentChatStatusEnum.COMPLETED);
         agentMessageService.lambdaUpdate()

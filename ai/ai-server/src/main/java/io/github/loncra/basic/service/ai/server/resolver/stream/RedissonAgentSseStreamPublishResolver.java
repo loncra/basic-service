@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.resolver.stream;
 
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -37,7 +37,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
     @Override
     public void doPublish(
             String conversationId,
-            AgentAssistantMessageContent content
+            AbstractAssistantMessageContentMetadata content
     ) {
         RStream<String, String> stream = getStream(conversationId);
 
@@ -80,7 +80,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
 
         return getAgentAssistantMessageContents(assistant.getLastSseEventId(), stream)
                 .stream()
-                .map(AgentAssistantMessageContent::toServerSentEvent)
+                .map(AbstractAssistantMessageContentMetadata::toServerSentEvent)
                 .toList();
     }
 
@@ -93,7 +93,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
     }
 
     @Override
-    protected List<AgentAssistantMessageContent> getStreamContentList(
+    protected List<AbstractAssistantMessageContentMetadata> getStreamContentList(
             String conversationId,
             String lastSseId
     ) {
@@ -105,7 +105,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
         return getAgentAssistantMessageContents(lastSseId, stream);
     }
 
-    private List<AgentAssistantMessageContent> getAgentAssistantMessageContents(
+    private List<AbstractAssistantMessageContentMetadata> getAgentAssistantMessageContents(
             String lastSseId,
             RStream<String, String> stream
     ) {
@@ -114,7 +114,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
                 StreamRangeArgs.startIdExclusive(streamMessageId).endId(StreamMessageId.MAX)
         );
 
-        List<AgentAssistantMessageContent> streamData = new LinkedList<>();
+        List<AbstractAssistantMessageContentMetadata> streamData = new LinkedList<>();
         for (Map.Entry<StreamMessageId, Map<String, String>> entry : ranged.entrySet()) {
             String data = entry.getValue().get(RestResult.DEFAULT_DATA_NAME);
             if (StringUtils.isEmpty(data)) {
@@ -123,7 +123,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
             Map<String, Object> dataMap = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(data, CastUtils.MAP_TYPE_REFERENCE));
             String type = Objects.toString(dataMap.get(TypeIdNameMetadata.TYPE_FIELD_NAME), StringUtils.EMPTY);
             AgentMessageContentTypeEnum typeEnum = ValueEnum.ofEnum(AgentMessageContentTypeEnum.class, type);
-            AgentAssistantMessageContent messageContent = CastUtils.convertValue(dataMap, typeEnum.getTargetClass());
+            AbstractAssistantMessageContentMetadata messageContent = CastUtils.convertValue(dataMap, typeEnum.getTargetClass());
             messageContent.setSseEventId(entry.getKey().toString());
             streamData.add(messageContent);
         }

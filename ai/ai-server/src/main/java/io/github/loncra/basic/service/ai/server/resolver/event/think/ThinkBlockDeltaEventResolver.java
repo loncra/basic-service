@@ -1,17 +1,16 @@
-package io.github.loncra.basic.service.ai.server.resolver.event;
+package io.github.loncra.basic.service.ai.server.resolver.event.think;
 
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ThinkingBlockDeltaEvent;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.basic.service.ai.server.resolver.event.AbstractBlockDeltaContentResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class ThinkingBlockDeltaEventResolver extends AbstractAgentTextBlockDeltaContentResolver {
-
+public class ThinkBlockDeltaEventResolver extends AbstractBlockDeltaContentResolver {
 
     @Override
     public boolean isSupport(AgentEvent event) {
@@ -24,13 +23,13 @@ public class ThinkingBlockDeltaEventResolver extends AbstractAgentTextBlockDelta
     }
 
     @Override
-    protected AgentMessageContentTypeEnum getTextType() {
-        return AgentMessageContentTypeEnum.THINK;
+    protected String getBlockId(AgentEvent event) {
+        ThinkingBlockDeltaEvent delta = CastUtils.cast(event);
+        return delta.getReplyId();
     }
 
     @Override
-    protected String getReplyId(AgentEvent event) {
-        ThinkingBlockDeltaEvent delta = CastUtils.cast(event);
-        return AgentMessageContentTypeEnum.THINK.getValue() + CacheProperties.DEFAULT_SEPARATOR + delta.getReplyId();
+    protected AgentMessageContentTypeEnum getDeltaType() {
+        return AgentMessageContentTypeEnum.THINK;
     }
 }

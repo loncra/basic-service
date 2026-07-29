@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.metadata.content;
 
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import lombok.Data;
@@ -12,7 +12,7 @@ import java.io.Serial;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class AgentStatusChangeContentMetadata extends AgentAssistantMessageContent {
+public class AgentStatusContentMetadata extends AbstractAssistantMessageContentMetadata {
 
     @Serial
     private static final long serialVersionUID = 5952053464326295520L;

@@ -14,7 +14,7 @@ import java.io.Serial;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public abstract class AgentServerSentEventMessage extends IdEntity<String> implements ChatMessageContent {
+public abstract class AbstractAgentServerSentEventMetadata extends IdEntity<String> implements ChatMessageContent {
 
     @Serial
     private static final long serialVersionUID = 2730992177762541731L;

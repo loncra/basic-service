@@ -34,5 +34,4 @@ public class AiStartupAutoConfig {
         return new RedissonCaptchaStorageManager(redissonClient, captchaProperties);
     }
 
-
 }

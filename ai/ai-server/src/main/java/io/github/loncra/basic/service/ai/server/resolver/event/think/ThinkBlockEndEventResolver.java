@@ -1,9 +1,9 @@
-package io.github.loncra.basic.service.ai.server.resolver.event;
+package io.github.loncra.basic.service.ai.server.resolver.event.think;
 
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ThinkingBlockEndEvent;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentTextEndContentResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import org.springframework.stereotype.Component;
 
@@ -11,14 +11,14 @@ import org.springframework.stereotype.Component;
 public class ThinkBlockEndEventResolver extends AbstractAgentTextEndContentResolver {
 
     @Override
-    protected AgentMessageContentTypeEnum getTextType() {
-        return AgentMessageContentTypeEnum.THINK;
+    protected String getBlockId(AgentEvent event) {
+        ThinkingBlockEndEvent end = CastUtils.cast(event);
+        return end.getReplyId();
     }
 
     @Override
-    protected String getReplyId(AgentEvent event) {
-        ThinkingBlockEndEvent endEvent = CastUtils.cast(event);
-        return AgentMessageContentTypeEnum.THINK.getValue() + CacheProperties.DEFAULT_SEPARATOR + endEvent.getReplyId();
+    protected AgentMessageContentTypeEnum getEndType() {
+        return AgentMessageContentTypeEnum.THINK;
     }
 
     @Override

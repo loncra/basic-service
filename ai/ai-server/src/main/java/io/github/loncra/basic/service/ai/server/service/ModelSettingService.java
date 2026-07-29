@@ -1,11 +1,10 @@
 package io.github.loncra.basic.service.ai.server.service;
 
 import io.agentscope.core.ReActAgent;
-import io.agentscope.core.model.Model;
-import io.agentscope.core.tool.Toolkit;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.dao.ModelSettingDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
@@ -37,7 +36,7 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
 
     private final Map<Long, ReActAgent> agentCache = new ConcurrentHashMap<>();
 
-    public Model getModel(
+    public ModelResolverMetadata getModelMetadata(
             ModelSettingMetadata model,
             Map<String, Object> options
     ) {
@@ -73,10 +72,12 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
             ModelSettingMetadata model,
             Map<String, Object> metadata
     ) {
+        ModelResolverMetadata resolverMetadata = getModelMetadata(model, metadata);
+
         return ReActAgent.builder()
                 .name(model.getManufacturer().getName() + CacheProperties.DEFAULT_SEPARATOR + model.getName())
-                .model(getModel(model, metadata))
-                .toolkit(new Toolkit())
+                .model(resolverMetadata.getModel())
+                .toolkit(resolverMetadata.getToolkit())
                 .build();
     }
 }

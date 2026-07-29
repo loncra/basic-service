@@ -2,8 +2,8 @@ package io.github.loncra.basic.service.ai.server.resolver.stream;
 
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.framework.commons.CastUtils;
@@ -34,7 +34,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
 
     public void publish(
             String conversationId,
-            AgentAssistantMessageContent content
+            AbstractAssistantMessageContentMetadata content
     ) {
         doPublish(conversationId, content);
         if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(content.getType())) {
@@ -44,7 +44,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
 
     protected abstract void doPublish(
             String conversationId,
-            AgentAssistantMessageContent content
+            AbstractAssistantMessageContentMetadata content
     );
 
     @Override
@@ -137,14 +137,14 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
                 return;
             }
 
-            List<AgentAssistantMessageContent> batch = getStreamContentList(conversationId, sseLastId.get());
+            List<AbstractAssistantMessageContentMetadata> batch = getStreamContentList(conversationId, sseLastId.get());
             if (CollectionUtils.isEmpty(batch)) {
                 scheduleNextPoll(sink, conversationId, sseLastId, nextPollRef);
                 return;
             }
             String currentLast = sseLastId.get();
             String maxInBatch = currentLast;
-            for (AgentAssistantMessageContent content : batch) {
+            for (AbstractAssistantMessageContentMetadata content : batch) {
                 if (sink.isCancelled()) {
                     return;
                 }
@@ -164,8 +164,8 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
                     return;
                 }
                 else if (AgentMessageContentTypeEnum.ERROR.getValue().equals(serverSentEvent.event()) && Objects.nonNull(serverSentEvent.data())) {
-                    CustomizeContentMetadata metadata = SystemException.convertSupplier(
-                            () -> CastUtils.getObjectMapper().readValue(serverSentEvent.data(), CustomizeContentMetadata.class)
+                    CustomizeMetadata metadata = SystemException.convertSupplier(
+                            () -> CastUtils.getObjectMapper().readValue(serverSentEvent.data(), CustomizeMetadata.class)
                     );
                     String error = metadata.getMetadata().getOrDefault(RestResult.DEFAULT_MESSAGE_NAME, ErrorCodeException.DEFAULT_ERROR_MESSAGE).toString();
                     sink.error(new ServiceException(error));
@@ -186,5 +186,5 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
             String maxInBatch
     );
 
-    protected abstract List<AgentAssistantMessageContent> getStreamContentList(String conversationId, String lastSseId);
+    protected abstract List<AbstractAssistantMessageContentMetadata> getStreamContentList(String conversationId, String lastSseId);
 }

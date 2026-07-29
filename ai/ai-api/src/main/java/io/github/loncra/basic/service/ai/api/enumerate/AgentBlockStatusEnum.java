@@ -9,6 +9,10 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum AgentBlockStatusEnum implements NameValueEnum<String> {
 
+    READY("准备完成", "ready"),
+
+    PENDING("待执行",  "pending"),
+
     RUNNING("进行中", "running"),
 
     DONE("完成", "done"),

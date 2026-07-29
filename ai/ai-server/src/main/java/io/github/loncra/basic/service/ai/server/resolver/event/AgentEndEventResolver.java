@@ -5,8 +5,8 @@ import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusChangeContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
@@ -26,7 +26,7 @@ public class AgentEndEventResolver implements AgentEventResolver {
     }
 
     @Override
-    public AgentAssistantMessageContent process(
+    public AbstractAssistantMessageContentMetadata process(
             AgentMessageEntity assistant,
             AgentEvent event,
             RuntimeContext context
@@ -36,10 +36,10 @@ public class AgentEndEventResolver implements AgentEventResolver {
                 .eq(IdEntity::getId, assistant.getAgentConversationId())
                 .update();
 
-        AgentStatusChangeContentMetadata agentStatusChangeContentMetadata = new AgentStatusChangeContentMetadata();
-        agentStatusChangeContentMetadata.setId(assistant.getAgentConversationId().toString());
-        agentStatusChangeContentMetadata.setStatus(AgentChatStatusEnum.COMPLETED);
+        AgentStatusContentMetadata agentStatusContentMetadata = new AgentStatusContentMetadata();
+        agentStatusContentMetadata.setId(assistant.getAgentConversationId().toString());
+        agentStatusContentMetadata.setStatus(AgentChatStatusEnum.COMPLETED);
 
-        return agentStatusChangeContentMetadata;
+        return agentStatusContentMetadata;
     }
 }

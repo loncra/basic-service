@@ -1,8 +1,8 @@
 package io.github.loncra.basic.service.ai.server.resolver;
 
 import io.agentscope.core.model.GenerateOptions;
-import io.agentscope.core.model.Model;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import org.apache.commons.collections4.MapUtils;
 
@@ -13,8 +13,7 @@ public interface ModelResolver {
 
     boolean support(ModelSettingMetadata model);
 
-    Model resolve(ModelSettingMetadata model, Map<String, Object> options);
-
+    ModelResolverMetadata resolve(ModelSettingMetadata model, Map<String, Object> options);
 
     /**
      * 合并默认值与覆盖值，生成目标 Options 对象。

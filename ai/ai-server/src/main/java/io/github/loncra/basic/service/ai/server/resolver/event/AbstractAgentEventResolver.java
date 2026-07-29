@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.ai.server.resolver.event;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
@@ -12,7 +12,7 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Setter(onMethod_ = @Autowired)
-public abstract class AbstractAgentEventResolver<T extends AgentAssistantMessageContent> implements AgentEventResolver {
+public abstract class AbstractAgentEventResolver<T extends AbstractAssistantMessageContentMetadata> implements AgentEventResolver {
 
     //private AgentSseStreamPublishResolver agentSseStreamPublishResolver;
 

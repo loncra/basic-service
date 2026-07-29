@@ -1,7 +1,6 @@
-package io.github.loncra.basic.service.ai.server.domain.metadata.content;
+package io.github.loncra.basic.service.ai.server.domain.metadata;
 
 import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -12,7 +11,7 @@ import java.time.Instant;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public abstract class RunningContentMetadata extends AgentAssistantMessageContent {
+public abstract class AbstractBlockRunningContentMetadata extends AbstractAssistantMessageContentMetadata {
 
     @Serial
     private static final long serialVersionUID = -3307675767818133614L;
@@ -22,4 +21,5 @@ public abstract class RunningContentMetadata extends AgentAssistantMessageConten
     private Instant creationTime;
 
     private Instant endTime;
+
 }

@@ -6,11 +6,10 @@ import io.agentscope.core.message.Msg;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentAssistantMessageContent;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentTokenUsageTypeEnum;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
@@ -43,7 +42,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
     private final ConversationConfig conversationConfig;
 
     @Override
-    public List<AgentAssistantMessageContent> postEventsStream(AgentMessageEntity assistant) {
+    public List<AbstractAssistantMessageContentMetadata> postEventsStream(AgentMessageEntity assistant) {
         AgentConversationEntity conversation = agentConversationService.get(assistant.getAgentConversationId());
         if (Objects.isNull(conversation) || conversation.getGenerateName().toBoolean()) {
             return List.of();
@@ -60,8 +59,8 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
             return List.of();
         }
 
-        AgentTokenUsageContentMetadata usage = CastUtils.of(msg.getChatUsage(), AgentTokenUsageContentMetadata.class);
-        usage.setUsageType(AgentTokenUsageTypeEnum.GENERATE_CONVERSATION_NAME);
+        AgentTokenUsageMetadata usage = CastUtils.of(msg.getChatUsage(), AgentTokenUsageMetadata.class);
+        usage.setUsageType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
         usage.setId(conversation.getId().toString());
 
         assistant.saveAgentTokenUsageMetadata(usage);
@@ -75,7 +74,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
         conversation.setGenerateName(YesOrNo.Yes);
         agentConversationService.updateById(conversation);
 
-        CustomizeContentMetadata content = new CustomizeContentMetadata();
+        CustomizeMetadata content = new CustomizeMetadata();
         content.setEventType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
         content.setId(conversation.getId().toString());
         content.getMetadata().put(NameEnum.FIELD_NAME, conversation.getName());
