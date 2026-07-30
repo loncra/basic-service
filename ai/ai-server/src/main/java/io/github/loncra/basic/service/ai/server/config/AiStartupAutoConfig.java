@@ -1,5 +1,7 @@
 package io.github.loncra.basic.service.ai.server.config;
 
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.extensions.mysql.MysqlDistributedStore;
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
 import io.github.loncra.basic.service.resource.api.service.ResourceCaptchaVerificationService;
 import io.github.loncra.framework.captcha.CaptchaProperties;
@@ -10,6 +12,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.openfeign.FeignClientsConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.sql.DataSource;
 
 /**
  * 服务配置
@@ -32,6 +36,16 @@ public class AiStartupAutoConfig {
             CaptchaProperties captchaProperties
     ) {
         return new RedissonCaptchaStorageManager(redissonClient, captchaProperties);
+    }
+
+    @Bean
+    public AgentStateStore agentStateStore(MysqlDistributedStore mysqlDistributedStore) {
+        return mysqlDistributedStore.agentStateStore();
+    }
+
+    @Bean
+    public MysqlDistributedStore mysqlDistributedStore(DataSource dataSource) {
+        return MysqlDistributedStore.create(dataSource);
     }
 
 }

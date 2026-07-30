@@ -49,7 +49,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
         }
         AgentMessageEntity userMessage = agentMessageService.get(assistant.getParentId());
 
-        ReActAgent agent = modelSettingService.getAgent(assistant.getModel());
+        ReActAgent agent = modelSettingService.getRcActAgent(assistant.getModel());
         RuntimeContext context = RuntimeContext.builder()
                 .put(SecurityContext.class, SecurityContextHolder.getContext())
                 .build();

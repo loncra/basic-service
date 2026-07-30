@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.harness.agent.HarnessAgent;
 import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
@@ -27,6 +27,7 @@ import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
+import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -40,6 +41,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
@@ -226,28 +228,36 @@ public class AgentManager {
     }
 
     public void execute(AgentMessageEntity assistant) {
-        AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
-        String prompt = TextMessageMetadata.ofString(userMessage.getContent());
-
-        ReActAgent agent = modelSettingService.getAgent(assistant.getModel(), userMessage.getMetadata());
 
         RuntimeContext context = RuntimeContext.builder()
-                .userId(assistant.getPrincipal())
+                .userId(Strings.CS.replace(assistant.getPrincipal(), CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE))
                 .sessionId(String.valueOf(assistant.getAgentConversationId()))
                 .put(SecurityContext.class, SecurityContextHolder.getContext())
                 .build();
+        Flux<AbstractAssistantMessageContentMetadata> flux;
+        try {
+            AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
+            String prompt = TextMessageMetadata.ofString(userMessage.getContent());
+            HarnessAgent agent = modelSettingService.getHarnessAgent(assistant.getModel(), userMessage.getMetadata());
 
-        Flux<AbstractAssistantMessageContentMetadata> flux =  agent.streamEvents(prompt, context)
-                .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
-                .filter(Objects::nonNull)
-                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
-                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))))
-                .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistant))));
+            flux = agent.streamEvents(prompt, context)
+                    .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
+                    .filter(Objects::nonNull)
+                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
+                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))))
+                    .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistant))));
+        } catch (Exception e) {
+            log.error("助手消息 [{}] 在执行应答前出现异常", assistant.getId(), e);
+            // 直接走 onError 兜底，内部会发布 ERROR + STREAM_END
+            flux = Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView,
+                    () -> onError(e, assistant)));
+        }
 
         ReactorContextUtils.captureContext(flux).subscribe(
                 s -> publishStreamEvent(s, assistant),
                 error -> onError(error, assistant)
         );
+
     }
 
     private void publishStreamEvent(
@@ -325,7 +335,6 @@ public class AgentManager {
         return Flux.fromIterable(agentStreamEventInterceptors)
                 .concatMap(interceptor -> Flux.fromIterable(interceptor.postEventsStream(assistant))
                         .doOnError(e -> log.error("助手消息 [{}] 拦截器 [{}] 执行失败", assistant.getId(), interceptor.getClass().getSimpleName(), e))
-                        .onErrorResume(e -> Flux.empty())
                 );
     }
 

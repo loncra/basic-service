@@ -1,12 +1,17 @@
 package io.github.loncra.basic.service.ai.server.service;
 
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
+import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.dao.ModelSettingDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
 import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,7 +39,13 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
 
     private final List<ModelResolver> modelResolvers;
 
-    private final Map<Long, ReActAgent> agentCache = new ConcurrentHashMap<>();
+    private final Map<Long, HarnessAgent> harnessAgentCache = new ConcurrentHashMap<>();
+
+    private final Map<Long, ReActAgent> reActAgentCache = new ConcurrentHashMap<>();
+
+    private final AiAppConfig aiAppConfig;
+
+    private final AgentStateStore agentStateStore;
 
     public ModelResolverMetadata getModelMetadata(
             ModelSettingMetadata model,
@@ -48,27 +59,59 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
                 .resolve(model, options);
     }
 
-    public ReActAgent getAgent(ModelSettingMetadata model) {
-        return getAgent(model, null);
+    public ReActAgent getRcActAgent(ModelSettingMetadata model) {
+        return getRcActAgent(model, null);
     }
 
-    public ReActAgent getAgent(
+    public ReActAgent getRcActAgent(
             ModelSettingMetadata model,
             Map<String, Object> metadata
     ) {
-        return agentCache.computeIfAbsent(model.getId(), k -> createAgent(model, metadata));
+        return reActAgentCache.computeIfAbsent(model.getId(), k -> createReActAgent(model, metadata));
+    }
+
+    public HarnessAgent getHarnessAgent(ModelSettingMetadata model) {
+        return getHarnessAgent(model, null);
+    }
+
+    public HarnessAgent getHarnessAgent(
+            ModelSettingMetadata model,
+            Map<String, Object> metadata
+    ) {
+        return harnessAgentCache.computeIfAbsent(model.getId(), k -> createHarnessAgent(model, metadata));
     }
 
     @Override
     public int updateById(ModelSettingEntity entity) {
-        ReActAgent agent = agentCache.remove(entity.getId());
-        if (Objects.nonNull(agent)) {
-            agent.close();
+        HarnessAgent harnessAgent = harnessAgentCache.remove(entity.getId());
+        if (Objects.nonNull(harnessAgent)) {
+            harnessAgent.close();
+        }
+
+        ReActAgent reActAgent = reActAgentCache.remove(entity.getId());
+        if (Objects.nonNull(reActAgent)) {
+            reActAgent.close();
         }
         return super.updateById(entity);
     }
 
-    private ReActAgent createAgent(
+    private HarnessAgent createHarnessAgent(
+            ModelSettingMetadata model,
+            Map<String, Object> metadata
+    ) {
+        ModelResolverMetadata resolverMetadata = getModelMetadata(model, metadata);
+        CompactionConfig.builder().build();
+        return HarnessAgent.builder()
+                .name(HarnessAgent.class.getSimpleName() + CastUtils.UNDERSCORE + model.getId())
+                .model(resolverMetadata.getModel())
+                .toolkit(resolverMetadata.getToolkit())
+                .stateStore(agentStateStore)
+                .compaction(aiAppConfig.toCompactionConfig())
+                .workspace(aiAppConfig.getWorkspacePath())
+                .build();
+    }
+
+    private ReActAgent createReActAgent(
             ModelSettingMetadata model,
             Map<String, Object> metadata
     ) {
@@ -77,7 +120,7 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
         return ReActAgent.builder()
                 .name(model.getManufacturer().getName() + CacheProperties.DEFAULT_SEPARATOR + model.getName())
                 .model(resolverMetadata.getModel())
-                .toolkit(resolverMetadata.getToolkit())
+                //.toolkit(resolverMetadata.getToolkit())
                 .build();
     }
 }

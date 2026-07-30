@@ -16,8 +16,6 @@ public class ThinkBlockContentMetadata extends AbstractBlockDeltaContentMetadata
     @Serial
     private static final long serialVersionUID = 7549293785611608629L;
 
-    private ToolCallBlockContentMetadata toolCall;
-
     @Override
     public String getType() {
         return AgentMessageContentTypeEnum.THINK.getValue();

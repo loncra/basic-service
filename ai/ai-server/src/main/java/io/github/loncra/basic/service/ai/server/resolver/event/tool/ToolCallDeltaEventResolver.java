@@ -4,7 +4,6 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ToolCallDeltaEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.ThinkBlockContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
@@ -12,8 +11,6 @@ import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -43,25 +40,18 @@ public class ToolCallDeltaEventResolver extends AbstractAgentEventResolver<ToolC
             AgentMessageEntity assistant
     ) {
         ToolCallDeltaEvent event = CastUtils.cast(content.getEventSource());
-        ThinkBlockContentMetadata metadata = assistant.obtainBlock(event.getReplyId(), AgentMessageContentTypeEnum.THINK);
-        if (Objects.nonNull(metadata) && Objects.nonNull(metadata.getToolCall()) && metadata.getToolCall().getId().equals(content.getId())) {
-            String current = StringUtils.defaultIfEmpty(metadata.getToolCall().getValue(), StringUtils.EMPTY);
-            String delta = StringUtils.defaultIfEmpty(content.getValue(), StringUtils.EMPTY);
-
-            metadata.getToolCall().setValue(current + delta);
-            assistant.updateContent(metadata);
-        } else {
-
-            ToolCallBlockContentMetadata toolCallBlockContent = assistant.obtainBlock(event.getToolCallId(), AgentMessageContentTypeEnum.TOOL_CALL);
-            if (Objects.isNull(toolCallBlockContent)) {
-                return super.postPublish(content, assistant);
-            }
-            String current = StringUtils.defaultIfEmpty(metadata.getToolCall().getValue(), StringUtils.EMPTY);
-            String delta = StringUtils.defaultIfEmpty(content.getValue(), StringUtils.EMPTY);
-            toolCallBlockContent.setValue(current + delta);
-            assistant.updateContent(toolCallBlockContent);
-        }
+        ToolCallBlockContentMetadata toolCallBlock = assistant.obtainBlock(event.getToolCallId(), AgentMessageContentTypeEnum.TOOL_CALL);
+        appendDelta(content, toolCallBlock);
 
         return super.postPublish(content, assistant);
+    }
+
+    private static void appendDelta(
+            ToolCallBlockContentMetadata content,
+            ToolCallBlockContentMetadata toolCallBlock
+    ) {
+        String current = StringUtils.defaultIfEmpty(toolCallBlock.getValue(), StringUtils.EMPTY);
+        String delta = StringUtils.defaultIfEmpty(content.getValue(), StringUtils.EMPTY);
+        toolCallBlock.setValue(current + delta);
     }
 }

@@ -2,6 +2,8 @@ package io.github.loncra.basic.service.monolith.config;
 
 import com.aliyun.dysmsapi20170525.Client;
 import com.aliyun.teaopenapi.models.Config;
+import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.extensions.mysql.MysqlDistributedStore;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.auth.api.service.web.SystemUserServiceWebClient;
 import io.github.loncra.basic.service.commons.config.AlibabaCloudConfig;
@@ -61,6 +63,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.support.WebClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
+import javax.sql.DataSource;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
@@ -258,5 +261,15 @@ public class MonolithStartupAutoConfig {
                 return CaptchaVerificationInterceptor.super.preVerify(request, response);
             }
         };
+    }
+
+    @Bean
+    public AgentStateStore agentStateStore(MysqlDistributedStore mysqlDistributedStore) {
+        return mysqlDistributedStore.agentStateStore();
+    }
+
+    @Bean
+    public MysqlDistributedStore mysqlDistributedStore(DataSource dataSource) {
+        return MysqlDistributedStore.create(dataSource);
     }
 }

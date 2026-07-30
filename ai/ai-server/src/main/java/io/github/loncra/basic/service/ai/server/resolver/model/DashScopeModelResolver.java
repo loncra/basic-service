@@ -4,14 +4,12 @@ import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
-import io.agentscope.extensions.model.dashscope.tool.DashScopeMultiModalTool;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.xml.BeanDefinitionParserDelegate;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -42,6 +40,7 @@ public class DashScopeModelResolver implements ModelResolver {
             model =  DashScopeChatModel.builder()
                     .apiKey(aiAppConfig.getKey().get(MODEL_NAME))
                     .enableThinking(false)
+                    .enableThinking(false)
                     .modelName(modelSettingMetadata.getModel())
                     .build();
         } else {
@@ -55,6 +54,7 @@ public class DashScopeModelResolver implements ModelResolver {
             model = DashScopeChatModel.builder()
                     .apiKey(aiAppConfig.getKey().get(MODEL_NAME))
                     .modelName(modelSettingMetadata.getModel())
+                    .enableSearch(true)
                     .enableThinking(Objects.nonNull(generateOptions.getThinkingBudget()))
                     .defaultOptions(generateOptions)
                     .build();
@@ -62,10 +62,10 @@ public class DashScopeModelResolver implements ModelResolver {
         modelResolverMetadata.setModel(model);
         Toolkit defaults = new Toolkit();
 
-        defaults.registration()
+        /*defaults.registration()
                 .tool(new DashScopeMultiModalTool(aiAppConfig.getKey().get(MODEL_NAME)))
                 .group(BeanDefinitionParserDelegate.DEFAULT_VALUE)
-                .apply();
+                .apply();*/
         modelResolverMetadata.setToolkit(defaults);
 
         return modelResolverMetadata;

@@ -1,16 +1,20 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
+import io.agentscope.core.state.AgentStateStore;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
 import io.github.loncra.basic.service.ai.server.dao.agent.AgentConversationDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +39,8 @@ import java.util.Objects;
 public class AgentConversationService extends BasicService<AgentConversationDao, AgentConversationEntity> {
 
     private final ConversationConfig conversationConfig;
+
+    private final AgentStateStore agentStateStore;
 
     public AgentConversationEntity getDefaultWorkspace(String getPrincipal) {
         return lambdaQuery().eq(AgentConversationEntity::getPrincipal, getPrincipal)
@@ -89,6 +95,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
     public int deleteByEntity(AgentConversationEntity entity) {
         SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
         lambdaQuery().eq(AgentConversationEntity::getParentId, entity.getId()).list().forEach(this::deleteByEntity);
+        agentStateStore.delete(Strings.CS.replace(entity.getPrincipal(), CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE), entity.getId().toString());
         return super.deleteByEntity(entity);
     }
 

@@ -62,7 +62,6 @@ public class AgentConsumer {
             agentManager.execute(assistant);
             channel.basicAck(tag, false);
         } catch (Exception e) {
-            agentManager.onError(e, assistant);
             channel.basicNack(tag, false, false);
         }
     }

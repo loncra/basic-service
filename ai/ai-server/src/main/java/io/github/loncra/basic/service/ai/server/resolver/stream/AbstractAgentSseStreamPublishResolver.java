@@ -3,15 +3,9 @@ package io.github.loncra.basic.service.ai.server.resolver.stream;
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
-import io.github.loncra.framework.commons.CastUtils;
-import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
-import io.github.loncra.framework.commons.exception.ErrorCodeException;
-import io.github.loncra.framework.commons.exception.ServiceException;
-import io.github.loncra.framework.commons.exception.SystemException;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -163,14 +157,14 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
                     sink.complete();
                     return;
                 }
-                else if (AgentMessageContentTypeEnum.ERROR.getValue().equals(serverSentEvent.event()) && Objects.nonNull(serverSentEvent.data())) {
+                /*else if (AgentMessageContentTypeEnum.ERROR.getValue().equals(serverSentEvent.event()) && Objects.nonNull(serverSentEvent.data())) {
                     CustomizeMetadata metadata = SystemException.convertSupplier(
                             () -> CastUtils.getObjectMapper().readValue(serverSentEvent.data(), CustomizeMetadata.class)
                     );
                     String error = metadata.getMetadata().getOrDefault(RestResult.DEFAULT_MESSAGE_NAME, ErrorCodeException.DEFAULT_ERROR_MESSAGE).toString();
                     sink.error(new ServiceException(error));
                     return;
-                }
+                }*/
             }
             sseLastId.set(maxInBatch);
             scheduleNextPoll(sink, conversationId, sseLastId, nextPollRef);
