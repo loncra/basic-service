@@ -1,6 +1,10 @@
 package io.github.loncra.basic.service.ai.server.service;
 
 import io.agentscope.core.ReActAgent;
+import io.agentscope.core.permission.PermissionBehavior;
+import io.agentscope.core.permission.PermissionContextState;
+import io.agentscope.core.permission.PermissionMode;
+import io.agentscope.core.permission.PermissionRule;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
@@ -105,6 +109,7 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
                 .name(HarnessAgent.class.getSimpleName() + CastUtils.UNDERSCORE + model.getId())
                 .model(resolverMetadata.getModel())
                 .toolkit(resolverMetadata.getToolkit())
+                .sysPrompt(aiAppConfig.getSystemPrompt())
                 .stateStore(agentStateStore)
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath())

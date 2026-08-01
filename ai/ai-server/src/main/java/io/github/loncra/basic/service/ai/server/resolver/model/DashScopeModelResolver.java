@@ -39,7 +39,7 @@ public class DashScopeModelResolver implements ModelResolver {
         if (Objects.isNull(options)) {
             model =  DashScopeChatModel.builder()
                     .apiKey(aiAppConfig.getKey().get(MODEL_NAME))
-                    .enableThinking(false)
+                    .enableSearch(false)
                     .enableThinking(false)
                     .modelName(modelSettingMetadata.getModel())
                     .build();

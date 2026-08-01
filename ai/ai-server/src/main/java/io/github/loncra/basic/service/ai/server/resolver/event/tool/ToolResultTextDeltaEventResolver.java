@@ -2,32 +2,33 @@ package io.github.loncra.basic.service.ai.server.resolver.event.tool;
 
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
-import io.agentscope.core.event.ToolResultDataDeltaEvent;
+import io.agentscope.core.event.ToolResultTextDeltaEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.framework.commons.CastUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ToolResultDataDeltaEventResolver extends AbstractAgentEventResolver<ToolCallBlockContentMetadata> {
+public class ToolResultTextDeltaEventResolver extends AbstractAgentEventResolver<ToolCallBlockContentMetadata> {
 
     @Override
     protected ToolCallBlockContentMetadata createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
-        ToolResultDataDeltaEvent deltaEvent = CastUtils.cast(event);
+        ToolResultTextDeltaEvent deltaEvent = CastUtils.cast(event);
         ToolCallBlockContentMetadata result = new ToolCallBlockContentMetadata();
         result.setId(deltaEvent.getToolCallId());
-        result.getOutputParts().add(deltaEvent.getData());
+        result.setOutputText(deltaEvent.getDelta());
         return result;
     }
 
     @Override
     public boolean isSupport(AgentEvent event) {
-        return ToolResultDataDeltaEvent.class.isAssignableFrom(event.getClass());
+        return ToolResultTextDeltaEvent.class.isAssignableFrom(event.getClass());
     }
 
     @Override
@@ -35,13 +36,19 @@ public class ToolResultDataDeltaEventResolver extends AbstractAgentEventResolver
             ToolCallBlockContentMetadata content,
             AgentMessageEntity assistant
     ) {
-        ToolResultDataDeltaEvent event = CastUtils.cast(content.getEventSource());
+        ToolResultTextDeltaEvent event = CastUtils.cast(content.getEventSource());
         ToolCallBlockContentMetadata toolCallBlock = assistant.obtainBlock(event.getToolCallId(), AgentMessageContentTypeEnum.TOOL_CALL);
-        toolCallBlock.getOutputParts().addAll(content.getOutputParts());
-
+        appendDelta(content, toolCallBlock);
         assistant.updateContent(toolCallBlock);
-        updateAssistantContent(assistant);
+        return false;
+    }
 
-        return true;
+    private static void appendDelta(
+            ToolCallBlockContentMetadata content,
+            ToolCallBlockContentMetadata toolCallBlock
+    ) {
+        String current = StringUtils.defaultIfEmpty(toolCallBlock.getOutputText(), StringUtils.EMPTY);
+        String delta = StringUtils.defaultIfEmpty(content.getOutputText(), StringUtils.EMPTY);
+        toolCallBlock.setValue(current + delta);
     }
 }

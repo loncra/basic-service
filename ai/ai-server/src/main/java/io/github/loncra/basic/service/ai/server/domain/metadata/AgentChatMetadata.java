@@ -109,7 +109,8 @@ public class AgentChatMetadata implements Serializable {
                 .filter(s -> s.getType().equals(AgentMessageContentTypeEnum.ANSWER.getValue()))
                 .map(s -> CastUtils.cast(s, AbstractBlockDeltaContentMetadata.class))
                 .map(AbstractBlockDeltaContentMetadata::getValue)
-                .collect(Collectors.joining());
+                .findFirst()
+                .orElse(StringUtils.EMPTY);
     }
 
     public String obtainUserText() {
