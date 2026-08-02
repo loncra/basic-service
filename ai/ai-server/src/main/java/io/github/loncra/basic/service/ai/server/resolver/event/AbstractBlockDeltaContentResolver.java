@@ -11,12 +11,13 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 
+import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractBlockDeltaContentResolver extends AbstractAgentEventResolver<AbstractBlockDeltaContentMetadata> {
 
     @Override
-    protected AbstractBlockDeltaContentMetadata createPublishPatchContent(
+    protected List<AbstractBlockDeltaContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -30,7 +31,7 @@ public abstract class AbstractBlockDeltaContentResolver extends AbstractAgentEve
         AbstractBlockDeltaContentMetadata content = CastUtils.cast(metadata);
         content.setId(getBlockId(event));
         content.setValue(delta);
-        return content;
+        return List.of(content);
     }
 
     protected abstract String getDelta(AgentEvent event);

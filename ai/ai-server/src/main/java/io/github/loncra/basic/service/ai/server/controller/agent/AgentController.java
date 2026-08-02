@@ -1,8 +1,10 @@
 package io.github.loncra.basic.service.ai.server.controller.agent;
 
 
+import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
+import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
@@ -45,7 +47,6 @@ public class AgentController {
             AgentChatRequestBody body,
             @CurrentSecurityContext SecurityContext securityContext
     ){
-
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.chat(body, token);
     }
@@ -95,5 +96,15 @@ public class AgentController {
         return RestResult.ofSuccess(
                 agentManager.positioningMessagePageNumber(conversationId, messageId, pageSize)
         );
+    }
+
+    @PutMapping
+    public AgentChatBasicResponseBody resume(
+            @RequestBody
+            AgentResumeRequestBody body,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return agentManager.resume(body, token);
     }
 }

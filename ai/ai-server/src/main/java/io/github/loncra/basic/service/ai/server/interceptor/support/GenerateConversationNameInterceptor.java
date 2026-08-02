@@ -9,6 +9,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessage
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
@@ -48,37 +49,44 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
             return List.of();
         }
         AgentMessageEntity userMessage = agentMessageService.get(assistant.getParentId());
+        ModelResolverMetadata metadata = modelSettingService.getModelMetadata(assistant.getModel(), null);
 
-        ReActAgent agent = modelSettingService.getRcActAgent(assistant.getModel());
-        RuntimeContext context = RuntimeContext.builder()
-                .put(SecurityContext.class, SecurityContextHolder.getContext())
-                .build();
-        String message = MessageFormat.format(conversationConfig.getGeneratePrompt(), userMessage.obtainUserText(), assistant.obtainAssistantAnswerText());
-        Msg msg = agent.call(message, context).block(conversationConfig.getGenerateTimeout().toDuration());
-        if (Objects.isNull(msg)){
-            return List.of();
+
+        ReActAgent.Builder builder = ReActAgent.builder()
+                .name(GenerateConversationNameInterceptor.class.getSimpleName())
+                .model(metadata.getModel());
+                //.build();
+        try (ReActAgent agent = builder.build()) {
+            RuntimeContext context = RuntimeContext.builder()
+                    .put(SecurityContext.class, SecurityContextHolder.getContext())
+                    .build();
+            String message = MessageFormat.format(conversationConfig.getGeneratePrompt(), userMessage.obtainUserText(), assistant.obtainAssistantAnswerText());
+            Msg msg = agent.call(message, context).block(conversationConfig.getGenerateTimeout().toDuration());
+            if (Objects.isNull(msg)) {
+                return List.of();
+            }
+
+            AgentTokenUsageMetadata usage = CastUtils.of(msg.getChatUsage(), AgentTokenUsageMetadata.class);
+            usage.setUsageType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
+            usage.setId(conversation.getId().toString());
+
+            assistant.saveAgentTokenUsageMetadata(usage);
+
+            agentMessageService.lambdaUpdate()
+                    .set(AgentMessageEntity::getMetadata, assistant.obtainMetadataJsonString())
+                    .eq(AgentMessageEntity::getId, assistant.getId())
+                    .update();
+
+            conversation.setName(StringUtils.defaultIfEmpty(msg.getTextContent(), conversation.getName()));
+            conversation.setGenerateName(YesOrNo.Yes);
+            agentConversationService.updateById(conversation);
+
+            CustomizeMetadata content = new CustomizeMetadata();
+            content.setEventType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
+            content.setId(conversation.getId().toString());
+            content.getMetadata().put(NameEnum.FIELD_NAME, conversation.getName());
+
+            return List.of(content, usage);
         }
-
-        AgentTokenUsageMetadata usage = CastUtils.of(msg.getChatUsage(), AgentTokenUsageMetadata.class);
-        usage.setUsageType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
-        usage.setId(conversation.getId().toString());
-
-        assistant.saveAgentTokenUsageMetadata(usage);
-
-        agentMessageService.lambdaUpdate()
-                .set(AgentMessageEntity::getMetadata, assistant.obtainMetadataJsonString())
-                .eq(AgentMessageEntity::getId, assistant.getId())
-                .update();
-
-        conversation.setName(StringUtils.defaultIfEmpty(msg.getTextContent(), conversation.getName()));
-        conversation.setGenerateName(YesOrNo.Yes);
-        agentConversationService.updateById(conversation);
-
-        CustomizeMetadata content = new CustomizeMetadata();
-        content.setEventType(AgentMessageContentTypeEnum.GENERATE_CONVERSATION_NAME);
-        content.setId(conversation.getId().toString());
-        content.getMetadata().put(NameEnum.FIELD_NAME, conversation.getName());
-
-        return List.of(content, usage);
     }
 }

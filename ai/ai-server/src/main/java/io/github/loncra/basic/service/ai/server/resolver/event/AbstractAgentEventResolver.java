@@ -11,23 +11,24 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.LinkedList;
+import java.util.List;
+
 @Setter(onMethod_ = @Autowired)
 public abstract class AbstractAgentEventResolver<T extends AbstractAssistantMessageContentMetadata> implements AgentEventResolver {
-
-    //private AgentSseStreamPublishResolver agentSseStreamPublishResolver;
 
     @Getter
     private AgentMessageService agentMessageService;
 
     @Override
-    public T process(
+    public List<AbstractAssistantMessageContentMetadata> process(
             AgentMessageEntity assistant,
             AgentEvent event,
             RuntimeContext context
     ) {
-        T content = createPublishPatchContent(event, context);
-        content.setEventSource(event);
-        return content;
+        List<T> contents = createPublishPatchContent(event, context);
+        contents.forEach(s -> s.setEventSource(event));
+        return new LinkedList<>(contents);
     }
 
     public boolean postPublish(
@@ -37,7 +38,7 @@ public abstract class AbstractAgentEventResolver<T extends AbstractAssistantMess
         return false;
     }
 
-    protected abstract T createPublishPatchContent(
+    protected abstract List<T> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     );
@@ -48,4 +49,5 @@ public abstract class AbstractAgentEventResolver<T extends AbstractAssistantMess
                 .eq(AgentMessageEntity::getId, assistant.getId())
                 .update();
     }
+
 }

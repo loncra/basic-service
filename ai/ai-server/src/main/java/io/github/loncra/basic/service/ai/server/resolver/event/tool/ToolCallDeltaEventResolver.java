@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class ToolCallDeltaEventResolver extends AbstractAgentEventResolver<ToolCallBlockContentMetadata> {
@@ -22,7 +24,7 @@ public class ToolCallDeltaEventResolver extends AbstractAgentEventResolver<ToolC
     }
 
     @Override
-    protected ToolCallBlockContentMetadata createPublishPatchContent(
+    protected List<ToolCallBlockContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -31,7 +33,7 @@ public class ToolCallDeltaEventResolver extends AbstractAgentEventResolver<ToolC
         toolCallBlock.setId(delta.getToolCallId());
         toolCallBlock.setName(delta.getToolCallName());
         toolCallBlock.setValue(delta.getDelta());
-        return toolCallBlock;
+        return List.of(toolCallBlock);
     }
 
     @Override
@@ -42,8 +44,9 @@ public class ToolCallDeltaEventResolver extends AbstractAgentEventResolver<ToolC
         ToolCallDeltaEvent event = CastUtils.cast(content.getEventSource());
         ToolCallBlockContentMetadata toolCallBlock = assistant.obtainBlock(event.getToolCallId(), AgentMessageContentTypeEnum.TOOL_CALL);
         appendDelta(content, toolCallBlock);
+        assistant.updateContent(toolCallBlock);
 
-        return super.postPublish(content, assistant);
+        return false;
     }
 
     private static void appendDelta(

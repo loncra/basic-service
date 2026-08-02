@@ -10,11 +10,13 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCall
 import io.github.loncra.framework.commons.CastUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ToolResultStartEventResolver extends UpdateToolCallDataResolver {
 
     @Override
-    protected ToolCallBlockContentMetadata createPublishPatchContent(
+    protected List<ToolCallBlockContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -25,7 +27,7 @@ public class ToolResultStartEventResolver extends UpdateToolCallDataResolver {
         content.setStatus(AgentBlockStatusEnum.RUNNING);
         content.setResultState(ToolResultState.RUNNING);
 
-        return content;
+        return List.of(content);
     }
 
     @Override

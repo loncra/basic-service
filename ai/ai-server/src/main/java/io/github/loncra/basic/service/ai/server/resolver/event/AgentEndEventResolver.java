@@ -14,6 +14,8 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class AgentEndEventResolver implements AgentEventResolver {
@@ -26,7 +28,7 @@ public class AgentEndEventResolver implements AgentEventResolver {
     }
 
     @Override
-    public AbstractAssistantMessageContentMetadata process(
+    public List<AbstractAssistantMessageContentMetadata> process(
             AgentMessageEntity assistant,
             AgentEvent event,
             RuntimeContext context
@@ -40,6 +42,6 @@ public class AgentEndEventResolver implements AgentEventResolver {
         agentStatusContentMetadata.setId(assistant.getAgentConversationId().toString());
         agentStatusContentMetadata.setStatus(AgentChatStatusEnum.COMPLETED);
 
-        return agentStatusContentMetadata;
+        return List.of(agentStatusContentMetadata);
     }
 }

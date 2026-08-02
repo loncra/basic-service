@@ -11,11 +11,13 @@ import io.github.loncra.framework.commons.CastUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ToolResultTextDeltaEventResolver extends AbstractAgentEventResolver<ToolCallBlockContentMetadata> {
 
     @Override
-    protected ToolCallBlockContentMetadata createPublishPatchContent(
+    protected List<ToolCallBlockContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -23,7 +25,7 @@ public class ToolResultTextDeltaEventResolver extends AbstractAgentEventResolver
         ToolCallBlockContentMetadata result = new ToolCallBlockContentMetadata();
         result.setId(deltaEvent.getToolCallId());
         result.setOutputText(deltaEvent.getDelta());
-        return result;
+        return List.of(result);
     }
 
     @Override
@@ -49,6 +51,6 @@ public class ToolResultTextDeltaEventResolver extends AbstractAgentEventResolver
     ) {
         String current = StringUtils.defaultIfEmpty(toolCallBlock.getOutputText(), StringUtils.EMPTY);
         String delta = StringUtils.defaultIfEmpty(content.getOutputText(), StringUtils.EMPTY);
-        toolCallBlock.setValue(current + delta);
+        toolCallBlock.setOutputText(current + delta);
     }
 }

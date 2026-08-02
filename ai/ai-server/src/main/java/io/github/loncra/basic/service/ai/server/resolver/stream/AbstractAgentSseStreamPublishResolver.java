@@ -31,7 +31,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
             AbstractAssistantMessageContentMetadata content
     ) {
         doPublish(conversationId, content);
-        if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(content.getType())) {
+        if (AgentMessageContentTypeEnum.REMOVE_STREAM_TYPE.contains(content.getType())) {
             remove(conversationId);
         }
     }

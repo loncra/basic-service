@@ -8,6 +8,8 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadat
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
+import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -16,6 +18,7 @@ import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.Strings;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
@@ -78,5 +81,9 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     @JsonIgnore
     public Long getParent() {
         return parentId;
+    }
+
+    public String obtainUserId() {
+        return Strings.CS.replace(principal, CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE);
     }
 }

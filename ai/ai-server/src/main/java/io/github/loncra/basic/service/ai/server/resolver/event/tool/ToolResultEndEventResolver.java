@@ -11,12 +11,13 @@ import io.github.loncra.framework.commons.CastUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 @Component
 public class ToolResultEndEventResolver extends UpdateToolCallDataResolver {
 
     @Override
-    protected ToolCallBlockContentMetadata createPublishPatchContent(
+    protected List<ToolCallBlockContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -29,7 +30,7 @@ public class ToolResultEndEventResolver extends UpdateToolCallDataResolver {
         result.setEndTime(Instant.now());
         result.setResultState(endEvent.getState());
 
-        return result;
+        return List.of(result);
     }
 
     @Override

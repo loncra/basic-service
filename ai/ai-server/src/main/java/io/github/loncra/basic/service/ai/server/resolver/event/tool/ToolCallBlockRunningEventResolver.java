@@ -11,6 +11,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 @Component
 public class ToolCallBlockRunningEventResolver extends AbstractAgentEventResolver<ToolCallBlockContentMetadata> {
@@ -30,16 +31,17 @@ public class ToolCallBlockRunningEventResolver extends AbstractAgentEventResolve
     }
 
     @Override
-    protected ToolCallBlockContentMetadata createPublishPatchContent(
+    protected List<ToolCallBlockContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
         ToolCallStartEvent startEvent = CastUtils.cast(event);
         ToolCallBlockContentMetadata toolCallContent = new ToolCallBlockContentMetadata();
         toolCallContent.setId(startEvent.getToolCallId());
+        toolCallContent.setGroupId(startEvent.getReplyId());
         toolCallContent.setCreationTime(Instant.now());
         toolCallContent.setStatus(AgentBlockStatusEnum.READY);
         toolCallContent.setName(startEvent.getToolCallName());
-        return toolCallContent;
+        return List.of(toolCallContent);
     }
 }

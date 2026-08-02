@@ -10,11 +10,13 @@ import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEven
 import io.github.loncra.framework.commons.CastUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ToolResultDataDeltaEventResolver extends AbstractAgentEventResolver<ToolCallBlockContentMetadata> {
 
     @Override
-    protected ToolCallBlockContentMetadata createPublishPatchContent(
+    protected List<ToolCallBlockContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -22,7 +24,7 @@ public class ToolResultDataDeltaEventResolver extends AbstractAgentEventResolver
         ToolCallBlockContentMetadata result = new ToolCallBlockContentMetadata();
         result.setId(deltaEvent.getToolCallId());
         result.getOutputParts().add(deltaEvent.getData());
-        return result;
+        return List.of(result);
     }
 
     @Override

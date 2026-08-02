@@ -12,6 +12,7 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import org.springframework.beans.BeanUtils;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentEventResolver<AbstractBlockRunningContentMetadata> {
@@ -36,7 +37,7 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
     }
 
     @Override
-    protected AbstractBlockRunningContentMetadata createPublishPatchContent(
+    protected List<AbstractBlockRunningContentMetadata> createPublishPatchContent(
             AgentEvent event,
             RuntimeContext context
     ) {
@@ -50,7 +51,7 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
         runningContent.setStatus(AgentBlockStatusEnum.DONE);
         runningContent.setEndTime(Instant.now());
 
-        return runningContent;
+        return List.of(runningContent);
     }
 
     protected abstract String getBlockId(AgentEvent event);

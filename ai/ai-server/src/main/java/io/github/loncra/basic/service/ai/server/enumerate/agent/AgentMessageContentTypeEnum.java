@@ -8,6 +8,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
@@ -30,6 +32,8 @@ public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
 
     GENERATE_CONVERSATION_NAME("生成会话名称", "generateConversationName", CustomizeMetadata.class),
 
+    REQUEST_STOP("请求停止", "requestStop", CustomizeMetadata.class),
+
     MODEL_CALL_END("模型调用", "modelCallEnd", AgentTokenUsageMetadata.class)
     ;
 
@@ -38,4 +42,6 @@ public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
     private final String value;
 
     private final Class<? extends AbstractAssistantMessageContentMetadata> targetClass;
+
+    public static final List<String> REMOVE_STREAM_TYPE = List.of(REQUEST_STOP.getValue(), STREAM_END.getValue());
 }

@@ -13,7 +13,10 @@ public interface ModelResolver {
 
     boolean support(ModelSettingMetadata model);
 
-    ModelResolverMetadata resolve(ModelSettingMetadata model, Map<String, Object> options);
+    ModelResolverMetadata resolve(
+            ModelSettingMetadata modelSetting,
+            Map<String, Object> options
+    );
 
     /**
      * 合并默认值与覆盖值，生成目标 Options 对象。
@@ -57,21 +60,21 @@ public interface ModelResolver {
         GenerateOptions.Builder builder = GenerateOptions.builder();
 
         // ── 生成参数 ──
-        setIfPresent(merged, "temperature",        v -> builder.temperature(toDouble(v)));
-        setIfPresent(merged, "topP",               v -> builder.topP(toDouble(v)));
-        setIfPresent(merged, "topK",               v -> builder.topK(toInt(v)));
-        setIfPresent(merged, "maxTokens",          v -> builder.maxTokens(toInt(v)));
-        setIfPresent(merged, "maxCompletionTokens",v -> builder.maxCompletionTokens(toInt(v)));
-        setIfPresent(merged, "frequencyPenalty",   v -> builder.frequencyPenalty(toDouble(v)));
-        setIfPresent(merged, "presencePenalty",    v -> builder.presencePenalty(toDouble(v)));
-        setIfPresent(merged, "seed",               v -> builder.seed(toLong(v)));
-        setIfPresent(merged, "thinkingBudget",     v -> builder.thinkingBudget(toInt(v)));
-        setIfPresent(merged, "reasoningEffort",    v -> builder.reasoningEffort(String.valueOf(v)));
-        setIfPresent(merged, "cacheControl",       v -> builder.cacheControl(toBoolean(v)));
-        setIfPresent(merged, "parallelToolCalls",  v -> builder.parallelToolCalls(toBoolean(v)));
+        setIfPresent(merged, "temperature", v -> builder.temperature(toDouble(v)));
+        setIfPresent(merged, "topP", v -> builder.topP(toDouble(v)));
+        setIfPresent(merged, "topK", v -> builder.topK(toInt(v)));
+        setIfPresent(merged, "maxTokens", v -> builder.maxTokens(toInt(v)));
+        setIfPresent(merged, "maxCompletionTokens", v -> builder.maxCompletionTokens(toInt(v)));
+        setIfPresent(merged, "frequencyPenalty", v -> builder.frequencyPenalty(toDouble(v)));
+        setIfPresent(merged, "presencePenalty", v -> builder.presencePenalty(toDouble(v)));
+        setIfPresent(merged, "seed", v -> builder.seed(toLong(v)));
+        setIfPresent(merged, "thinkingBudget", v -> builder.thinkingBudget(toInt(v)));
+        setIfPresent(merged, "reasoningEffort", v -> builder.reasoningEffort(String.valueOf(v)));
+        setIfPresent(merged, "cacheControl", v -> builder.cacheControl(toBoolean(v)));
+        setIfPresent(merged, "parallelToolCalls", v -> builder.parallelToolCalls(toBoolean(v)));
 
         // ── 连接级配置 ──
-        setIfPresent(merged, "stream",             v -> builder.stream(toBoolean(v)));
+        setIfPresent(merged, "stream", v -> builder.stream(toBoolean(v)));
 
         return builder.build();
     }
@@ -98,7 +101,11 @@ public interface ModelResolver {
         return Boolean.parseBoolean(String.valueOf(v));
     }
 
-    private void setIfPresent(Map<String, Object> map, String key, java.util.function.Consumer<Object> setter) {
+    private void setIfPresent(
+            Map<String, Object> map,
+            String key,
+            java.util.function.Consumer<Object> setter
+    ) {
         Object value = map.get(key);
         if (value != null) {
             setter.accept(value);

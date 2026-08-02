@@ -31,7 +31,7 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
     }
 
     @Override
-    public AbstractAssistantMessageContentMetadata process(
+    public List<AbstractAssistantMessageContentMetadata> process(
             AgentMessageEntity assistant,
             AgentEvent event,
             RuntimeContext context
@@ -54,6 +54,7 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
                 .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
                 .eq(AgentMessageEntity::getId, assistant.getId())
                 .update();
-        return usage;
+
+        return List.of(usage);
     }
 }

@@ -10,6 +10,8 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusE
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class AgentStartEventResolver implements AgentEventResolver {
 
@@ -19,7 +21,7 @@ public class AgentStartEventResolver implements AgentEventResolver {
     }
 
     @Override
-    public AbstractAssistantMessageContentMetadata process(
+    public List<AbstractAssistantMessageContentMetadata> process(
             AgentMessageEntity assistant,
             AgentEvent event,
             RuntimeContext context
@@ -27,6 +29,6 @@ public class AgentStartEventResolver implements AgentEventResolver {
         AgentStatusContentMetadata result = new AgentStatusContentMetadata();
         result.setId(assistant.getAgentConversationId().toString());
         result.setStatus(AgentChatStatusEnum.RUNNING);
-        return result;
+        return List.of(result);
     }
 }

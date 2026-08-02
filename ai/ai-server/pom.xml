@@ -27,6 +27,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.github.loncra.basic.service</groupId>
+            <artifactId>message-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.github.loncra.framework</groupId>
             <artifactId>spring-boot-starter-mybatis-plus</artifactId>
         </dependency>
@@ -89,6 +94,17 @@
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-model-dashscope</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-openai</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+            <version>0.17.2</version>
         </dependency>
 
         <dependency>

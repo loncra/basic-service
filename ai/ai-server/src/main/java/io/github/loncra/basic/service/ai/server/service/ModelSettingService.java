@@ -1,29 +1,16 @@
 package io.github.loncra.basic.service.ai.server.service;
 
-import io.agentscope.core.ReActAgent;
-import io.agentscope.core.permission.PermissionBehavior;
-import io.agentscope.core.permission.PermissionContextState;
-import io.agentscope.core.permission.PermissionMode;
-import io.agentscope.core.permission.PermissionRule;
-import io.agentscope.core.state.AgentStateStore;
-import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
-import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.dao.ModelSettingDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
-import io.github.loncra.framework.commons.CacheProperties;
-import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
@@ -43,13 +30,13 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
 
     private final List<ModelResolver> modelResolvers;
 
-    private final Map<Long, HarnessAgent> harnessAgentCache = new ConcurrentHashMap<>();
+    /*private final Map<Long, HarnessAgent> harnessAgentCache = new ConcurrentHashMap<>();
 
     private final Map<Long, ReActAgent> reActAgentCache = new ConcurrentHashMap<>();
 
     private final AiAppConfig aiAppConfig;
 
-    private final AgentStateStore agentStateStore;
+    private final AgentStateStore agentStateStore;*/
 
     public ModelResolverMetadata getModelMetadata(
             ModelSettingMetadata model,
@@ -63,7 +50,7 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
                 .resolve(model, options);
     }
 
-    public ReActAgent getRcActAgent(ModelSettingMetadata model) {
+    /*public ReActAgent getRcActAgent(ModelSettingMetadata model) {
         return getRcActAgent(model, null);
     }
 
@@ -127,5 +114,5 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
                 .model(resolverMetadata.getModel())
                 //.toolkit(resolverMetadata.getToolkit())
                 .build();
-    }
+    }*/
 }
