@@ -28,7 +28,7 @@ public interface AgentSseStreamPublishResolver {
                 .toList();
     }
 
-    void remove(String string);
+    void remove(String conversationId);
 
     boolean isCompleted(String conversationId);
 }

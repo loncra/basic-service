@@ -27,6 +27,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("agent")
@@ -106,5 +108,17 @@ public class AgentController {
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.resume(body, token);
+    }
+
+    @DeleteMapping("conversation")
+    public RestResult<Void> deleteConversation(
+            @RequestParam
+            List<Integer> ids,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        agentManager.deleteConversation(ids, token);
+        return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 }

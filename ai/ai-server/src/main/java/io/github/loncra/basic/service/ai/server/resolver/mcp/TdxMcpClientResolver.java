@@ -4,12 +4,11 @@ import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.TdxConfig;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientGroupEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.ToolGroupEnum;
 import io.github.loncra.basic.service.ai.server.resolver.McpClientResolver;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
+//@Component
 @RequiredArgsConstructor
 public class TdxMcpClientResolver implements McpClientResolver {
 
@@ -20,7 +19,7 @@ public class TdxMcpClientResolver implements McpClientResolver {
     private final AiAppConfig aiAppConfig;
 
     @Override
-    public McpClientWrapper getMcpClient() {
+    public McpClientWrapper getClient() {
         return McpClientBuilder.create(NAME)
                 .sseTransport(tdxConfig.getBaseUrl())
                 .header(tdxConfig.getApiKeyField(), aiAppConfig.getKey().get(NAME))
@@ -28,8 +27,8 @@ public class TdxMcpClientResolver implements McpClientResolver {
     }
 
     @Override
-    public McpClientGroupEnum getGroup() {
-        return McpClientGroupEnum.EXPLORE;
+    public ToolGroupEnum getGroup() {
+        return ToolGroupEnum.EXPLORE;
     }
 
     @Override

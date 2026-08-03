@@ -62,6 +62,7 @@ public class AgentConsumer {
             agentManager.execute(assistant);
             channel.basicAck(tag, false);
         } catch (Exception e) {
+            log.error("执行 ID 为 [{}] 的助手消息失败", assistantId, e);
             channel.basicNack(tag, false, false);
         }
     }

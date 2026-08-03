@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.monolith.config;
 import com.aliyun.dysmsapi20170525.Client;
 import com.aliyun.teaopenapi.models.Config;
 import io.agentscope.core.state.AgentStateStore;
-import io.agentscope.extensions.mysql.MysqlDistributedStore;
+import io.agentscope.extensions.mysql.state.MysqlAgentStateStore;
 import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.auth.api.service.web.SystemUserServiceWebClient;
 import io.github.loncra.basic.service.commons.config.AlibabaCloudConfig;
@@ -65,7 +65,11 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import javax.sql.DataSource;
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Objects;
+
+import static io.github.loncra.basic.service.ai.server.config.AiStartupAutoConfig.AGENT_STATE_STORE_TABLE_NAME;
 
 @Configuration
 public class MonolithStartupAutoConfig {
@@ -264,12 +268,16 @@ public class MonolithStartupAutoConfig {
     }
 
     @Bean
-    public AgentStateStore agentStateStore(MysqlDistributedStore mysqlDistributedStore) {
-        return mysqlDistributedStore.agentStateStore();
-    }
-
-    @Bean
-    public MysqlDistributedStore mysqlDistributedStore(DataSource dataSource) {
-        return MysqlDistributedStore.create(dataSource);
+    public AgentStateStore agentStateStore(DataSource dataSource) throws SQLException {
+        String catalog;
+        try (Connection conn = dataSource.getConnection()) {
+            catalog = conn.getCatalog();
+        }
+        return new MysqlAgentStateStore(
+                dataSource,
+                catalog,
+                AGENT_STATE_STORE_TABLE_NAME,
+                true
+        );
     }
 }

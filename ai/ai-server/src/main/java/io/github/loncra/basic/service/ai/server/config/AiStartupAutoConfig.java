@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.config;
 
 import io.agentscope.core.state.AgentStateStore;
-import io.agentscope.extensions.mysql.MysqlDistributedStore;
+import io.agentscope.extensions.mysql.state.MysqlAgentStateStore;
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
 import io.github.loncra.basic.service.resource.api.service.ResourceCaptchaVerificationService;
 import io.github.loncra.framework.captcha.CaptchaProperties;
@@ -14,6 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * 服务配置
@@ -23,6 +25,8 @@ import javax.sql.DataSource;
 @Configuration
 @ConditionalOnProperty(prefix = "loncra.basic-service.commons.app",value = "runtime-mode",havingValue = "MICROSERVICE")
 public class AiStartupAutoConfig {
+
+    public static final String AGENT_STATE_STORE_TABLE_NAME = "tb_agent_state_store";
 
     @Bean
     @ConditionalOnBean(FeignClientsConfiguration.class)
@@ -39,13 +43,17 @@ public class AiStartupAutoConfig {
     }
 
     @Bean
-    public AgentStateStore agentStateStore(MysqlDistributedStore mysqlDistributedStore) {
-        return mysqlDistributedStore.agentStateStore();
-    }
-
-    @Bean
-    public MysqlDistributedStore mysqlDistributedStore(DataSource dataSource) {
-        return MysqlDistributedStore.create(dataSource);
+    public AgentStateStore agentStateStore(DataSource dataSource) throws SQLException {
+        String catalog;
+        try (Connection conn = dataSource.getConnection()) {
+            catalog = conn.getCatalog();
+        }
+        return new MysqlAgentStateStore(
+                dataSource,
+                catalog,
+                AGENT_STATE_STORE_TABLE_NAME,
+                true
+        );
     }
 
 }

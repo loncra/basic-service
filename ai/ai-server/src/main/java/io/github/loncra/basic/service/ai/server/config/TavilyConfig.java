@@ -15,8 +15,8 @@ import java.util.Map;
 @ConfigurationProperties("loncra.basic-service.ai.app.tavily")
 public class TavilyConfig {
 
-    private String baseUrl = "https://mcp.tavily.com/mcp/";
-    private String apiKeyField = "tavilyApiKey";
+    private String baseUrl = "https://mcp.tavily.com";
+    private String endpoint = "/mcp/?tavilyApiKey={0}";
     private String defaultParamsHeaderField = "DEFAULT_PARAMETERS";
     private Map<String, Object> defaultParams = Map.of(
             "include_favicon",true,

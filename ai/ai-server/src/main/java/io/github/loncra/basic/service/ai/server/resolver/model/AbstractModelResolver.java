@@ -30,12 +30,30 @@ public abstract class AbstractModelResolver implements ModelResolver {
         ModelResolverMetadata modelResolverMetadata = new ModelResolverMetadata();
         modelResolverMetadata.setModel(model);
 
-        Toolkit defaults = new Toolkit();
+        Toolkit toolkit = new Toolkit();
 
-        mcpClientResolver.stream()
-                .filter(McpClientResolver::isRequired)
-                .forEach(s -> defaults.registration().mcpClient(s.getMcpClient()).apply());
-        modelResolverMetadata.setToolkit(defaults);
+        // 让模型能自己开关工具组（上下文里几乎只有这一个 meta tool + 组名说明）
+        toolkit.registerMetaTool();
+        for (McpClientResolver resolver : mcpClientResolver) {
+            if (!resolver.isRequired()) {
+                continue;
+            }
+            String group = resolver.getGroup().getValue(); // explore / searchWeb
+            // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
+            if (toolkit.getToolGroup(group) == null) {
+                toolkit.createToolGroup(
+                        group,
+                        resolver.getGroup().getName(), // 「探索」「互联网搜索」
+                        false
+                );
+            }
+            toolkit.registration()
+                    .mcpClient(resolver.getClient())
+                    .group(group)
+                    .apply();
+        }
+
+        modelResolverMetadata.setToolkit(toolkit);
 
         return modelResolverMetadata;
     }

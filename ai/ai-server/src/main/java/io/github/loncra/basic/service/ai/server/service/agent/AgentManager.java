@@ -8,11 +8,13 @@ import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
+import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
+import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -36,6 +38,7 @@ import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
+import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -49,6 +52,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
@@ -61,6 +65,7 @@ import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 @Slf4j
@@ -87,6 +92,8 @@ public class AgentManager {
     private final List<AgentStreamEventInterceptor> agentStreamEventInterceptors;
 
     private final AiAppConfig aiAppConfig;
+
+    private final SkillConfig skillConfig;
 
     private final AgentStateStore agentStateStore;
 
@@ -234,28 +241,22 @@ public class AgentManager {
     }
 
     public void execute(AgentMessageEntity assistant) {
-
-        RuntimeContext context = RuntimeContext.builder()
-                .userId(assistant.obtainUserId())
-                .sessionId(String.valueOf(assistant.getAgentConversationId()))
-                .put(SecurityContext.class, SecurityContextHolder.getContext())
-                .build();
         AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
         String prompt = TextMessageMetadata.ofString(userMessage.getContent());
-        try (HarnessAgent agent = createHarnessAgent(assistant)) {
-            execute(agent, context, Collections.singletonList(Msg.builder().role(MsgRole.USER).textContent(prompt).build()), assistant);
-        }
-
+        execute(Collections.singletonList(Msg.builder().role(MsgRole.USER).textContent(prompt).build()), assistant);
     }
 
     private void execute(
-            HarnessAgent agent,
-            RuntimeContext context,
             List<Msg> messages,
             AgentMessageEntity assistant
     ) {
         Flux<AbstractAssistantMessageContentMetadata> flux;
-        try {
+        try (HarnessAgent agent = createHarnessAgent(assistant)) {
+            RuntimeContext context = RuntimeContext.builder()
+                    .userId(assistant.obtainUserId())
+                    .sessionId(String.valueOf(assistant.getAgentConversationId()))
+                    .put(SecurityContext.class, SecurityContextHolder.getContext())
+                    .build();
             flux = agent.streamEvents(messages, context)
                     .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
                     .filter(Objects::nonNull)
@@ -293,7 +294,9 @@ public class AgentManager {
                 .sysPrompt(aiAppConfig.getSystemPrompt())
                 .model(modelResolverMetadata.getModel())
                 .toolkit(modelResolverMetadata.getToolkit())
+                .enableMetaTool(true)
                 .stateStore(agentStateStore)
+                .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId());
         if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
@@ -403,12 +406,7 @@ public class AgentManager {
             AuditAuthenticationToken token
     ) {
         AgentMessageEntity assistantMessage = Objects.requireNonNull(messageService.get(body.getAssistantMessageId()));
-
-        RuntimeContext context = RuntimeContext.builder()
-                .userId(assistantMessage.obtainUserId())
-                .sessionId(String.valueOf(assistantMessage.getAgentConversationId()))
-                .put(SecurityContext.class, SecurityContextHolder.getContext())
-                .build();
+        PrincipalDetailsConstants.equals(assistantMessage, token);
 
         List<ToolUseBlock> toolUseBlocks = assistantMessage.obtainMessageContents().stream()
                 .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
@@ -451,11 +449,30 @@ public class AgentManager {
         metadata.put(Msg.METADATA_CONFIRM_RESULTS, confirmResults);
         Msg resumeMsg = Msg.builderForRole(MsgRole.USER).metadata(metadata).build();
 
-        execute(createHarnessAgent(assistantMessage), context, Collections.singletonList(resumeMsg), assistantMessage);
+        execute(Collections.singletonList(resumeMsg), assistantMessage);
 
         AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
         result.setAssistantMessageId(assistantMessage.getId());
         result.setUserMessageId(assistantMessage.getParentId());
         return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteConversation(List<Integer> ids, AuditAuthenticationToken token) {
+        conversationService.get(ids).forEach(conversation -> deleteConversation(conversation, token));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteConversation(AgentConversationEntity entity, AuditAuthenticationToken token) {
+        PrincipalDetailsConstants.equals(entity, token);
+        SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
+        conversationService.lambdaQuery()
+                .eq(AgentConversationEntity::getParentId, entity.getId())
+                .list()
+                .forEach(conversation -> deleteConversation(conversation, token));
+        agentStateStore.delete(Strings.CS.replace(entity.getPrincipal(), CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE), entity.getId().toString());
+        agentSseStreamPublishResolver.remove(entity.getId().toString());
+        conversationService.deleteByEntity(entity);
+        messageService.findByConversationId(entity.getId()).forEach(messageService::deleteByEntity);
     }
 }

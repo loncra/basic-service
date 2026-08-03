@@ -1,13 +1,13 @@
 package io.github.loncra.basic.service.ai.server.resolver;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientGroupEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.ToolGroupEnum;
 
 public interface McpClientResolver {
 
-    McpClientWrapper getMcpClient();
+    McpClientWrapper getClient();
 
-    McpClientGroupEnum getGroup();
+    ToolGroupEnum getGroup();
 
     boolean isRequired();
 

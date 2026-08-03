@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum McpClientGroupEnum implements NameValueEnum<String> {
+public enum ToolGroupEnum implements NameValueEnum<String> {
 
     EXPLORE("探索", "explore" ),
 

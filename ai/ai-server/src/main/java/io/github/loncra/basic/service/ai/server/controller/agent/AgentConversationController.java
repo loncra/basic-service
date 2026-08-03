@@ -72,11 +72,11 @@ public class AgentConversationController {
      *
      * @see AgentMessageEntity
      */
-    @DeleteMapping
+    /*@DeleteMapping
     public RestResult<Void> delete(@RequestParam List<Integer> ids) {
         agentConversationService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
-    }
+    }*/
 
     @PutMapping
     @OperationDataTrace("创建工作空间")

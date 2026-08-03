@@ -26,7 +26,7 @@ public class AiAppConfig {
 
     private Map<String, String> key = new LinkedHashMap<>();
 
-    private String workspacePath = "./.agentscope/workspace/";
+    private String workspacePath = "./.workspace/";
 
     /** 上下文压缩配置，enabled=false 时整个 compaction 不生效 */
     private Compaction compaction = new Compaction();
