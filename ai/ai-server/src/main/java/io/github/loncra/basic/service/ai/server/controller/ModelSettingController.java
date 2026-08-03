@@ -5,6 +5,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -35,10 +36,10 @@ import java.util.List;
 @RestController
 @RequestMapping("model/setting")
 @Plugin(
-    name = "ai 模型配置",
+    name = "模型配置",
     id = "mode_setting",
-    parent = "video_assembly",
-    authority = "perms[ai_server_mode_setting:page]",
+    parent = "config",
+    authority = "perms[ai_server_mode_setting:find]",
     type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
     sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
@@ -60,7 +61,6 @@ public class ModelSettingController {
     /**
      * 获取分页
      *
-     * @param pageRequest 分页信息
      * @param request  http servlet request
      *
      * @return 分页实体
@@ -68,13 +68,13 @@ public class ModelSettingController {
      * @see ModelSettingEntity
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('perms[ai_server_mode_setting:page]')")
-    public Page<ModelSettingEntity> page(PageRequest pageRequest, HttpServletRequest request) {
+    @PreAuthorize("hasAuthority('perms[ai_server_mode_setting:find]')")
+    public List<ModelSettingEntity> find(HttpServletRequest request) {
         QueryWrapper<ModelSettingEntity> query = modelSettingService
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
-        query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return modelSettingService.findPage(pageRequest, query);
+        query.orderByAsc(SystemConstants.SORT_FIELD);
+        return modelSettingService.find(query);
     }
 
     /**
@@ -89,7 +89,7 @@ public class ModelSettingController {
     @GetMapping("/{id:\\d+}")
     @Plugin(name = "查看明细")
     @PreAuthorize("hasAuthority('perms[ai_server_mode_setting:get]')")
-    public ModelSettingEntity get(@RequestParam Integer id) {
+    public ModelSettingEntity get(@PathVariable Integer id) {
         return modelSettingService.get(id);
     }
 
@@ -125,4 +125,16 @@ public class ModelSettingController {
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 
+    @OperationDataTrace
+    @PutMapping("sort")
+    @Plugin(name = "排序")
+    @PreAuthorize("hasAuthority('perms[ai_server_mode_setting:sort]')")
+    public RestResult<Void> sort(
+            @Valid
+            @RequestBody
+            List<TreeSortMetadata<Long>> sorts
+    ) {
+        modelSettingService.sort(sorts);
+        return RestResult.of("排序成功");
+    }
 }

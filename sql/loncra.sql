@@ -3642,7 +3642,6 @@ INSERT INTO `tb_resource` VALUES (111, '2026-05-27 14:36:24', '2.0.0-SNAPSHOT', 
 INSERT INTO `tb_resource` VALUES (114, '2026-06-02 14:24:18', '2.0.0-SNAPSHOT', '我的消息', 'my_message', NULL, 'commons', 'tool', '[\"CONSOLE\"]', NULL, 1, 'loncra-message-circle', '/commons/my/message', NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (115, '2026-06-03 18:10:27', '2.0.0-SNAPSHOT', '我的站内信', 'my_site_message', 'isAuthenticated', 'message-server', 'navigationData', '[\"CONSOLE\"]', '114', 0, 'loncra-message-square-text', '/commons/my/message/site', NULL, 10, 1);
 INSERT INTO `tb_resource` VALUES (117, '2026-06-05 23:39:51', '2.0.0-SNAPSHOT', '我的聊天', 'my_chat_message', 'isFullyAuthenticated()', 'message-server', 'navigationData', '[\"CONSOLE\"]', '114', 0, 'loncra-messages-square', '/commons/my/message/chat', NULL, 10, 1);
-INSERT INTO `tb_resource` VALUES (119, '2026-06-23 12:36:26', '2.0.0-SNAPSHOT', '流程定义', 'process', 'perms[workflow_server_process:page]', 'workflow-server', 'menu', '[\"CONSOLE\"]', '4', 0, 'loncra-workflow', '/workflow-server/process', NULL, 10, 1);
 
 -- ----------------------------
 -- Table structure for tb_role

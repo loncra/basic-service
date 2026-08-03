@@ -5,9 +5,12 @@ import io.github.loncra.basic.service.ai.server.dao.ModelSettingDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
+import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -30,14 +33,6 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
 
     private final List<ModelResolver> modelResolvers;
 
-    /*private final Map<Long, HarnessAgent> harnessAgentCache = new ConcurrentHashMap<>();
-
-    private final Map<Long, ReActAgent> reActAgentCache = new ConcurrentHashMap<>();
-
-    private final AiAppConfig aiAppConfig;
-
-    private final AgentStateStore agentStateStore;*/
-
     public ModelResolverMetadata getModelMetadata(
             ModelSettingMetadata model,
             Map<String, Object> options
@@ -50,69 +45,13 @@ public class ModelSettingService extends BasicService<ModelSettingDao, ModelSett
                 .resolve(model, options);
     }
 
-    /*public ReActAgent getRcActAgent(ModelSettingMetadata model) {
-        return getRcActAgent(model, null);
-    }
-
-    public ReActAgent getRcActAgent(
-            ModelSettingMetadata model,
-            Map<String, Object> metadata
-    ) {
-        return reActAgentCache.computeIfAbsent(model.getId(), k -> createReActAgent(model, metadata));
-    }
-
-    public HarnessAgent getHarnessAgent(ModelSettingMetadata model) {
-        return getHarnessAgent(model, null);
-    }
-
-    public HarnessAgent getHarnessAgent(
-            ModelSettingMetadata model,
-            Map<String, Object> metadata
-    ) {
-        return harnessAgentCache.computeIfAbsent(model.getId(), k -> createHarnessAgent(model, metadata));
-    }
-
-    @Override
-    public int updateById(ModelSettingEntity entity) {
-        HarnessAgent harnessAgent = harnessAgentCache.remove(entity.getId());
-        if (Objects.nonNull(harnessAgent)) {
-            harnessAgent.close();
+    @Transactional(rollbackFor = Exception.class)
+    public void sort(List<TreeSortMetadata<Long>> sorts) {
+        for (TreeSortMetadata<Long> sort : sorts) {
+            lambdaUpdate().set(ModelSettingEntity::getSort, sort.getSort())
+                    .eq(ModelSettingEntity::getId, sort.getId())
+                    .update();
         }
-
-        ReActAgent reActAgent = reActAgentCache.remove(entity.getId());
-        if (Objects.nonNull(reActAgent)) {
-            reActAgent.close();
-        }
-        return super.updateById(entity);
     }
 
-    private HarnessAgent createHarnessAgent(
-            ModelSettingMetadata model,
-            Map<String, Object> metadata
-    ) {
-        ModelResolverMetadata resolverMetadata = getModelMetadata(model, metadata);
-        CompactionConfig.builder().build();
-        return HarnessAgent.builder()
-                .name(HarnessAgent.class.getSimpleName() + CastUtils.UNDERSCORE + model.getId())
-                .model(resolverMetadata.getModel())
-                .toolkit(resolverMetadata.getToolkit())
-                .sysPrompt(aiAppConfig.getSystemPrompt())
-                .stateStore(agentStateStore)
-                .compaction(aiAppConfig.toCompactionConfig())
-                .workspace(aiAppConfig.getWorkspacePath())
-                .build();
-    }
-
-    private ReActAgent createReActAgent(
-            ModelSettingMetadata model,
-            Map<String, Object> metadata
-    ) {
-        ModelResolverMetadata resolverMetadata = getModelMetadata(model, metadata);
-
-        return ReActAgent.builder()
-                .name(model.getManufacturer().getName() + CacheProperties.DEFAULT_SEPARATOR + model.getName())
-                .model(resolverMetadata.getModel())
-                //.toolkit(resolverMetadata.getToolkit())
-                .build();
-    }*/
 }

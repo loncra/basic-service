@@ -65,6 +65,11 @@ public class ModelSettingEntity extends ModelSettingMetadata implements VersionE
     private String remark;
 
     /**
+     * 顺序值
+     */
+    private Integer sort;
+
+    /**
      * 描述
      */
     private String description;

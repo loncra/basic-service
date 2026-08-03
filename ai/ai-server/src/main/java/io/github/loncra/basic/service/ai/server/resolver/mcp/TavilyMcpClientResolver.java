@@ -51,7 +51,7 @@ public class TavilyMcpClientResolver implements McpClientResolver {
 
     @Override
     public ToolGroupEnum getGroup() {
-        return ToolGroupEnum.EXPLORE;
+        return ToolGroupEnum.SEARCH_WEB;
     }
 
     @Override

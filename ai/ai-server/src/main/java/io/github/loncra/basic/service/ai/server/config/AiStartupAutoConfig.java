@@ -23,7 +23,7 @@ import java.sql.SQLException;
  * @author maurice.chen
  */
 @Configuration
-@ConditionalOnProperty(prefix = "loncra.basic-service.commons.app",value = "runtime-mode",havingValue = "MICROSERVICE")
+@ConditionalOnProperty(prefix = "loncra.basic-service.commons.app", value = "runtime-mode", havingValue = "MICROSERVICE")
 public class AiStartupAutoConfig {
 
     public static final String AGENT_STATE_STORE_TABLE_NAME = "tb_agent_state_store";
@@ -55,5 +55,4 @@ public class AiStartupAutoConfig {
                 true
         );
     }
-
 }

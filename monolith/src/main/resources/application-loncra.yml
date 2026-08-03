@@ -32,53 +32,63 @@ loncra:
             application-name: commons
             name: "基础配置"
             type: root
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           resource:
             application-name: commons
             name: "资源管理"
             type: root
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           dictionary:
             application-name: resource-server
             name: "字典管理"
             parent: config
             type: menu
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           organization:
             application-name: commons
             name: "机构管理"
             type: root
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           authority:
             application-name: commons
             name: "权限管理"
             type: root
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           log:
             application-name: commons
             name: "日志查询"
             type: root
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           message:
             application-name: commons
             name: '消息管理'
             type: root
-            sources: CONSOLE
+            sources:
+              - CONSOLE
           workbench:
             name: "工作台"
             application-name: commons
-            sources: CONSOLE
             type: tool
+            sources:
+              - CONSOLE
           setting:
             name: "系统设置"
             application-name: commons
-            sources: CONSOLE
             type: profile
+            sources:
+              - CONSOLE
           my_message:
             name: "我的消息"
             application-name: commons
-            sources: CONSOLE
             type: tool
+            sources:
+              - CONSOLE
       ignore-audit-types:
         - AUTHENTICATION_FAILURE
         - AUTHORIZATION_FAILURE

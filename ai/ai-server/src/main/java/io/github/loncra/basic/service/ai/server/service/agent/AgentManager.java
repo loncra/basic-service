@@ -294,6 +294,7 @@ public class AgentManager {
                 .sysPrompt(aiAppConfig.getSystemPrompt())
                 .model(modelResolverMetadata.getModel())
                 .toolkit(modelResolverMetadata.getToolkit())
+                // 激活元工具，用于处理元工具调用，让 skill 动态加载工具
                 .enableMetaTool(true)
                 .stateStore(agentStateStore)
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))

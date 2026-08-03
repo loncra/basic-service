@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Setter(onMethod_ = @Autowired)
 public abstract class AbstractModelResolver implements ModelResolver {
@@ -38,19 +39,25 @@ public abstract class AbstractModelResolver implements ModelResolver {
             if (!resolver.isRequired()) {
                 continue;
             }
-            String group = resolver.getGroup().getValue(); // explore / searchWeb
-            // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
-            if (toolkit.getToolGroup(group) == null) {
-                toolkit.createToolGroup(
-                        group,
-                        resolver.getGroup().getName(), // 「探索」「互联网搜索」
-                        false
-                );
+            if (Objects.isNull(resolver.getGroup())) {
+                toolkit.registration()
+                        .mcpClient(resolver.getClient())
+                        .apply();
+            } else {
+                // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
+                if (Objects.isNull(toolkit.getToolGroup(resolver.getGroup().getValue()))) {
+                    toolkit.createToolGroup(
+                            resolver.getGroup().getValue(),
+                            // 「探索」「互联网搜索」
+                            resolver.getGroup().getName(),
+                            false
+                    );
+                }
+                toolkit.registration()
+                        .mcpClient(resolver.getClient())
+                        .group(resolver.getGroup().getValue())
+                        .apply();
             }
-            toolkit.registration()
-                    .mcpClient(resolver.getClient())
-                    .group(group)
-                    .apply();
         }
 
         modelResolverMetadata.setToolkit(toolkit);
