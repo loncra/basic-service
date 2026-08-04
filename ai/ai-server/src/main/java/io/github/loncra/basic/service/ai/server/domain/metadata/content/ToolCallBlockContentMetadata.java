@@ -50,6 +50,7 @@ public class ToolCallBlockContentMetadata extends AbstractBlockDeltaContentMetad
                 .name(name)
                 .id(getId())
                 .input(input)
+                .content(getValue())
                 .state(hitlStatus)
                 .build();
     }

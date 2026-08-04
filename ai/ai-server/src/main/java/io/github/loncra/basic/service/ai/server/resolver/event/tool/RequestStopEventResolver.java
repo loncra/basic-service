@@ -4,16 +4,19 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.RequestStopEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.framework.commons.CastUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class RequestStopEventResolver extends AbstractAgentEventResolver<CustomizeMetadata> {
 
     public static final String USER_ID_KEY = "userId";
@@ -31,6 +34,7 @@ public class RequestStopEventResolver extends AbstractAgentEventResolver<Customi
         metadata.getMetadata().put(STOP_REASON_KEY, requestStopEvent.getGenerateReason());
         metadata.getMetadata().put(USER_ID_KEY, context.getUserId());
         metadata.getMetadata().put(SESSION_ID_KEY, context.getSessionId());
+
         return List.of(metadata);
     }
 
@@ -40,8 +44,11 @@ public class RequestStopEventResolver extends AbstractAgentEventResolver<Customi
             AgentMessageEntity assistant
     ) {
         assistant.setStatus(AgentChatStatusEnum.REQUEST_STOP);
-        assistant.getMetadata().put(content.getEventSource().getType().toString(), content.getMetadata().get(STOP_REASON_KEY));
-        getAgentMessageService().updateById(assistant);
+        getAgentMessageService().lambdaUpdate()
+                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.REQUEST_STOP.getValue())
+                .set(AgentChatMetadata::getContent, assistant.obtainContentJsonString())
+                .eq(AgentMessageEntity::getId, assistant.getId())
+                .update();
         return true;
     }
 

@@ -7,7 +7,6 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -33,14 +32,15 @@ public class AgentEndEventResolver implements AgentEventResolver {
             AgentEvent event,
             RuntimeContext context
     ) {
+
         agentConversationService.lambdaUpdate()
-                .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.COMPLETED.getValue())
+                .set(AgentConversationEntity::getStatus, assistant.getStatus().getValue())
                 .eq(IdEntity::getId, assistant.getAgentConversationId())
                 .update();
 
         AgentStatusContentMetadata agentStatusContentMetadata = new AgentStatusContentMetadata();
         agentStatusContentMetadata.setId(assistant.getAgentConversationId().toString());
-        agentStatusContentMetadata.setStatus(AgentChatStatusEnum.COMPLETED);
+        agentStatusContentMetadata.setStatus(assistant.getStatus());
 
         return List.of(agentStatusContentMetadata);
     }

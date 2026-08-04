@@ -48,12 +48,14 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
             usage.setUsageType(usageType);
         }
         assistant.saveAgentTokenUsageMetadata(usage);
-        assistant.setStatus(AgentChatStatusEnum.COMPLETED);
-        agentMessageService.lambdaUpdate()
-                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.COMPLETED.getValue())
-                .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
-                .eq(AgentMessageEntity::getId, assistant.getId())
-                .update();
+        if (AgentChatStatusEnum.RUNNING.equals(assistant.getStatus())) {
+            assistant.setStatus(AgentChatStatusEnum.COMPLETED);
+            agentMessageService.lambdaUpdate()
+                    .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.COMPLETED.getValue())
+                    .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
+                    .eq(AgentMessageEntity::getId, assistant.getId())
+                    .update();
+        }
 
         return List.of(usage);
     }

@@ -2,7 +2,6 @@ package io.github.loncra.basic.service.auth.server.service.resource.plugin;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.util.VersionUtil;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceCategoryEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;

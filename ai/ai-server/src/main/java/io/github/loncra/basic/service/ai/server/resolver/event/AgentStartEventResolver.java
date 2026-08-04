@@ -6,7 +6,6 @@ import io.agentscope.core.event.AgentStartEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +27,7 @@ public class AgentStartEventResolver implements AgentEventResolver {
     ) {
         AgentStatusContentMetadata result = new AgentStatusContentMetadata();
         result.setId(assistant.getAgentConversationId().toString());
-        result.setStatus(AgentChatStatusEnum.RUNNING);
+        result.setStatus(assistant.getStatus());
         return List.of(result);
     }
 }

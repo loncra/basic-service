@@ -122,7 +122,7 @@ public class AgentManager {
             Long parentId = conversation.getId();
 
             conversation = new AgentConversationEntity();
-            conversation.setStatus(AgentChatStatusEnum.RUNNING);
+            conversation.setStatus(AgentChatStatusEnum.READY);
             conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
             conversation.setParentId(parentId);
             conversation.setGenerateName(YesOrNo.No);
@@ -130,7 +130,7 @@ public class AgentManager {
             conversationService.insert(conversation);
         } else {
             assertNoRunningAssistant(conversation.getId());
-            conversation.setStatus(AgentChatStatusEnum.RUNNING);
+            conversation.setStatus(AgentChatStatusEnum.READY);
             conversationService.updateById(conversation);
         }
 
@@ -149,7 +149,7 @@ public class AgentManager {
         assistantMessage.setPrincipal(token.getName());
         assistantMessage.setModel(CastUtils.of(model, ModelSettingMetadata.class));
         assistantMessage.setType(userMessage.getType());
-        assistantMessage.setStatus(AgentChatStatusEnum.RUNNING);
+        assistantMessage.setStatus(AgentChatStatusEnum.READY);
         assistantMessage.setAgentConversationId(conversation.getId());
         assistantMessage.setParentId(userMessage.getId());
         assistantMessage.setContent(new LinkedList<>());
@@ -250,8 +250,19 @@ public class AgentManager {
             List<Msg> messages,
             AgentMessageEntity assistant
     ) {
+
         Flux<AbstractAssistantMessageContentMetadata> flux;
         try (HarnessAgent agent = createHarnessAgent(assistant)) {
+            assistant.setStatus(AgentChatStatusEnum.RUNNING);
+            messageService.lambdaUpdate()
+                    .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
+                    .eq(AgentMessageEntity::getId, assistant.getId())
+                    .update();
+            conversationService.lambdaUpdate()
+                    .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
+                    .eq(AgentConversationEntity::getId, assistant.getAgentConversationId())
+                    .update();
+
             RuntimeContext context = RuntimeContext.builder()
                     .userId(assistant.obtainUserId())
                     .sessionId(String.valueOf(assistant.getAgentConversationId()))
@@ -263,7 +274,6 @@ public class AgentManager {
                     .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
                     .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))))
                     .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistant))));
-
         } catch (Exception e) {
             log.error("助手消息 [{}] 在执行应答前出现异常", assistant.getId(), e);
             // 直接走 onError 兜底，内部会发布 ERROR + STREAM_END
@@ -318,7 +328,7 @@ public class AgentManager {
                     .filter(s -> s.isSupport(message.getEventSource()))
                     .filter(s -> AbstractAgentEventResolver.class.isAssignableFrom(s.getClass()))
                     .map(s -> CastUtils.cast(s, AbstractAgentEventResolver.class))
-                    .forEach(resolver -> resolverPostPublish(resolver, message, assistant));
+                    .forEach(resolver -> resolverPostPublish(CastUtils.cast(resolver), message, assistant));
         }
     }
 
@@ -402,6 +412,7 @@ public class AgentManager {
         return Flux.fromIterable(contents);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public AgentChatBasicResponseBody resume(
             AgentResumeRequestBody body,
             AuditAuthenticationToken token
@@ -455,6 +466,7 @@ public class AgentManager {
         AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
         result.setAssistantMessageId(assistantMessage.getId());
         result.setUserMessageId(assistantMessage.getParentId());
+
         return result;
     }
 

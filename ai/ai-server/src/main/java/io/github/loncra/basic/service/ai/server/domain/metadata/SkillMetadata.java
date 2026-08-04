@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.metadata;
 
-import io.github.loncra.basic.service.ai.server.enumerate.ToolGroupEnum;
+import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.framework.commons.id.StringIdEntity;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.Data;
@@ -21,7 +21,7 @@ public class SkillMetadata extends StringIdEntity {
 
     private String description;
 
-    private ToolGroupEnum group;
+    private DataDictionaryMetadata group;
 
     private List<McpSchema.Tool> tools = new LinkedList<>();
 }

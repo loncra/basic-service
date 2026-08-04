@@ -2,24 +2,31 @@ package io.github.loncra.basic.service.ai.server.resolver.model;
 
 import io.agentscope.core.model.Model;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
-import io.github.loncra.basic.service.ai.server.resolver.McpClientResolver;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
+import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.xml.BeanDefinitionParserDelegate;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Setter(onMethod_ = @Autowired)
 public abstract class AbstractModelResolver implements ModelResolver {
 
+    //@Getter(AccessLevel.NONE)
+    //private List<McpClientResolver> mcpClientResolver;
+
     @Getter(AccessLevel.NONE)
-    private List<McpClientResolver> mcpClientResolver;
+    private AiMcpPackageService aiMcpPackageService;
 
     @Override
     public ModelResolverMetadata resolve(
@@ -32,30 +39,33 @@ public abstract class AbstractModelResolver implements ModelResolver {
         modelResolverMetadata.setModel(model);
 
         Toolkit toolkit = new Toolkit();
-
-        // 让模型能自己开关工具组（上下文里几乎只有这一个 meta tool + 组名说明）
         toolkit.registerMetaTool();
-        for (McpClientResolver resolver : mcpClientResolver) {
-            if (!resolver.isRequired()) {
+
+        List<AiMcpPackageEntity> packages = aiMcpPackageService.findSystemMcpPackage();
+        for (AiMcpPackageEntity p : packages) {
+            Optional<McpClientWrapper> optional = aiMcpPackageService.convertMcpClientWrapper(p);
+            if (optional.isEmpty()) {
                 continue;
             }
-            if (Objects.isNull(resolver.getGroup())) {
+            McpClientWrapper mcpClientWrapper = optional.get();
+            if (Objects.isNull(p.getGroup())) {
                 toolkit.registration()
-                        .mcpClient(resolver.getClient())
+                        .mcpClient(mcpClientWrapper)
                         .apply();
             } else {
+                String group = Objects.toString(p.getGroup().getValue(), BeanDefinitionParserDelegate.DEFAULT_VALUE);
                 // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
-                if (Objects.isNull(toolkit.getToolGroup(resolver.getGroup().getValue()))) {
-                    toolkit.createToolGroup(
-                            resolver.getGroup().getValue(),
-                            // 「探索」「互联网搜索」
-                            resolver.getGroup().getName(),
-                            false
-                    );
-                }
+
+                toolkit.createToolGroup(
+                        group,
+                        // 「探索」「互联网搜索」
+                        p.getGroup().getName(),
+                        false
+                );
+
                 toolkit.registration()
-                        .mcpClient(resolver.getClient())
-                        .group(resolver.getGroup().getValue())
+                        .mcpClient(mcpClientWrapper)
+                        .group(group)
                         .apply();
             }
         }

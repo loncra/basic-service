@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.enumerate;
+package io.github.loncra.basic.service.ai.server.enumerate.hub;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,13 +7,15 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum ToolGroupEnum implements NameValueEnum<String> {
+public enum PackageTypeEnum implements NameValueEnum<Integer> {
 
-    EXPLORE("探索", "explore" ),
+    SYSTEM("系统", 10),
 
-    SEARCH_WEB("互联网搜索", "searchWeb")
+    HUB("广场", 20),
+
     ;
 
     private final String name;
-    private final String value;
+
+    private final Integer value;
 }

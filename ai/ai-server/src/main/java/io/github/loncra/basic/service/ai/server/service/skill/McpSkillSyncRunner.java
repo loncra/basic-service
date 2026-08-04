@@ -4,8 +4,10 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.SkillMetadata;
-import io.github.loncra.basic.service.ai.server.resolver.McpClientResolver;
+import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
@@ -19,29 +21,33 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class McpSkillSyncRunner implements ApplicationRunner {
 
-    private final List<McpClientResolver> resolvers;
+    private final AiMcpPackageService aiMcpPackageService;
     private final SkillConfig skillConfig;
 
     @Override
     public void run(ApplicationArguments args) {
         Path root = Path.of(skillConfig.getPath());
-        for (McpClientResolver resolver : resolvers) {
-            if (!resolver.isRequired()) {
+        List<AiMcpPackageEntity> mcpPackages = aiMcpPackageService.findSystemDynamicActivationMcpPackage();
+        for (AiMcpPackageEntity mcpPackage : mcpPackages) {
+            Optional<McpClientWrapper> optional = aiMcpPackageService.convertMcpClientWrapper(mcpPackage);
+            if (optional.isEmpty()) {
+                log.warn("MCP {} skill 同步失败，解析不出任何 McpClientWrapper", mcpPackage.getName());
                 continue;
             }
-            try (McpClientWrapper client = resolver.getClient()) {
+            try (McpClientWrapper client = optional.get()) {
                 client.initialize().block(skillConfig.getTimeout().toDuration());
                 List<McpSchema.Tool> tools = client.listTools().block(skillConfig.getTimeout().toDuration());
 
                 SkillMetadata model = new SkillMetadata();
                 model.setId(client.getName());
-                model.setGroup(resolver.getGroup());
+                model.setGroup(mcpPackage.getGroup());
                 model.setTools(tools);
 
                 Configuration configuration = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
@@ -57,10 +63,9 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 Path dir = root.resolve(client.getName());
                 Files.createDirectories(dir);
                 Files.writeString(dir.resolve(skillConfig.getFilename()), fullContent, StandardCharsets.UTF_8);
-                // 可选：再写 references/mcp-tools.json 方便调试
             } catch (Exception e) {
                 // 失败保留旧 SKILL.md，打日志，不要拖死启动
-                log.warn("MCP skill sync failed: {}", resolver, e);
+                log.warn("MCP {} skill 同步失败", mcpPackage.getName(), e);
             }
         }
     }
