@@ -51,7 +51,9 @@ public class StreamableHttpMcpClientResolver implements McpPackageResolver {
         McpSyncClient client = McpClient.sync(transport)
                 .capabilities(McpSchema.ClientCapabilities.builder().build())
                 .build();
-        return new McpSyncClientWrapper(name, client);
+        McpSyncClientWrapper wrapper = new McpSyncClientWrapper(name, client);
+
+        return new ContentAwareMcpClientWrapper(wrapper, streamableHttp.getFailureAssertions());
     }
 
     private void buildRequest(

@@ -48,7 +48,9 @@ public class SseMcpClientResolver implements McpPackageResolver {
         McpSyncClient client = McpClient.sync(transport)
                 .capabilities(McpSchema.ClientCapabilities.builder().build())
                 .build();
-        return new McpSyncClientWrapper(name, client);
+        McpSyncClientWrapper wrapper = new McpSyncClientWrapper(name, client);
+
+        return new ContentAwareMcpClientWrapper(wrapper, sse.getFailureAssertions());
     }
 
     private void buildRequest(

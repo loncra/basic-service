@@ -22,9 +22,6 @@ import java.util.Optional;
 @Setter(onMethod_ = @Autowired)
 public abstract class AbstractModelResolver implements ModelResolver {
 
-    //@Getter(AccessLevel.NONE)
-    //private List<McpClientResolver> mcpClientResolver;
-
     @Getter(AccessLevel.NONE)
     private AiMcpPackageService aiMcpPackageService;
 
