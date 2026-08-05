@@ -19,7 +19,7 @@ public interface AgentSseStreamPublishResolver {
             String streamId
     );
 
-    Flux<ServerSentEvent<String>> open(AgentMessageEntity assistant);
+    Flux<ServerSentEvent<String>> open(AgentMessageEntity assistant,boolean loadHistory);
 
     default List<ServerSentEvent<String>> getAgentMessageServerSentEvent(AgentMessageEntity assistant){
         return assistant.obtainMessageContents()

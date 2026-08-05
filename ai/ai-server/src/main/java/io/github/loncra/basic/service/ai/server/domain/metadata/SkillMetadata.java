@@ -23,5 +23,7 @@ public class SkillMetadata extends StringIdEntity {
 
     private DataDictionaryMetadata group;
 
+    private List<String> tags = new LinkedList<>();
+
     private List<McpSchema.Tool> tools = new LinkedList<>();
 }

@@ -18,6 +18,8 @@ public abstract class AbstractAssistantMessageContentMetadata extends AbstractAg
     @Serial
     private static final long serialVersionUID = 8121665348839272979L;
 
+    public static final String SSE_EVENT_ID_KEY = "sseEventId";
+
     /**
      * 该块落库/推流对应的最后一条开始重放推流的 id。
      */

@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.resolver.event.tool;
+package io.github.loncra.basic.service.ai.server.resolver.event;
 
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
@@ -8,7 +8,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadat
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

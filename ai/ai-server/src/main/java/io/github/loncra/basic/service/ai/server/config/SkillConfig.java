@@ -37,7 +37,7 @@ public class SkillConfig {
     private String contentTemplate = """
             ---
             name: ${id}
-            description: Use when the task needs ${group.getName()}. Then call reset_equipped_tools with to_activate containing "${group.getValue()}".
+            description: Use when the task needs ${group.getName()}<#if tags?? && tags?has_content>, ${tags?join(", ")}</#if>. Then call reset_equipped_tools with to_activate containing "${group.getValue()}".
             ---
             
             # ${id}

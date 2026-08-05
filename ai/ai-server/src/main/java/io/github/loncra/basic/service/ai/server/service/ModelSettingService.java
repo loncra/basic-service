@@ -7,7 +7,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResol
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
 import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

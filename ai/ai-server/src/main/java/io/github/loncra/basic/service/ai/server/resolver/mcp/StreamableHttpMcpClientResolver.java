@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.resolver.mcp;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.agentscope.core.tool.mcp.McpSyncClientWrapper;
+import io.github.loncra.basic.service.ai.server.domain.ContentAwareMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.mcp.McpClientStreamableHttpTransportMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
@@ -38,13 +39,12 @@ public class StreamableHttpMcpClientResolver implements McpPackageResolver {
             String param = HttpRequestParameterMapUtils.castRequestBodyMapToString(new LinkedMultiValueMap<>(streamableHttp.getQueryParams()));
             endpoint += HttpRequestParameterMapUtils.QUESTION_MARK + param;
         }
+
         HttpClientStreamableHttpTransport.Builder builder = HttpClientStreamableHttpTransport
                 .builder(streamableHttp.getBaseUrl())
-                .endpoint(endpoint);
-
-
-        builder.openConnectionOnStartup(streamableHttp.isOpenConnectionOnStartup());
-        builder.resumableStreams(streamableHttp.isResumableStreams());
+                .endpoint(endpoint)
+                .openConnectionOnStartup(streamableHttp.isOpenConnectionOnStartup())
+                .resumableStreams(streamableHttp.isResumableStreams());
 
         builder.httpRequestCustomizer((httpBuilder, method, uri, body, context) -> buildRequest(httpBuilder, streamableHttp));
         HttpClientStreamableHttpTransport transport = builder.build();

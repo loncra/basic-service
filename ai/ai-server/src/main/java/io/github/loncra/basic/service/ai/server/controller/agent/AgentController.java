@@ -57,10 +57,12 @@ public class AgentController {
     public Flux<ServerSentEvent<String>> stream(
             @PathVariable
             Long assistantId,
+            @RequestParam(required = false, defaultValue = "true")
+            boolean loadHistory,
             @CurrentSecurityContext SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentManager.stream(assistantId, token);
+        return agentManager.stream(assistantId, loadHistory, token);
     }
 
     @PostMapping("message/history/{conversationId:\\d+}")

@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.resolver.mcp;
+package io.github.loncra.basic.service.ai.server.domain;
 
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
@@ -7,6 +7,7 @@ import io.agentscope.core.util.JsonUtils;
 import io.github.loncra.basic.service.ai.server.enumerate.McpClientResultAssertionTypeEnum;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.modelcontextprotocol.spec.McpSchema;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -23,6 +24,7 @@ public class ContentAwareMcpClientWrapper extends McpClientWrapper {
 
     private final McpClientWrapper delegate;
 
+    @Getter
     private final Map<String, List<IdValueMetadata<String, String>>> failureAssertions;
 
     public ContentAwareMcpClientWrapper(
@@ -87,6 +89,9 @@ public class ContentAwareMcpClientWrapper extends McpClientWrapper {
         for (McpSchema.Content content : contents) {
             if (content instanceof McpSchema.TextContent textContent) {
                 String text = textContent.text();
+                if (log.isDebugEnabled()) {
+                    log.debug("MCP tool '{}' content: {}", getName(), text);
+                }
                 if (StringUtils.isBlank(text)) {
                     continue;
                 }

@@ -2,10 +2,24 @@ package io.github.loncra.basic.service.ai.server.domain.metadata.mcp;
 
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-public class McpClientStdioTransportMetadata extends AbstractMcpClientTransportMetadata  {
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class McpClientStdioTransportMetadata extends AbstractMcpClientTransportMetadata {
+
+    private String command;
+
+    private List<String> args = new LinkedList<>();
+
+    private Map<String, String> env = new LinkedHashMap<>();
 
     @Serial
     private static final long serialVersionUID = 8125138388121138820L;

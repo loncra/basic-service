@@ -14,5 +14,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("loncra.basic-service.ai.app.stream")
 public class StreamConfig {
 
-    TimeProperties pollInterval;
+    private TimeProperties pollInterval;
+
+    private TimeProperties delayedExecutorCleanTime = TimeProperties.ofSeconds(2);
+
+    private TimeProperties removeExpireTime = TimeProperties.ofSeconds(1);
 }

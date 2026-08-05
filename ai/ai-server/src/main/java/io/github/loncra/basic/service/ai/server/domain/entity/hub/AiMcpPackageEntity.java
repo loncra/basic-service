@@ -1,14 +1,17 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.McpPackageAuthModeEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -42,6 +45,9 @@ public class AiMcpPackageEntity extends PluginPackageMetadata {
      * 认证模式: 10. OAuth, 20. apiKey
      */
     private McpPackageAuthModeEnum authMode;
+
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private TimeProperties initializeTimeout;
 
     /**
      * 是否动态激活：0.建连直接激活 tools; 1.伴生 Skill+按需激活

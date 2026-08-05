@@ -6,6 +6,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistan
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.framework.commons.TimeProperties;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Setter(onMethod_ = @Autowired)
 public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseStreamPublishResolver {
 
+    @Getter
     private StreamConfig streamConfig;
 
     public void publish(
@@ -42,9 +44,14 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
     );
 
     @Override
-    public Flux<ServerSentEvent<String>> open(AgentMessageEntity assistant) {
-
-        Flux<ServerSentEvent<String>> preFromFlux = Flux.fromIterable(preOpen(assistant));
+    public Flux<ServerSentEvent<String>> open(
+            AgentMessageEntity assistant,
+            boolean loadHistory
+    ) {
+        Flux<ServerSentEvent<String>> preFromFlux = Flux.empty();
+        if (loadHistory) {
+            preFromFlux = Flux.fromIterable(preOpen(assistant));
+        }
         Flux<ServerSentEvent<String>> liveFlux = Flux.create(sink -> pollStreamFrom(sink, assistant));
         return Flux.concat(preFromFlux, liveFlux);
     }
@@ -84,7 +91,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
      *
      * @param sink        SSE 流的 sink
      * @param sessionId   会话 id
-     * @param sseLastId      当前已推送给客户端的最大 StreamMessageId
+     * @param sseLastId   当前已推送给客户端的最大 StreamMessageId
      * @param nextPollRef 用于存放本次调度的 Disposable，客户端断开时 dispose
      */
     private void scheduleNextPoll(
@@ -99,8 +106,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
         if (Objects.nonNull(pollInterval)) {
             d = Schedulers.boundedElastic()
                     .schedule(() -> pollStreamOnce(sink, sessionId, sseLastId, nextPollRef), pollInterval.toMillis(), pollInterval.getUnit());
-        }
-        else {
+        } else {
             d = Schedulers.boundedElastic()
                     .schedule(() -> pollStreamOnce(sink, sessionId, sseLastId, nextPollRef));
         }
@@ -110,10 +116,10 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
     /**
      * 执行一次轮询：从 Redis Stream 读取 lastId 之后的新事件，推给 sink；若有新事件则更新 lastId 并 scheduleNextPoll，收到 COMPLETED/STOPPED/ERROR 则 complete。
      *
-     * @param sink        SSE 流的 sink
-     * @param conversationId    会话 id
+     * @param sink           SSE 流的 sink
+     * @param conversationId 会话 id
      * @param sseLastId      当前已推送给客户端的最大 StreamMessageId，本方法会更新
-     * @param nextPollRef 用于 scheduleNextPoll 时写入 Disposable
+     * @param nextPollRef    用于 scheduleNextPoll 时写入 Disposable
      */
     private void pollStreamOnce(
             FluxSink<ServerSentEvent<String>> sink,
@@ -168,8 +174,7 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
             }
             sseLastId.set(maxInBatch);
             scheduleNextPoll(sink, conversationId, sseLastId, nextPollRef);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("推流出现异常", e);
             sink.error(e);
         }
@@ -180,5 +185,8 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
             String maxInBatch
     );
 
-    protected abstract List<AbstractAssistantMessageContentMetadata> getStreamContentList(String conversationId, String lastSseId);
+    protected abstract List<AbstractAssistantMessageContentMetadata> getStreamContentList(
+            String conversationId,
+            String lastSseId
+    );
 }

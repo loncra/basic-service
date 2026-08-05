@@ -9,6 +9,7 @@ import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RStream;
 import org.redisson.api.RedissonClient;
@@ -18,12 +19,12 @@ import org.redisson.api.stream.StreamRangeArgs;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStreamPublishResolver {
@@ -59,13 +60,30 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
             String conversationId,
             String streamId
     ) {
+        if (log.isDebugEnabled()) {
+            log.debug("清除 ID 为 {} 的 最后一个 streamId:{} 范围内容", conversationId, streamId);
+        }
+        RStream<String, String> stream = getStream(conversationId);
+        StreamMessageId endId = parseStreamMessageId(streamId);
 
+        // 查出从最早到指定 streamId（含）的所有条目
+        Map<StreamMessageId, Map<String, String>> entries = stream.range(
+                StreamRangeArgs.startIdExclusive(StreamMessageId.MIN).endId(endId)
+        );
+
+        if (!entries.isEmpty()) {
+            stream.remove(entries.keySet().toArray(new StreamMessageId[0]));
+        }
     }
 
     @Override
     public void remove(String conversationId) {
         RStream<String, String> stream = getStream(conversationId);
-        stream.expire(Duration.ofSeconds(5));
+        if (Objects.nonNull(getStreamConfig().getRemoveExpireTime())) {
+            stream.expire(getStreamConfig().getRemoveExpireTime().toDuration());
+        } else {
+            stream.delete();
+        }
     }
 
     @Override

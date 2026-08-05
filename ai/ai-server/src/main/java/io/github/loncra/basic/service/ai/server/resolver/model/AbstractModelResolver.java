@@ -52,13 +52,13 @@ public abstract class AbstractModelResolver implements ModelResolver {
             } else {
                 String group = Objects.toString(p.getGroup().getValue(), BeanDefinitionParserDelegate.DEFAULT_VALUE);
                 // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
-
-                toolkit.createToolGroup(
-                        group,
-                        // 「探索」「互联网搜索」
-                        p.getGroup().getName(),
-                        false
-                );
+                if (Objects.isNull(toolkit.getToolGroup(group))) {
+                    toolkit.createToolGroup(
+                            group,
+                            p.getGroup().getName(),
+                            false
+                    );
+                }
 
                 toolkit.registration()
                         .mcpClient(mcpClientWrapper)

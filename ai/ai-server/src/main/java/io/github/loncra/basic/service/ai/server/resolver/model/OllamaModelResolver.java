@@ -1,10 +1,9 @@
-package io.github.loncra.basic.service.ai.server.resolver.model.ollama;
+package io.github.loncra.basic.service.ai.server.resolver.model;
 
 import io.agentscope.core.model.Model;
 import io.agentscope.extensions.model.ollama.OllamaChatModel;
 import io.agentscope.extensions.model.ollama.options.OllamaOptions;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
-import io.github.loncra.basic.service.ai.server.resolver.model.AbstractModelResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -33,7 +32,6 @@ public class OllamaModelResolver extends AbstractModelResolver {
         if (Objects.isNull(options)) {
             model = OllamaChatModel.builder()
                     .modelName(modelSetting.getModel())
-                    .formatter(new OllamaChatThinkingFormatter())
                     .build();
         } else {
             Object defaults = modelSetting.getMetadata().getOrDefault(ModelSettingMetadata.MODEL_DEFAULT_OPTIONS_KEY, new LinkedHashMap<>());
@@ -47,7 +45,6 @@ public class OllamaModelResolver extends AbstractModelResolver {
             model = OllamaChatModel.builder()
                     .modelName(modelSetting.getModel())
                     .defaultOptions(ollamaOptions)
-                    .formatter(new OllamaChatThinkingFormatter())
                     .build();
         }
 

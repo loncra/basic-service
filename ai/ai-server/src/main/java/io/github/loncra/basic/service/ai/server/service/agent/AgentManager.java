@@ -15,6 +15,7 @@ import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
+import io.github.loncra.basic.service.ai.server.config.StreamConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -41,6 +42,7 @@ import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMe
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -67,6 +69,8 @@ import reactor.core.publisher.Flux;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -96,6 +100,7 @@ public class AgentManager {
     private final SkillConfig skillConfig;
 
     private final AgentStateStore agentStateStore;
+    private final StreamConfig streamConfig;
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.agentConversationId]",
@@ -171,17 +176,24 @@ public class AgentManager {
         responseBody.setUserMessageId(userMessage.getId());
         responseBody.setAssistantMessageId(assistantMessage.getId());
 
-        CustomizeMetadata metadata = new CustomizeMetadata();
-        metadata.setId(assistantMessage.getId().toString());
-        metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
-
-        agentSseStreamPublishResolver.publish(conversation.getId().toString(), metadata);
+        publishStreamStartSse(assistantMessage);
 
         return responseBody;
     }
 
+    private void publishStreamStartSse(
+            AgentMessageEntity assistantMessage
+    ) {
+        CustomizeMetadata metadata = new CustomizeMetadata();
+        metadata.setId(assistantMessage.getId().toString());
+        metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
+
+        agentSseStreamPublishResolver.publish(assistantMessage.getAgentConversationId().toString(), metadata);
+    }
+
     public Flux<ServerSentEvent<String>> stream(
             Long assistantId,
+            boolean loadHistory,
             AuditAuthenticationToken token
     ) {
         AgentMessageEntity assistant = messageService.get(assistantId);
@@ -191,7 +203,7 @@ public class AgentManager {
         if (AgentChatStatusEnum.COMPLETED.equals(assistant.getStatus())) {
             return Flux.fromIterable(agentSseStreamPublishResolver.getAgentMessageServerSentEvent(assistant));
         }
-        return agentSseStreamPublishResolver.open(assistant);
+        return agentSseStreamPublishResolver.open(assistant, loadHistory);
     }
 
     public Page<AgentMessageEntity> histories(
@@ -251,42 +263,45 @@ public class AgentManager {
             AgentMessageEntity assistant
     ) {
 
-        Flux<AbstractAssistantMessageContentMetadata> flux;
-        try (HarnessAgent agent = createHarnessAgent(assistant)) {
-            assistant.setStatus(AgentChatStatusEnum.RUNNING);
-            messageService.lambdaUpdate()
-                    .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
-                    .eq(AgentMessageEntity::getId, assistant.getId())
-                    .update();
-            conversationService.lambdaUpdate()
-                    .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
-                    .eq(AgentConversationEntity::getId, assistant.getAgentConversationId())
-                    .update();
-
-            RuntimeContext context = RuntimeContext.builder()
-                    .userId(assistant.obtainUserId())
-                    .sessionId(String.valueOf(assistant.getAgentConversationId()))
-                    .put(SecurityContext.class, SecurityContextHolder.getContext())
-                    .build();
-            flux = agent.streamEvents(messages, context)
-                    .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
-                    .filter(Objects::nonNull)
-                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
-                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))))
-                    .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistant))));
-        } catch (Exception e) {
-            log.error("助手消息 [{}] 在执行应答前出现异常", assistant.getId(), e);
-            // 直接走 onError 兜底，内部会发布 ERROR + STREAM_END
-            flux = Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(
-                    ctxView,
-                    () -> onError(e, assistant)
-            ));
-        }
+        Flux<AbstractAssistantMessageContentMetadata> flux = Flux.using(
+                () -> createHarnessAgent(assistant),
+                agent -> executeAgentStreamEvents(agent, messages, assistant),
+                HarnessAgent::close
+        );
 
         ReactorContextUtils.captureContext(flux).subscribe(
                 s -> publishStreamEvent(s, assistant),
                 error -> onError(error, assistant)
         );
+    }
+
+    private Flux<AbstractAssistantMessageContentMetadata> executeAgentStreamEvents(
+            HarnessAgent agent,
+            List<Msg> messages,
+            AgentMessageEntity assistant
+    ) {
+        assistant.setStatus(AgentChatStatusEnum.RUNNING);
+        messageService.lambdaUpdate()
+                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
+                .eq(AgentMessageEntity::getId, assistant.getId())
+                .update();
+        conversationService.lambdaUpdate()
+                .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
+                .eq(AgentConversationEntity::getId, assistant.getAgentConversationId())
+                .update();
+
+        RuntimeContext context = RuntimeContext.builder()
+                .userId(assistant.obtainUserId())
+                .sessionId(String.valueOf(assistant.getAgentConversationId()))
+                .put(SecurityContext.class, SecurityContextHolder.getContext())
+                .build();
+        return agent.streamEvents(messages, context)
+                .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
+                .filter(Objects::nonNull)
+                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
+                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))))
+                .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistant))));
+
     }
 
     private HarnessAgent createHarnessAgent(AgentMessageEntity assistant) {
@@ -338,7 +353,17 @@ public class AgentManager {
             AgentMessageEntity assistant
     ) {
         boolean cleanStream = resolver.postPublish(message, assistant);
-        if (cleanStream) {
+        if (!cleanStream) {
+            return ;
+        }
+        TimeProperties timeProperties = streamConfig.getDelayedExecutorCleanTime();
+        if (Objects.nonNull(timeProperties)) {
+            Executor executor = CompletableFuture.delayedExecutor(
+                    streamConfig.getDelayedExecutorCleanTime().getValue(),
+                    streamConfig.getDelayedExecutorCleanTime().getUnit()
+            );
+            CompletableFuture.runAsync(() -> agentSseStreamPublishResolver.clean(assistant.getAgentConversationId().toString(), message.getSseEventId()), executor);
+        } else {
             agentSseStreamPublishResolver.clean(assistant.getAgentConversationId().toString(), message.getSseEventId());
         }
     }
@@ -461,6 +486,7 @@ public class AgentManager {
         metadata.put(Msg.METADATA_CONFIRM_RESULTS, confirmResults);
         Msg resumeMsg = Msg.builderForRole(MsgRole.USER).metadata(metadata).build();
 
+        publishStreamStartSse(assistantMessage);
         execute(Collections.singletonList(resumeMsg), assistantMessage);
 
         AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
@@ -471,12 +497,18 @@ public class AgentManager {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void deleteConversation(List<Integer> ids, AuditAuthenticationToken token) {
+    public void deleteConversation(
+            List<Integer> ids,
+            AuditAuthenticationToken token
+    ) {
         conversationService.get(ids).forEach(conversation -> deleteConversation(conversation, token));
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void deleteConversation(AgentConversationEntity entity, AuditAuthenticationToken token) {
+    public void deleteConversation(
+            AgentConversationEntity entity,
+            AuditAuthenticationToken token
+    ) {
         PrincipalDetailsConstants.equals(entity, token);
         SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
         conversationService.lambdaQuery()
