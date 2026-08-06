@@ -3,11 +3,13 @@ package io.github.loncra.basic.service.ai.server.domain.metadata;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.agentscope.core.event.ConfirmResult;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.UrlUtils;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -31,6 +33,8 @@ public class AgentChatMetadata implements Serializable {
 
 
     public static final String TOKEN_USAGE_KEY = "tokenUsage";
+
+    public static final String USER_CONFIRM_RESULT_KEY = "userConfirmResult";
 
     @Serial
     private static final long serialVersionUID = 5795604118691592427L;
@@ -139,7 +143,7 @@ public class AgentChatMetadata implements Serializable {
     }
 
     public String obtainContentJsonString() {
-        return StringUtils.defaultIfEmpty(contentJson, StringUtils.EMPTY);
+        return StringUtils.defaultIfEmpty(contentJson, UrlUtils.HTTP_PATH_VARIABLE_START + UrlUtils.HTTP_PATH_VARIABLE_END);
     }
 
     public void updateContent(AbstractAssistantMessageContentMetadata item) {
@@ -203,7 +207,19 @@ public class AgentChatMetadata implements Serializable {
         metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
     }
 
+    public void saveUserConfirmResultMetadata(List<ConfirmResult> confirmResults) {
+        metadata.put(USER_CONFIRM_RESULT_KEY, confirmResults);
+        metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
+    }
+
     public String obtainMetadataJsonString() {
-        return StringUtils.defaultIfEmpty(metadataJson, StringUtils.EMPTY);
+        return StringUtils.defaultIfEmpty(metadataJson, UrlUtils.HTTP_PATH_VARIABLE_START + UrlUtils.HTTP_PATH_VARIABLE_END);
+    }
+
+    public List<ConfirmResult> obtainUserConfirmResultMetadataThenRemove() {
+        List<ConfirmResult> result = CastUtils.convertValue(metadata.get(USER_CONFIRM_RESULT_KEY), new TypeReference<>() { });
+        metadata.remove(USER_CONFIRM_RESULT_KEY);
+        metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
+        return result;
     }
 }

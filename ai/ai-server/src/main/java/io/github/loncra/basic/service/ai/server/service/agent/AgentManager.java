@@ -31,6 +31,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCall
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
+import io.github.loncra.basic.service.ai.server.middleware.InterruptSignalMiddleware;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
@@ -55,6 +56,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
+import org.jspecify.annotations.NonNull;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
@@ -100,7 +102,10 @@ public class AgentManager {
     private final SkillConfig skillConfig;
 
     private final AgentStateStore agentStateStore;
+
     private final StreamConfig streamConfig;
+
+    private final InterruptSignalMiddleware interruptSignalMiddleware;
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.agentConversationId]",
@@ -149,15 +154,9 @@ public class AgentManager {
         userMessage.setAgentConversationId(conversation.getId());
         messageService.insert(userMessage);
 
-        AgentMessageEntity assistantMessage = new AgentMessageEntity();
+        AgentMessageEntity assistantMessage = CastUtils.of(userMessage, AgentMessageEntity.class, IdEntity.ID_FIELD_NAME);
         assistantMessage.setRole(AgentMessageRoleEnum.ASSISTANT);
-        assistantMessage.setPrincipal(token.getName());
-        assistantMessage.setModel(CastUtils.of(model, ModelSettingMetadata.class));
-        assistantMessage.setType(userMessage.getType());
-        assistantMessage.setStatus(AgentChatStatusEnum.READY);
-        assistantMessage.setAgentConversationId(conversation.getId());
         assistantMessage.setParentId(userMessage.getId());
-        assistantMessage.setContent(new LinkedList<>());
         messageService.insert(assistantMessage);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -165,7 +164,7 @@ public class AgentManager {
             public void afterCommit() {
                 amqpTemplate.convertAndSend(
                         SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                        AiMqConstants.AGENT_STREAM_QUEUE,
+                        AiMqConstants.AGENT_EXECUTE_QUEUE,
                         assistantMessage.getId()
                 );
             }
@@ -175,6 +174,7 @@ public class AgentManager {
         responseBody.setConversation(conversation);
         responseBody.setUserMessageId(userMessage.getId());
         responseBody.setAssistantMessageId(assistantMessage.getId());
+        responseBody.setModel(userMessage.getModel());
 
         publishStreamStartSse(assistantMessage);
 
@@ -253,9 +253,23 @@ public class AgentManager {
     }
 
     public void execute(AgentMessageEntity assistant) {
-        AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
-        String prompt = TextMessageMetadata.ofString(userMessage.getContent());
-        execute(Collections.singletonList(Msg.builder().role(MsgRole.USER).textContent(prompt).build()), assistant);
+        if (AgentChatStatusEnum.REQUEST_STOP.equals(assistant.getStatus())) {
+            List<ConfirmResult> confirmResults = assistant.obtainUserConfirmResultMetadataThenRemove();
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put(Msg.METADATA_CONFIRM_RESULTS, confirmResults);
+
+            messageService.lambdaUpdate()
+                    .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
+                    .eq(AgentMessageEntity::getId, assistant.getId())
+                    .update();
+
+            execute(Collections.singletonList(Msg.builderForRole(MsgRole.USER).metadata(metadata).build()), assistant);
+
+        } else {
+            AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
+            String prompt = TextMessageMetadata.ofString(userMessage.getContent());
+            execute(Collections.singletonList(Msg.builder().role(MsgRole.USER).textContent(prompt).build()), assistant);
+        }
     }
 
     private void execute(
@@ -278,29 +292,30 @@ public class AgentManager {
     private Flux<AbstractAssistantMessageContentMetadata> executeAgentStreamEvents(
             HarnessAgent agent,
             List<Msg> messages,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistantMessage
     ) {
-        assistant.setStatus(AgentChatStatusEnum.RUNNING);
+        assistantMessage.setStatus(AgentChatStatusEnum.RUNNING);
         messageService.lambdaUpdate()
                 .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
-                .eq(AgentMessageEntity::getId, assistant.getId())
+                .eq(AgentMessageEntity::getId, assistantMessage.getId())
                 .update();
         conversationService.lambdaUpdate()
                 .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
-                .eq(AgentConversationEntity::getId, assistant.getAgentConversationId())
+                .eq(AgentConversationEntity::getId, assistantMessage.getAgentConversationId())
                 .update();
 
         RuntimeContext context = RuntimeContext.builder()
-                .userId(assistant.obtainUserId())
-                .sessionId(String.valueOf(assistant.getAgentConversationId()))
+                .userId(assistantMessage.obtainUserId())
+                .sessionId(String.valueOf(assistantMessage.getAgentConversationId()))
                 .put(SecurityContext.class, SecurityContextHolder.getContext())
+                .put(AgentMessageRoleEnum.ASSISTANT.toString(), assistantMessage)
                 .build();
         return agent.streamEvents(messages, context)
-                .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistant, context))))
+                .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistantMessage, context))))
                 .filter(Objects::nonNull)
-                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
-                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))))
-                .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistant))));
+                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistantMessage))))
+                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistantMessage))))
+                .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistantMessage))));
 
     }
 
@@ -324,7 +339,9 @@ public class AgentManager {
                 .stateStore(agentStateStore)
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
-                .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId());
+                .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
+                // 中断信号中间件实现
+                .middleware(interruptSignalMiddleware);
         if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
             builder.enablePlanMode()
                     .planFileDirectory(assistant.getType().toString());
@@ -477,17 +494,25 @@ public class AgentManager {
 
         }
 
+        assistantMessage.saveUserConfirmResultMetadata(confirmResults);
+
         messageService.lambdaUpdate()
                 .set(AgentChatMetadata::getContent, assistantMessage.obtainContentJsonString())
+                .set(AgentChatMetadata::getMetadata, assistantMessage.obtainMetadataJsonString())
                 .eq(AgentMessageEntity::getId, assistantMessage.getId())
                 .update();
 
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put(Msg.METADATA_CONFIRM_RESULTS, confirmResults);
-        Msg resumeMsg = Msg.builderForRole(MsgRole.USER).metadata(metadata).build();
-
         publishStreamStartSse(assistantMessage);
-        execute(Collections.singletonList(resumeMsg), assistantMessage);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                amqpTemplate.convertAndSend(
+                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
+                        AiMqConstants.AGENT_EXECUTE_QUEUE,
+                        assistantMessage.getId()
+                );
+            }
+        });
 
         AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
         result.setAssistantMessageId(assistantMessage.getId());
@@ -519,5 +544,21 @@ public class AgentManager {
         agentSseStreamPublishResolver.remove(entity.getId().toString());
         conversationService.deleteByEntity(entity);
         messageService.findByConversationId(entity.getId()).forEach(messageService::deleteByEntity);
+    }
+
+    public Long interrupt(
+            Long assistantMessageId,
+            AuditAuthenticationToken token
+    ) {
+        AgentMessageEntity assistant = Objects.requireNonNull(messageService.get(assistantMessageId), "找不到 ID 为 [" + assistantMessageId + "] 的助手信息");
+        PrincipalDetailsConstants.equals(assistant, token);
+        SystemException.isTrue(
+                !AgentChatStatusEnum.COMPLETED_STATUS.contains(assistant.getStatus()),
+                "当前助手消息已结束，无法停止"
+        );
+
+        agentSseStreamPublishResolver.interrupt(assistant);
+
+        return assistant.getAgentConversationId();
     }
 }

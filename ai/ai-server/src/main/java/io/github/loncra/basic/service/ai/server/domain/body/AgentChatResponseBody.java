@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.body;
 
+import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,4 +15,5 @@ public class AgentChatResponseBody extends AgentChatBasicResponseBody {
     private static final long serialVersionUID = 8249090608898653032L;
 
     private AgentConversationEntity conversation;
+    private ModelSettingMetadata model;
 }

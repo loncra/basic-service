@@ -32,12 +32,12 @@ public class AgentConsumer {
 
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(value = AiMqConstants.AGENT_STREAM_QUEUE, durable = "true"),
+                    value = @Queue(value = AiMqConstants.AGENT_EXECUTE_QUEUE, durable = "true"),
                     exchange = @Exchange(value = SystemConstants.SYS_AI_RABBITMQ_EXCHANGE),
-                    key = AiMqConstants.AGENT_STREAM_QUEUE
+                    key = AiMqConstants.AGENT_EXECUTE_QUEUE
             )
     )
-    public void stream(
+    public void execute(
             Long assistantId,
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long tag

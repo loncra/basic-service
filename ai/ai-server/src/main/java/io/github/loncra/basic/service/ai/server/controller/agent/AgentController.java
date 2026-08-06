@@ -53,6 +53,28 @@ public class AgentController {
         return agentManager.chat(body, token);
     }
 
+    @PutMapping
+    public AgentChatBasicResponseBody resume(
+            @RequestBody
+            AgentResumeRequestBody body,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return agentManager.resume(body, token);
+    }
+
+    @DeleteMapping("/{assistantMessageId:\\d+}")
+    public RestResult<Long> interrupt(
+            @PathVariable
+            Long assistantMessageId,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        Long sessionId = agentManager.interrupt(assistantMessageId, token);
+        return RestResult.of("中断 [" + sessionId + "] 会话成功");
+    }
+
     @PostMapping(value = "/stream/{assistantId:\\d+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> stream(
             @PathVariable
@@ -100,16 +122,6 @@ public class AgentController {
         return RestResult.ofSuccess(
                 agentManager.positioningMessagePageNumber(conversationId, messageId, pageSize)
         );
-    }
-
-    @PutMapping
-    public AgentChatBasicResponseBody resume(
-            @RequestBody
-            AgentResumeRequestBody body,
-            @CurrentSecurityContext SecurityContext securityContext
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentManager.resume(body, token);
     }
 
     @DeleteMapping("conversation")

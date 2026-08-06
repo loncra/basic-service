@@ -28,21 +28,6 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
     @Getter
     private StreamConfig streamConfig;
 
-    public void publish(
-            String conversationId,
-            AbstractAssistantMessageContentMetadata content
-    ) {
-        doPublish(conversationId, content);
-        if (AgentMessageContentTypeEnum.REMOVE_STREAM_TYPE.contains(content.getType())) {
-            remove(conversationId);
-        }
-    }
-
-    protected abstract void doPublish(
-            String conversationId,
-            AbstractAssistantMessageContentMetadata content
-    );
-
     @Override
     public Flux<ServerSentEvent<String>> open(
             AgentMessageEntity assistant,
@@ -159,10 +144,15 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
 
                 ServerSentEvent<String> serverSentEvent = content.toServerSentEvent();
                 sink.next(serverSentEvent);
-                if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(serverSentEvent.event())) {
+                if (AgentMessageContentTypeEnum.REMOVE_STREAM_TYPE.contains(content.getType())) {
                     sink.complete();
+                    remove(conversationId);
                     return;
                 }
+                /*if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(serverSentEvent.event())) {
+                    sink.complete();
+                    return;
+                }*/
                 /*else if (AgentMessageContentTypeEnum.ERROR.getValue().equals(serverSentEvent.event()) && Objects.nonNull(serverSentEvent.data())) {
                     CustomizeMetadata metadata = SystemException.convertSupplier(
                             () -> CastUtils.getObjectMapper().readValue(serverSentEvent.data(), CustomizeMetadata.class)

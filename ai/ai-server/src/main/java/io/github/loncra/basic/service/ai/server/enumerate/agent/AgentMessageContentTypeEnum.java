@@ -26,6 +26,8 @@ public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
 
     STREAM_START("流开始", "streamStart", CustomizeMetadata.class),
 
+    STREAM_STOP("流停止", "streamStop", CustomizeMetadata.class),
+
     STREAM_END("流结束", "streamEnd", CustomizeMetadata.class),
 
     TOKEN_USAGE("词元使用", "tokenUsage", AgentTokenUsageMetadata.class),
@@ -34,7 +36,7 @@ public enum AgentMessageContentTypeEnum implements NameValueEnum<String> {
 
     REQUEST_STOP("请求停止", "requestStop", CustomizeMetadata.class),
 
-    MODEL_CALL_END("模型调用", "modelCallEnd", AgentTokenUsageMetadata.class)
+    MODEL_CALL_END("模型调用", "modelCallEnd", AgentTokenUsageMetadata.class),
     ;
 
     private final String name;

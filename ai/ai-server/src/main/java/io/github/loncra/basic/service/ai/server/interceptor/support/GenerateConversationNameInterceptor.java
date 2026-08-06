@@ -10,6 +10,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistan
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
@@ -44,13 +45,15 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
 
     @Override
     public List<AbstractAssistantMessageContentMetadata> postEventsStream(AgentMessageEntity assistant) {
+        if (AgentChatStatusEnum.STOPPED.equals(assistant.getStatus())) {
+            return List.of();
+        }
         AgentConversationEntity conversation = agentConversationService.get(assistant.getAgentConversationId());
         if (Objects.isNull(conversation) || conversation.getGenerateName().toBoolean()) {
             return List.of();
         }
         AgentMessageEntity userMessage = agentMessageService.get(assistant.getParentId());
         ModelResolverMetadata metadata = modelSettingService.getModelMetadata(assistant.getModel(), null);
-
 
         ReActAgent.Builder builder = ReActAgent.builder()
                 .name(GenerateConversationNameInterceptor.class.getSimpleName())
