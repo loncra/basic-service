@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import java.sql.Time;
-
 @Data
 @Component
 @NoArgsConstructor
@@ -22,6 +20,5 @@ public class StreamConfig {
 
     private TimeProperties interruptTimeToLive = TimeProperties.ofSeconds(30);
 
-    /*@Deprecated
-    private TimeProperties removeExpireTime = TimeProperties.ofSeconds(1);*/
+    private TimeProperties removeExpireTime = TimeProperties.ofSeconds(1);
 }

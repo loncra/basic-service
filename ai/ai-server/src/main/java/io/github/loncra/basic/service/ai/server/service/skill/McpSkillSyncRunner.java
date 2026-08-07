@@ -15,10 +15,13 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -66,6 +69,44 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 log.warn("MCP {} skill 同步失败", wrapper.getName(), e);
             }
         }
+        Set<String> activeNames = mcpPackages.stream()
+                .map(NoCloseMcpClientWrapper::getName)
+                .collect(Collectors.toSet());
+        cleanObsoleteSkillDirs(root, activeNames);
     }
 
+    /**
+     * 删除 root 下不在 activeNames 中的 MCP skill 子目录。
+     */
+    private void cleanObsoleteSkillDirs(Path root, Set<String> activeNames) {
+        if (!Files.isDirectory(root)) {
+            return;
+        }
+        try (var dirs = Files.list(root)) {
+            dirs.filter(Files::isDirectory)
+                    .filter(dir -> !activeNames.contains(dir.getFileName().toString()))
+                    .forEach(this::deleteQuietly);
+        } catch (IOException e) {
+            log.warn("扫描 skill 目录失败，跳过清理", e);
+        }
+    }
+
+    /**
+     * 递归删除目录，不抛异常。
+     */
+    private void deleteQuietly(Path dir) {
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(java.util.Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            log.warn("删除文件失败: {}", path, e);
+                        }
+                    });
+            log.info("已清理禁用的 MCP skill 目录: {}", dir.getFileName());
+        } catch (IOException e) {
+            log.warn("清理目录失败: {}", dir, e);
+        }
+    }
 }

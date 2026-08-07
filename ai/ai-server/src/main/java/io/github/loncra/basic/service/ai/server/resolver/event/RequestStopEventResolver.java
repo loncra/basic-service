@@ -28,6 +28,7 @@ public class RequestStopEventResolver extends AbstractAgentEventResolver<Customi
             RuntimeContext context
     ) {
         RequestStopEvent requestStopEvent = CastUtils.cast(event);
+
         CustomizeMetadata metadata = new CustomizeMetadata();
         metadata.setEventType(AgentMessageContentTypeEnum.REQUEST_STOP);
         metadata.getMetadata().put(STOP_REASON_KEY, requestStopEvent.getGenerateReason());

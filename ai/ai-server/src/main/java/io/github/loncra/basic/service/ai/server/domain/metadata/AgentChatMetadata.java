@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.*;
 
 @Data
@@ -35,6 +36,8 @@ public class AgentChatMetadata implements Serializable {
     public static final String TOKEN_USAGE_KEY = "tokenUsage";
 
     public static final String USER_CONFIRM_RESULT_KEY = "userConfirmResult";
+
+    public static final String MODEL_CALL_START_TIME = "modelCallStartTime";
 
     @Serial
     private static final long serialVersionUID = 5795604118691592427L;
@@ -221,5 +224,10 @@ public class AgentChatMetadata implements Serializable {
         metadata.remove(USER_CONFIRM_RESULT_KEY);
         metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
         return result;
+    }
+
+    public void setModelCallStartTimeMetadata(Instant startTime) {
+        metadata.put(MODEL_CALL_START_TIME, startTime);
+        metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
     }
 }

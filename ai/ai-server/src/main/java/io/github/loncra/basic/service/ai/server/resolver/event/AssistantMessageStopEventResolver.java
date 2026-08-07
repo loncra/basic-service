@@ -11,7 +11,8 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusE
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
-import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +35,7 @@ public class AssistantMessageStopEventResolver implements AgentEventResolver {
             AgentEvent event,
             RuntimeContext context
     ) {
-
+        AssistantMessageStopEvent stopEvent = CastUtils.cast(event);
         assistant.setStatus(AgentChatStatusEnum.STOPPED);
         agentMessageService.lambdaUpdate()
                 .set(AgentMessageEntity::getStatus, assistant.getStatus().getValue())
@@ -44,8 +45,10 @@ public class AssistantMessageStopEventResolver implements AgentEventResolver {
                 .update();
 
         CustomizeMetadata metadata = new CustomizeMetadata();
-        metadata.setId(assistant.getId().toString());
+        metadata.setId(stopEvent.getId());
         metadata.setEventType(AgentMessageContentTypeEnum.STREAM_STOP);
+        metadata.setAssistantMessageId(assistant.getId());
+        metadata.getMetadata().put(SystemConstants.STATUS_TABLE_FIELD_NAME, assistant.getStatus());
 
         return List.of(metadata);
     }

@@ -144,23 +144,12 @@ public abstract class AbstractAgentSseStreamPublishResolver implements AgentSseS
 
                 ServerSentEvent<String> serverSentEvent = content.toServerSentEvent();
                 sink.next(serverSentEvent);
-                if (AgentMessageContentTypeEnum.REMOVE_STREAM_TYPE.contains(content.getType())) {
+                if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(content.getType())) {
                     sink.complete();
                     remove(conversationId);
                     return;
                 }
-                /*if (AgentMessageContentTypeEnum.STREAM_END.getValue().equals(serverSentEvent.event())) {
-                    sink.complete();
-                    return;
-                }*/
-                /*else if (AgentMessageContentTypeEnum.ERROR.getValue().equals(serverSentEvent.event()) && Objects.nonNull(serverSentEvent.data())) {
-                    CustomizeMetadata metadata = SystemException.convertSupplier(
-                            () -> CastUtils.getObjectMapper().readValue(serverSentEvent.data(), CustomizeMetadata.class)
-                    );
-                    String error = metadata.getMetadata().getOrDefault(RestResult.DEFAULT_MESSAGE_NAME, ErrorCodeException.DEFAULT_ERROR_MESSAGE).toString();
-                    sink.error(new ServiceException(error));
-                    return;
-                }*/
+
             }
             sseLastId.set(maxInBatch);
             scheduleNextPoll(sink, conversationId, sseLastId, nextPollRef);

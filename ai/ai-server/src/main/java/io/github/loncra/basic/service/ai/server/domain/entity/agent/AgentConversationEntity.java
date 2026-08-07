@@ -3,9 +3,11 @@ package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -56,12 +58,23 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
 
     private AgentConversationTypeEnum type;
 
-    private YesOrNo generateName;
+    private ExecuteStatus generateNameStatus;
 
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();
 
     private Long parentId;
+
+    /**
+     * 最后使用的模型内容
+     */
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private ModelSettingMetadata lastModel;
+
+    /**
+     * 最后一次对话类型
+     */
+    private AgentChatTypeEnum lastChatType;
 
     @TableField(exist = false)
     private List<Tree<Long, AgentConversationEntity>> children = new LinkedList<>();

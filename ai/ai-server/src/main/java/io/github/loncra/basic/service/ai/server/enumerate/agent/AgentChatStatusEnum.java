@@ -28,4 +28,6 @@ public enum AgentChatStatusEnum implements NameValueEnum<Integer> {
     private final String name;
 
     public static final List<AgentChatStatusEnum> COMPLETED_STATUS = List.of(COMPLETED, STOPPED, FAILED);
+
+    public static final List<AgentChatStatusEnum> STREAM_END_STATUS = List.of(COMPLETED, STOPPED, REQUEST_STOP, FAILED);
 }

@@ -1,12 +1,11 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
-import io.agentscope.core.state.AgentStateStore;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
 import io.github.loncra.basic.service.ai.server.dao.agent.AgentConversationDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -37,8 +36,6 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
 
     private final ConversationConfig conversationConfig;
 
-    private final AgentStateStore agentStateStore;
-
     public AgentConversationEntity getDefaultWorkspace(String getPrincipal) {
         return lambdaQuery().eq(AgentConversationEntity::getPrincipal, getPrincipal)
                 .eq(AgentConversationEntity::getType, AgentConversationTypeEnum.DEFAULT_WORKSPACE.getValue())
@@ -55,7 +52,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
             entity.setName(conversationConfig.getDefaultWorkspaceName());
             entity.setPrincipal(token.getName());
             entity.setStatus(AgentChatStatusEnum.READY);
-            entity.setGenerateName(YesOrNo.Yes);
+            entity.setGenerateNameStatus(ExecuteStatus.Success);
             entity.setType(AgentConversationTypeEnum.DEFAULT_WORKSPACE);
             insert(entity);
         }
@@ -87,18 +84,9 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
         return deleteByEntity(get(id));
     }
 
-   /* @Override
-    @Transactional(rollbackFor = Exception.class)
-    public int deleteByEntity(AgentConversationEntity entity) {
-        SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
-        lambdaQuery().eq(AgentConversationEntity::getParentId, entity.getId()).list().forEach(this::deleteByEntity);
-        agentStateStore.delete(Strings.CS.replace(entity.getPrincipal(), CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE), entity.getId().toString());
-        return super.deleteByEntity(entity);
-    }*/
-
     @Override
     public int insert(AgentConversationEntity entity) {
-        entity.setGenerateName(YesOrNo.ofBoolean(!conversationConfig.isEnabled()));
+        entity.setGenerateNameStatus(conversationConfig.isGenerateName() ? ExecuteStatus.Pending : ExecuteStatus.Success);
         entity.setName(StringUtils.defaultIfEmpty(entity.getName(), conversationConfig.getNewConversation()));
         entity.setStatus(AgentChatStatusEnum.READY);
         return super.insert(entity);

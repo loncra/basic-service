@@ -24,12 +24,12 @@ public abstract class AbstractBlockRunningEventResolver extends AbstractAgentEve
         SystemException.isTrue(AbstractBlockRunningContentMetadata.class.isAssignableFrom(getRunningType().getTargetClass()), getRunningType().getTargetClass() + "未实现 BlockRunningContentMetadata 元数据");
 
         AbstractAssistantMessageContentMetadata metadata = SystemException.convertSupplier(() -> BeanUtils.instantiateClass(getRunningType().getTargetClass()));
-        AbstractBlockRunningContentMetadata runningContentMetadata = CastUtils.cast(metadata);
-        runningContentMetadata.setCreationTime(Instant.now());
-        runningContentMetadata.setId(getBlockId(event));
-        runningContentMetadata.setStatus(AgentBlockStatusEnum.RUNNING);
+        AbstractBlockRunningContentMetadata runningContent = CastUtils.cast(metadata);
+        runningContent.setCreationTime(Instant.now());
+        runningContent.setId(getBlockId(event));
+        runningContent.setStatus(AgentBlockStatusEnum.RUNNING);
 
-        return List.of(runningContentMetadata);
+        return List.of(runningContent);
     }
 
     @Override

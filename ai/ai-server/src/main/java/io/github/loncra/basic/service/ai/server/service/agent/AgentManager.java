@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.service.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.message.Msg;
@@ -44,7 +45,6 @@ import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
@@ -56,7 +56,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
-import org.jspecify.annotations.NonNull;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
@@ -128,26 +127,28 @@ public class AgentManager {
             );
         }
 
+        ModelSettingEntity model = Objects.requireNonNull(modelSettingService.get(body.getModelId()), "找不到 ID 为 [" + body.getModelId() + "] 的模型数据");
+        ModelSettingMetadata modelMetadata = CastUtils.of(model, ModelSettingMetadata.class);
+
         if (conversation.getType() != AgentConversationTypeEnum.WORKSPACE_CONVERSATION) {
             Long parentId = conversation.getId();
 
             conversation = new AgentConversationEntity();
-            conversation.setStatus(AgentChatStatusEnum.READY);
             conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
             conversation.setParentId(parentId);
-            conversation.setGenerateName(YesOrNo.No);
             conversation.setPrincipal(token.getName());
-            conversationService.insert(conversation);
         } else {
             assertNoRunningAssistant(conversation.getId());
-            conversation.setStatus(AgentChatStatusEnum.READY);
-            conversationService.updateById(conversation);
         }
 
-        ModelSettingEntity model = Objects.requireNonNull(modelSettingService.get(body.getModelId()), "找不到 ID 为 [" + body.getModelId() + "] 的模型数据");
+        conversation.setStatus(AgentChatStatusEnum.READY);
+        conversation.setLastModel(modelMetadata);
+        conversation.setLastChatType(body.getType());
+
+        conversationService.save(conversation);
 
         AgentMessageEntity userMessage = CastUtils.of(body, AgentMessageEntity.class);
-        userMessage.setModel(CastUtils.of(model, ModelSettingMetadata.class));
+        userMessage.setModel(modelMetadata);
         userMessage.setRole(AgentMessageRoleEnum.USER);
         userMessage.setPrincipal(token.getName());
         userMessage.setStatus(AgentChatStatusEnum.READY);
@@ -157,6 +158,7 @@ public class AgentManager {
         AgentMessageEntity assistantMessage = CastUtils.of(userMessage, AgentMessageEntity.class, IdEntity.ID_FIELD_NAME);
         assistantMessage.setRole(AgentMessageRoleEnum.ASSISTANT);
         assistantMessage.setParentId(userMessage.getId());
+        assistantMessage.setContent(new LinkedList<>());
         messageService.insert(assistantMessage);
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -174,7 +176,6 @@ public class AgentManager {
         responseBody.setConversation(conversation);
         responseBody.setUserMessageId(userMessage.getId());
         responseBody.setAssistantMessageId(assistantMessage.getId());
-        responseBody.setModel(userMessage.getModel());
 
         publishStreamStartSse(assistantMessage);
 
@@ -313,8 +314,6 @@ public class AgentManager {
         return agent.streamEvents(messages, context)
                 .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, assistantMessage, context))))
                 .filter(Objects::nonNull)
-                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistantMessage))))
-                .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistantMessage))))
                 .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, assistantMessage))));
 
     }
@@ -388,11 +387,21 @@ public class AgentManager {
     private Flux<AbstractAssistantMessageContentMetadata> onCompleted(
             AgentMessageEntity assistant
     ) {
+        AgentConversationEntity conversation = conversationService.get(assistant.getAgentConversationId());
+        if (!AgentChatStatusEnum.STREAM_END_STATUS.contains(conversation.getStatus())) {
+            log.warn("会话 [{}] 当前未处于完成状态略过推送 STREAM_END 事件", assistant.getId());
+            return Flux.empty();
+        }
 
         CustomizeMetadata content = new CustomizeMetadata();
         content.setEventType(AgentMessageContentTypeEnum.STREAM_END);
-        content.setId(assistant.getId().toString());
+        content.setId(assistant.getAgentConversationId().toString());
+        content.setAssistantMessageId(assistant.getId());
         content.getMetadata().put(SystemConstants.STATUS_TABLE_FIELD_NAME, assistant.getStatus());
+
+        if (log.isDebugEnabled()) {
+            log.debug("助手消息 [{}] 执行完成, 推送 STREAM_END 事件", assistant.getId());
+        }
 
         return Flux.just(content);
     }
@@ -430,7 +439,6 @@ public class AgentManager {
     private Flux<AbstractAssistantMessageContentMetadata> postStreamEvent(
             AgentMessageEntity assistant
     ) {
-
         return Flux.fromIterable(agentStreamEventInterceptors)
                 .concatMap(interceptor -> Flux.fromIterable(interceptor.postEventsStream(assistant))
                         .doOnError(e -> log.error("助手消息 [{}] 拦截器 [{}] 执行失败", assistant.getId(), interceptor.getClass().getSimpleName(), e))
@@ -450,8 +458,12 @@ public class AgentManager {
                 .filter(s -> s.isSupport(event))
                 .flatMap(s -> s.process(assistant, event, context).stream())
                 .toList();
-
-        return Flux.fromIterable(contents);
+        Flux<AbstractAssistantMessageContentMetadata> flux = Flux.fromIterable(contents);
+        if (AgentEndEvent.class.isAssignableFrom(event.getClass())) {
+            flux = flux.concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
+                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))));
+        }
+        return flux;
     }
 
     @Transactional(rollbackFor = Exception.class)

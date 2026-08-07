@@ -31,6 +31,7 @@ public abstract class AbstractBlockDeltaContentResolver extends AbstractAgentEve
         AbstractBlockDeltaContentMetadata content = CastUtils.cast(metadata);
         content.setId(getBlockId(event));
         content.setValue(delta);
+
         return List.of(content);
     }
 

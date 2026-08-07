@@ -27,7 +27,10 @@ public abstract class AbstractAgentEventResolver<T extends AbstractAssistantMess
             RuntimeContext context
     ) {
         List<T> contents = createPublishPatchContent(event, context);
-        contents.forEach(s -> s.setEventSource(event));
+        for (T content : contents) {
+            content.setEventSource(event);
+            content.setAssistantMessageId(assistant.getId());
+        }
         return new LinkedList<>(contents);
     }
 

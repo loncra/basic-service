@@ -20,7 +20,7 @@ public class ConversationConfig {
 
     private String newConversation = "新话题";
 
-    private boolean enabled = true;
+    private boolean generateName = true;
 
     private String generatePrompt = """
             请根据以下对话内容，生成一个简短标题（5-10字），直接输出标题，不要加任何解释或前缀。

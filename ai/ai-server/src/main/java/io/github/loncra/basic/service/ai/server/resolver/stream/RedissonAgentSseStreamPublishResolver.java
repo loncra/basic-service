@@ -38,8 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStreamPublishResolver {
 
-    public static final String INTERRUPT_TOPIC_PREFIX = "loncra:basic-service:ai:app:agent:sse:interrupt:topic";
-    public static final String INTERRUPT_BUCKET_PREFIX = "loncra:basic-service:ai:app:agent:sse:interrupt:bucket";
+    public static final String INTERRUPT_TOPIC_PREFIX = "loncra:basic-service:ai:app:agent:sse:interrupt:topic:";
+    public static final String INTERRUPT_BUCKET_PREFIX = "loncra:basic-service:ai:app:agent:sse:interrupt:bucket:";
     public static final String INTERRUPT_TOPIC_STOP_MESSAGE = "stop";
 
     public static final String STREAM_KEY_PREFIX = "loncra:basic-service:ai:app:agent:sse:stream:";
@@ -91,14 +91,8 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
 
     @Override
     public void remove(String conversationId) {
-        /*RStream<String, String> stream = getStream(conversationId);
-        if (Objects.nonNull(getStreamConfig().getRemoveExpireTime())) {
-            stream.expire(getStreamConfig().getRemoveExpireTime().toDuration());
-        } else {
-            stream.delete();
-        }*/
         RStream<String, String> stream = getStream(conversationId);
-        stream.delete();
+        stream.expire(getStreamConfig().getRemoveExpireTime().toDuration());
     }
 
     @Override

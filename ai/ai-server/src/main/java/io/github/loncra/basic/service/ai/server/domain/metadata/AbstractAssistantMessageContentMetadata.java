@@ -25,6 +25,8 @@ public abstract class AbstractAssistantMessageContentMetadata extends AbstractAg
      */
     private String sseEventId;
 
+    private Long assistantMessageId;
+
     public ServerSentEvent<String> toServerSentEvent() {
         return ServerSentEvent.<String>builder()
                 .id(sseEventId)

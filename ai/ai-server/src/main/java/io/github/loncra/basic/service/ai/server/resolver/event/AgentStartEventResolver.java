@@ -30,6 +30,8 @@ public class AgentStartEventResolver implements AgentEventResolver {
         AgentStatusContentMetadata result = new AgentStatusContentMetadata();
         result.setId(assistant.getAgentConversationId().toString());
         result.setStatus(assistant.getStatus());
+        result.setAssistantMessageId(assistant.getId());
+
         return List.of(result);
     }
 }

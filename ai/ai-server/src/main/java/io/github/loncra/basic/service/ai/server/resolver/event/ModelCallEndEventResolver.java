@@ -7,7 +7,6 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessage
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
@@ -21,7 +20,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class ModelCompletedEventResolver implements AgentEventResolver {
+public class ModelCallEndEventResolver implements AgentEventResolver {
 
     private final AgentMessageService agentMessageService;
 
@@ -40,7 +39,7 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
 
         AgentTokenUsageMetadata usage = CastUtils.of(modelCallEndEvent.getUsage(), AgentTokenUsageMetadata.class);
         usage.setUsageType(AgentMessageContentTypeEnum.MODEL_CALL_END);
-        usage.setId(assistant.getId().toString());
+        usage.setId(modelCallEndEvent.getId());
 
         List<AbstractAssistantMessageContentMetadata> exist = assistant.obtainBlock(modelCallEndEvent.getReplyId());
         if (exist.size() == BigDecimal.ONE.intValue()) {
@@ -48,14 +47,12 @@ public class ModelCompletedEventResolver implements AgentEventResolver {
             usage.setUsageType(usageType);
         }
         assistant.saveAgentTokenUsageMetadata(usage);
-        if (AgentChatStatusEnum.RUNNING.equals(assistant.getStatus())) {
-            assistant.setStatus(AgentChatStatusEnum.COMPLETED);
-            agentMessageService.lambdaUpdate()
-                    .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.COMPLETED.getValue())
-                    .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
-                    .eq(AgentMessageEntity::getId, assistant.getId())
-                    .update();
-        }
+        agentMessageService.lambdaUpdate()
+                .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
+                .eq(AgentMessageEntity::getId, assistant.getId())
+                .update();
+
+        usage.setAssistantMessageId(assistant.getId());
 
         return List.of(usage);
     }
