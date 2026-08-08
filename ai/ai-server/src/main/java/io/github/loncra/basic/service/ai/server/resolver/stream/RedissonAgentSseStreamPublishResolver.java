@@ -174,8 +174,12 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
         // 再 PUBLISH：若执行节点已订阅，立即唤醒并调 AgentScope.interrupt()
         //    若尚未订阅：消息可能丢，但 ① 的 bucket 会让 onAgent 走「开跑前停止」短路
         redissonClient.getTopic(interruptTopicKey(conversationId)).publish(INTERRUPT_TOPIC_STOP_MESSAGE);
-        log.info("已发布停止信号，assistantId={}, conversationId={}",
-                assistant.getId(), assistant.getAgentConversationId());
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "已发布停止信号，assistantId={}, conversationId={}",
+                    assistant.getId(), assistant.getAgentConversationId()
+            );
+        }
     }
 
     @Override

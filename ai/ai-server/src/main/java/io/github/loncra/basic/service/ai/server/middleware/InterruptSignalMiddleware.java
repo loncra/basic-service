@@ -40,6 +40,8 @@ import static io.github.loncra.basic.service.ai.server.domain.metadata.AgentChat
 
 /**
  * 集群安全的 Agent 停止中间件。
+ *
+ * @author olale
  */
 @Slf4j
 @Component

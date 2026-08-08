@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -91,6 +92,7 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
                 .map(s -> s.resolve(mcpPackage.getPackageKey(), metadata));
     }
 
+    @Async
     @Override
     public void afterPropertiesSet() throws Exception {
         List<AiMcpPackageEntity> mcpPackages = findSystemMcpPackage();

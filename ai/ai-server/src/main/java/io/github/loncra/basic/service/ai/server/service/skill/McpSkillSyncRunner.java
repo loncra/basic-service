@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
@@ -31,6 +32,7 @@ public class McpSkillSyncRunner implements ApplicationRunner {
     private final AiMcpPackageService aiMcpPackageService;
     private final SkillConfig skillConfig;
 
+    @Async
     @Override
     public void run(ApplicationArguments args) {
         Path root = Path.of(skillConfig.getPath());
