@@ -4,6 +4,7 @@ package io.github.loncra.basic.service.ai.server.controller.agent;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
+import io.github.loncra.basic.service.ai.server.domain.body.AgentClarifyRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
@@ -61,6 +62,16 @@ public class AgentController {
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.resume(body, token);
+    }
+
+    @PutMapping("clarify")
+    public AgentChatBasicResponseBody clarify(
+            @RequestBody
+            AgentClarifyRequestBody body,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return agentManager.clarify(body, token);
     }
 
     @DeleteMapping("/{assistantMessageId:\\d+}")

@@ -49,6 +49,10 @@ public class SkillConfig {
             1. Call `reset_equipped_tools` with `to_activate: ["${group.getValue()}"]`
             2. Call the tools below as needed
             3. Deactivate the group when finished
+            <#if guidance?? && guidance?has_content>
+            
+            ${guidance}
+            </#if>
             
             ## Available tools
             <#list tools as tool>

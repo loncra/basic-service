@@ -219,6 +219,11 @@ public class AgentChatMetadata implements Serializable {
         return StringUtils.defaultIfEmpty(metadataJson, UrlUtils.HTTP_PATH_VARIABLE_START + UrlUtils.HTTP_PATH_VARIABLE_END);
     }
 
+    /** 在直接改写 {@link #metadata} Map 后刷新缓存的 JSON 字符串 */
+    public void refreshMetadataJson() {
+        metadataJson = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
+    }
+
     public List<ConfirmResult> obtainUserConfirmResultMetadataThenRemove() {
         List<ConfirmResult> result = CastUtils.convertValue(metadata.get(USER_CONFIRM_RESULT_KEY), new TypeReference<>() { });
         metadata.remove(USER_CONFIRM_RESULT_KEY);

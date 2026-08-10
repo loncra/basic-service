@@ -11,16 +11,20 @@ import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
+import io.github.loncra.basic.service.ai.server.constants.ClarifyConstants;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
+import io.github.loncra.basic.service.ai.server.domain.body.AgentClarifyRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
+import io.github.loncra.basic.service.ai.server.domain.clarify.ClarifySessionState;
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
@@ -32,11 +36,14 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCall
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
+import io.github.loncra.basic.service.ai.server.middleware.ClarifyMiddleware;
 import io.github.loncra.basic.service.ai.server.middleware.InterruptSignalMiddleware;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
+import io.github.loncra.basic.service.ai.server.service.clarify.ClarifyModeManager;
+import io.github.loncra.basic.service.ai.server.tool.ClarifyModeTools;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -55,6 +62,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
@@ -105,6 +114,12 @@ public class AgentManager {
     private final StreamConfig streamConfig;
 
     private final InterruptSignalMiddleware interruptSignalMiddleware;
+
+    private final ClarifyMiddleware clarifyMiddleware;
+
+    private final ClarifyModeTools clarifyModeTools;
+
+    private final ClarifyModeManager clarifyModeManager;
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.agentConversationId]",
@@ -254,10 +269,16 @@ public class AgentManager {
     }
 
     public void execute(AgentMessageEntity assistant) {
+        String sessionId = String.valueOf(assistant.getAgentConversationId());
+        clarifyModeManager.hydrateFromMessage(sessionId, assistant);
         if (AgentChatStatusEnum.REQUEST_STOP.equals(assistant.getStatus())) {
             List<ConfirmResult> confirmResults = assistant.obtainUserConfirmResultMetadataThenRemove();
             Map<String, Object> metadata = new LinkedHashMap<>();
             metadata.put(Msg.METADATA_CONFIRM_RESULTS, confirmResults);
+            List<Map<String, Object>> clarifyResults = clarifyModeManager.obtainClarifyResultsThenRemove(assistant);
+            if (!clarifyResults.isEmpty()) {
+                metadata.put(ClarifyConstants.METADATA_CLARIFY_RESULTS, clarifyResults);
+            }
 
             messageService.lambdaUpdate()
                     .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
@@ -328,17 +349,26 @@ public class AgentManager {
         AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
 
         ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(assistant.getModel(), userMessage.getMetadata());
+        String sessionId = String.valueOf(assistant.getAgentConversationId());
+        clarifyModeManager.hydrateFromMessage(sessionId, assistant);
+
+        Toolkit toolkit = modelResolverMetadata.getToolkit();
+        toolkit.registerTool(clarifyModeTools.enterTool());
+        toolkit.registerTool(clarifyModeTools.writeTool());
+        toolkit.registerTool(clarifyModeTools.exitTool());
+
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(assistant.getType().toString())
                 .sysPrompt(aiAppConfig.getSystemPrompt())
                 .model(modelResolverMetadata.getModel())
-                .toolkit(modelResolverMetadata.getToolkit())
+                .toolkit(toolkit)
                 // 激活元工具，用于处理元工具调用，让 skill 动态加载工具
                 .enableMetaTool(true)
                 .stateStore(agentStateStore)
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
+                .middleware(clarifyMiddleware)
                 // 中断信号中间件实现
                 .middleware(interruptSignalMiddleware);
         if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
@@ -346,6 +376,85 @@ public class AgentManager {
                     .planFileDirectory(assistant.getType().toString());
         }
         return builder.build();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public AgentChatBasicResponseBody clarify(
+            AgentClarifyRequestBody body,
+            AuditAuthenticationToken token
+    ) {
+        AgentMessageEntity assistantMessage = Objects.requireNonNull(
+                messageService.get(body.getAssistantMessageId()),
+                "找不到助手消息"
+        );
+        PrincipalDetailsConstants.equals(assistantMessage, token);
+
+        String sessionId = String.valueOf(assistantMessage.getAgentConversationId());
+        clarifyModeManager.hydrateFromMessage(sessionId, assistantMessage);
+
+        Optional<ToolCallBlockContentMetadata> exitBlock = assistantMessage.obtainMessageContents().stream()
+                .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
+                .map(s -> CastUtils.cast(s, ToolCallBlockContentMetadata.class))
+                .filter(s -> ClarifyConstants.CLARIFY_EXIT.equals(s.getName()))
+                .filter(s -> body.getToolCallId().equals(s.getId()))
+                .filter(s -> ToolCallState.PENDING.equals(s.getHitlStatus())
+                        || ToolCallState.ASKING.equals(s.getHitlStatus()))
+                .findFirst();
+        SystemException.isTrue(exitBlock.isPresent(), "找不到待确认的 clarify_exit 工具调用");
+
+        ToolCallBlockContentMetadata clarifyExit = exitBlock.get();
+        Map<String, Object> answers = body.getAnswers();
+        boolean submit = MapUtils.isNotEmpty(answers);
+
+        List<ConfirmResult> confirmResults = new LinkedList<>();
+        if (submit) {
+            ClarifySessionState session = clarifyModeManager.getOrCreate(sessionId);
+            String targetTool = session.getTargetTool();
+            SystemException.isTrue(StringUtils.isNotBlank(targetTool), "澄清会话缺少 targetTool");
+            clarifyModeManager.validateAnswers(targetTool, answers);
+            clarifyModeManager.applyAnswers(sessionId, answers);
+
+            Map<String, Object> clarifyResult = new LinkedHashMap<>();
+            clarifyResult.put("toolCallId", body.getToolCallId());
+            clarifyResult.put("targetTool", targetTool);
+            clarifyResult.put("answers", answers);
+            if (StringUtils.isNotBlank(body.getSummary())) {
+                clarifyResult.put("summary", body.getSummary());
+            }
+            clarifyModeManager.saveClarifyResultsMetadata(assistantMessage, clarifyResult);
+            confirmResults.add(new ConfirmResult(true, clarifyExit.toToolUseBlock()));
+            clarifyExit.setUserConfirmed(true);
+        } else {
+            clarifyModeManager.cancel(sessionId);
+            confirmResults.add(new ConfirmResult(false, clarifyExit.toToolUseBlock()));
+            clarifyExit.setUserConfirmed(false);
+        }
+        assistantMessage.updateContent(clarifyExit);
+        assistantMessage.saveUserConfirmResultMetadata(confirmResults);
+        clarifyModeManager.persistToMessage(sessionId, assistantMessage);
+
+        messageService.lambdaUpdate()
+                .set(AgentChatMetadata::getContent, assistantMessage.obtainContentJsonString())
+                .set(AgentChatMetadata::getMetadata, assistantMessage.obtainMetadataJsonString())
+                .eq(AgentMessageEntity::getId, assistantMessage.getId())
+                .update();
+
+        publishStreamStartSse(assistantMessage);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                amqpTemplate.convertAndSend(
+                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
+                        AiMqConstants.AGENT_EXECUTE_QUEUE,
+                        assistantMessage.getId()
+                );
+            }
+        });
+
+        AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
+        result.setAssistantMessageId(assistantMessage.getId());
+        result.setUserMessageId(assistantMessage.getParentId());
+        return result;
     }
 
     private void publishStreamEvent(
@@ -477,7 +586,8 @@ public class AgentManager {
         List<ToolUseBlock> toolUseBlocks = assistantMessage.obtainMessageContents().stream()
                 .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
                 .map(s -> CastUtils.cast(s, ToolCallBlockContentMetadata.class))
-                .filter(s -> ToolCallState.PENDING.equals(s.getHitlStatus()))
+                .filter(s -> ToolCallState.PENDING.equals(s.getHitlStatus())
+                        || ToolCallState.ASKING.equals(s.getHitlStatus()))
                 .map(ToolCallBlockContentMetadata::toToolUseBlock)
                 .toList();
 

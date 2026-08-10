@@ -21,6 +21,11 @@ public class SkillMetadata extends StringIdEntity {
 
     private String description;
 
+    /**
+     * 来自 {@code AiMcpPackageEntity.metadata.skill.guidance} 的额外 Markdown 段落
+     */
+    private String guidance;
+
     private DataDictionaryMetadata group;
 
     private List<String> tags = new LinkedList<>();
