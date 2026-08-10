@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.consumer;
 
 import com.rabbitmq.client.Channel;
-import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
+import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
@@ -30,12 +30,12 @@ public class UserAuthSuccessConsumer {
 
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(value = AiMqConstants.USER_AUTH_SUCCESS_QUEUE_NAME, durable = "true"),
+                    value = @Queue(value = AiConstants.MQ_USER_AUTH_SUCCESS_QUEUE_NAME, durable = "true"),
                     exchange = @Exchange(
                             value = SystemConstants.USER_AUTH_SUCCESS_FANOUT_EXCHANGE,
                             type = ExchangeTypes.FANOUT
                     ),
-                    key = AiMqConstants.USER_AUTH_SUCCESS_QUEUE_NAME
+                    key = AiConstants.MQ_USER_AUTH_SUCCESS_QUEUE_NAME
             )
     )
     public void onMessage(@Payload String principal,

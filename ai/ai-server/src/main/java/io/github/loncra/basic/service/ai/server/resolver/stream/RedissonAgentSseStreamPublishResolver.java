@@ -92,6 +92,9 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
     @Override
     public void remove(String conversationId) {
         RStream<String, String> stream = getStream(conversationId);
+        if (!stream.isExists()) {
+            return ;
+        }
         stream.expire(getStreamConfig().getRemoveExpireTime().toDuration());
     }
 

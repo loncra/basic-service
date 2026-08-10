@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.enumerate.hub;
+package io.github.loncra.basic.service.ai.api.enumerate.hub;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,12 +7,13 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PluginInstallUserScopeEnum implements NameValueEnum<Integer> {
+public enum PluginInstallStatusEnum implements NameValueEnum<Integer> {
 
-    USER("个人用户", 10),
+    PENDING("待激活", 10),
 
-    ORG("企业用户", 20),
+    ACTIVATED("已激活", 20),
 
+    DISABLED("已禁用", 30),
     ;
 
     private final String name;

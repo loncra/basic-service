@@ -2,10 +2,10 @@ package io.github.loncra.basic.service.ai.server.resolver.mcp;
 
 import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
+import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.McpClientStdioTransportMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.ContentAwareMcpClientWrapper;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.mcp.McpClientStdioTransportMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.McpPackageResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import org.springframework.stereotype.Component;

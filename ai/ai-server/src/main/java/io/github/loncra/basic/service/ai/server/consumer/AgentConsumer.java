@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.consumer;
 
 import com.rabbitmq.client.Channel;
-import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
+import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
@@ -32,9 +32,9 @@ public class AgentConsumer {
 
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(value = AiMqConstants.AGENT_EXECUTE_QUEUE, durable = "true"),
+                    value = @Queue(value = AiConstants.MQ_AGENT_EXECUTE_QUEUE, durable = "true"),
                     exchange = @Exchange(value = SystemConstants.SYS_AI_RABBITMQ_EXCHANGE),
-                    key = AiMqConstants.AGENT_EXECUTE_QUEUE
+                    key = AiConstants.MQ_AGENT_EXECUTE_QUEUE
             )
     )
     public void execute(

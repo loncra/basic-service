@@ -37,18 +37,22 @@ public class SkillConfig {
     private String contentTemplate = """
             ---
             name: ${id}
-            description: Use when the task needs ${group.getName()}<#if tags?? && tags?has_content>, ${tags?join(", ")}</#if>. Then call reset_equipped_tools with to_activate containing "${group.getValue()}".
+            description: Use when the task needs ${group.getName()}<#if tags?? && tags?has_content>, ${tags?join(", ")}</#if>. Then call reset_equipped_tools with to_activate containing "${id}".
             ---
             
-            # ${id}
+            # ${name}
             
             Synced at: ${creationTime}
-            Tool group: `${group.getValue()}`
+            Tool group: `${id}`
             
             ## How to use
-            1. Call `reset_equipped_tools` with `to_activate: ["${group.getValue()}"]`
+            1. Call `reset_equipped_tools` with `to_activate: ["${id}"]`
             2. Call the tools below as needed
             3. Deactivate the group when finished
+            <#if guidance?? && guidance?has_content>
+            
+            ${guidance}
+            </#if>
             
             ## Available tools
             <#list tools as tool>

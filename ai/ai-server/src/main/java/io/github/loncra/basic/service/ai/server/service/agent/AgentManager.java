@@ -12,7 +12,7 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.github.loncra.basic.service.ai.api.constants.AiMqConstants;
+import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
@@ -166,7 +166,7 @@ public class AgentManager {
             public void afterCommit() {
                 amqpTemplate.convertAndSend(
                         SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                        AiMqConstants.AGENT_EXECUTE_QUEUE,
+                        AiConstants.MQ_AGENT_EXECUTE_QUEUE,
                         assistantMessage.getId()
                 );
             }
@@ -501,6 +501,7 @@ public class AgentManager {
             if (optional.isPresent()) {
                 ToolCallBlockContentMetadata contentMetadata = optional.get();
                 contentMetadata.setUserConfirmed(confirm);
+                contentMetadata.setHitlStatus(ToolCallState.SUBMITTED);
                 assistantMessage.updateContent(contentMetadata);
             }
 
@@ -520,7 +521,7 @@ public class AgentManager {
             public void afterCommit() {
                 amqpTemplate.convertAndSend(
                         SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                        AiMqConstants.AGENT_EXECUTE_QUEUE,
+                        AiConstants.MQ_AGENT_EXECUTE_QUEUE,
                         assistantMessage.getId()
                 );
             }

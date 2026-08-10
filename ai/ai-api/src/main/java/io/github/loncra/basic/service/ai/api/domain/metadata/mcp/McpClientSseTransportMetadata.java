@@ -1,7 +1,7 @@
-package io.github.loncra.basic.service.ai.server.domain.metadata.mcp;
+package io.github.loncra.basic.service.ai.api.domain.metadata.mcp;
 
-import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
+import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import io.github.loncra.framework.commons.TimeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,7 +15,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-public class McpClientSseTransportMetadata extends AbstractMcpClientTransportMetadata  {
+public class McpClientSseTransportMetadata extends AbstractMcpClientTransportMetadata {
 
     @Serial
     private static final long serialVersionUID = 8125138388121138820L;

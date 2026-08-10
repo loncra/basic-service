@@ -12,7 +12,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.xml.BeanDefinitionParserDelegate;
 
 import java.util.List;
 import java.util.Map;
@@ -45,26 +44,26 @@ public abstract class AbstractModelResolver implements ModelResolver {
                 continue;
             }
             McpClientWrapper mcpClientWrapper = optional.get();
-            if (Objects.isNull(p.getGroup())) {
+            /*if (Objects.isNull(p.getGroup())) {
                 toolkit.registration()
                         .mcpClient(mcpClientWrapper)
                         .apply();
             } else {
-                String group = Objects.toString(p.getGroup().getValue(), BeanDefinitionParserDelegate.DEFAULT_VALUE);
+                String group = Objects.toString(p.getGroup().getValue(), BeanDefinitionParserDelegate.DEFAULT_VALUE);*/
                 // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
-                if (Objects.isNull(toolkit.getToolGroup(group))) {
+                if (Objects.isNull(toolkit.getToolGroup(p.getPackageKey()))) {
                     toolkit.createToolGroup(
-                            group,
-                            p.getGroup().getName(),
+                            p.getPackageKey(),
+                            p.getName(),
                             false
                     );
                 }
 
                 toolkit.registration()
                         .mcpClient(mcpClientWrapper)
-                        .group(group)
+                        .group(p.getPackageKey())
                         .apply();
-            }
+            /*}*/
         }
 
         modelResolverMetadata.setToolkit(toolkit);

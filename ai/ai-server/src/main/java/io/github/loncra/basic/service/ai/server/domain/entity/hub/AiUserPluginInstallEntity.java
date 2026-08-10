@@ -2,10 +2,10 @@ package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PluginInstallStatusEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PluginInstallUserScopeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PluginInstallWorkspaceScopeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PluginTargetTypeEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallStatusEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallUserScopeEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspaceScopeEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import lombok.Data;

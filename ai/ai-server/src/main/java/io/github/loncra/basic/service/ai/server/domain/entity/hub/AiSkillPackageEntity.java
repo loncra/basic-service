@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.ai.server.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

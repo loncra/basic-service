@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.domain.metadata;
+package io.github.loncra.basic.service.ai.api.domain;
 
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.Data;

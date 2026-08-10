@@ -4,7 +4,7 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
-import io.github.loncra.basic.service.ai.server.domain.metadata.SkillMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.McpSkillGenerateMetadata;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,10 +48,8 @@ public class McpSkillSyncRunner implements ApplicationRunner {
             try {
                 List<McpSchema.Tool> tools = wrapper.listTools().block(skillConfig.getTimeout().toDuration());
 
-                SkillMetadata model = new SkillMetadata();
-                model.setId(wrapper.getName());
-                model.setGroup(wrapper.getGroup());
-                model.setTags(wrapper.getTags());
+                McpSkillGenerateMetadata model = CastUtils.of(wrapper.getMetadata(), McpSkillGenerateMetadata.class);
+                model.setCreationTime(Instant.now());
                 model.setTools(tools);
 
                 Configuration configuration = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);

@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.enumerate.hub;
+package io.github.loncra.basic.service.ai.api.enumerate.hub;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,11 +7,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PackageTypeEnum implements NameValueEnum<Integer> {
+public enum PluginInstallWorkspaceScopeEnum implements NameValueEnum<Integer> {
 
-    SYSTEM("系统", 10),
+    USER("所有工作空间", 10),
 
-    HUB("广场", 20),
+    ORG("指定工作空间", 20),
 
     ;
 

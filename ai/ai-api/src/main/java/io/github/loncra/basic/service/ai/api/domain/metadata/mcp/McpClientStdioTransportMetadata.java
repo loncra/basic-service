@@ -1,7 +1,7 @@
-package io.github.loncra.basic.service.ai.server.domain.metadata.mcp;
+package io.github.loncra.basic.service.ai.api.domain.metadata.mcp;
 
-import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
+import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

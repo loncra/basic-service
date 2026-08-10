@@ -1,14 +1,16 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
+import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.IdPluginMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiMcpPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.hub.PluginPackageMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.McpPackageResolver;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.Getter;
@@ -71,10 +73,11 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     private void syncMcpClientCache(AiMcpPackageEntity entity) {
         McpClientWrapper client = initializeThenGetMcpClient(entity);
         if (Objects.nonNull(client)) {
+            IdPluginMetadata idPluginMetadata = CastUtils.of(entity,  IdPluginMetadata.class);
+            idPluginMetadata.setId(client.getName());
             NoCloseMcpClientWrapper noCloseMcpClientWrapper = new NoCloseMcpClientWrapper(
                     client,
-                    entity.getGroup(),
-                    entity.getTags(),
+                    idPluginMetadata,
                     entity.getDynamicActivation().toBoolean()
             );
             mcpClientCache.put(noCloseMcpClientWrapper.getName(), noCloseMcpClientWrapper);
@@ -82,7 +85,7 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     }
 
     public Optional<McpClientWrapper> convertMcpClientWrapper(AiMcpPackageEntity mcpPackage) {
-        AbstractMcpClientTransportMetadata metadata = mcpPackage.obtainMcpClientTransport();
+        AbstractMcpClientTransportMetadata metadata = mcpPackage.obtainMetadata().obtainClientTransport();
         if (Objects.isNull(metadata)) {
             return Optional.empty();
         }

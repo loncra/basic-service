@@ -2,10 +2,10 @@ package io.github.loncra.basic.service.ai.server.resolver.mcp;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.agentscope.core.tool.mcp.McpSyncClientWrapper;
+import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.McpClientStreamableHttpTransportMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.ContentAwareMcpClientWrapper;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.mcp.McpClientStreamableHttpTransportMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.McpPackageResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
@@ -32,7 +32,10 @@ public class StreamableHttpMcpClientResolver implements McpPackageResolver {
     }
 
     @Override
-    public McpClientWrapper resolve(String name, AbstractMcpClientTransportMetadata metadata) {
+    public McpClientWrapper resolve(
+            String name,
+            AbstractMcpClientTransportMetadata metadata
+    ) {
         McpClientStreamableHttpTransportMetadata streamableHttp = CastUtils.cast(metadata);
         String endpoint = StringUtils.defaultIfEmpty(streamableHttp.getEndpoint(), DEFAULT_ENDPOINT);
         if (MapUtils.isNotEmpty(streamableHttp.getQueryParams())) {

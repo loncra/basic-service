@@ -1,39 +1,41 @@
-package io.github.loncra.basic.service.ai.server.domain.metadata.hub;
+package io.github.loncra.basic.service.ai.api.domain.metadata.hub;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PackageOriginEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.hub.PackageTypeEnum;
+import com.baomidou.mybatisplus.annotation.Version;
+import io.github.loncra.basic.service.ai.api.domain.BasicPluginMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageOriginEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
-import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
-import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
+import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.io.Serial;
+import java.time.Instant;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class PluginPackageMetadata extends LongVersionEntity<Integer> {
+public class PluginPackageMetadata extends BasicPluginMetadata implements VersionEntity<Integer, Long> {
 
     @Serial
     private static final long serialVersionUID = 5559699264457221003L;
+
+    private Long id;
+
+    private Instant creationTime;
+
+    @Version
+    private Integer version = 1;
 
     /**
      * 业务唯一键
      */
     private String packageKey;
-
-    /**
-     * 展示名称
-     */
-    private String name;
 
     /**
      * 列表摘要
@@ -51,12 +53,6 @@ public class PluginPackageMetadata extends LongVersionEntity<Integer> {
     private DataStatusEnum status;
 
     /**
-     * 标签
-     */
-    @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<String> tags = new LinkedList<>();
-
-    /**
      * schema 多态: transport/endpoint/toolGroup/oauth/ui 等
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
@@ -66,7 +62,4 @@ public class PluginPackageMetadata extends LongVersionEntity<Integer> {
      * 类型:10.系统,整体系统启动时自动加载，20.广场，供用户自定义安装
      */
     private PackageTypeEnum type;
-
-    @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private DataDictionaryMetadata group;
 }

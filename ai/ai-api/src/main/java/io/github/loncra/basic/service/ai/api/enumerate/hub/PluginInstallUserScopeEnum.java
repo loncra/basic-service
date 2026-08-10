@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.enumerate.hub;
+package io.github.loncra.basic.service.ai.api.enumerate.hub;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,11 +7,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PluginInstallWorkspaceScopeEnum implements NameValueEnum<Integer> {
+public enum PluginInstallUserScopeEnum implements NameValueEnum<Integer> {
 
-    USER("所有工作空间", 10),
+    USER("个人用户", 10),
 
-    ORG("指定工作空间", 20),
+    ORG("企业用户", 20),
 
     ;
 

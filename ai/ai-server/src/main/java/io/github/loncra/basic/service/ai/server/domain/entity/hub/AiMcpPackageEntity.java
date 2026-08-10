@@ -2,9 +2,10 @@ package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.hub.PluginPackageMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.McpClientTypeEnum;
+import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.McpPackageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.McpPackageAuthModeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.TimeProperties;
@@ -54,6 +55,7 @@ public class AiMcpPackageEntity extends PluginPackageMetadata {
      */
     private YesOrNo dynamicActivation;
 
+    @Deprecated
     public <T extends AbstractMcpClientTransportMetadata> T obtainMcpClientTransport() {
         if (MapUtils.isEmpty(getMetadata()) || !getMetadata().containsKey(CLIENT_FIELD)) {
             return null;
@@ -67,4 +69,7 @@ public class AiMcpPackageEntity extends PluginPackageMetadata {
         return CastUtils.cast(CastUtils.convertValue(client, clientTypeEnum.getTargetClass()));
     }
 
+    public McpPackageMetadata obtainMetadata() {
+        return CastUtils.convertValue(getMetadata(), McpPackageMetadata.class);
+    }
 }

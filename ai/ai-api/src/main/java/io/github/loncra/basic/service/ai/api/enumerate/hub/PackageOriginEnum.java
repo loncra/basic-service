@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.enumerate.hub;
+package io.github.loncra.basic.service.ai.api.enumerate.hub;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,11 +7,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PluginTargetTypeEnum implements NameValueEnum<Integer> {
+public enum PackageOriginEnum implements NameValueEnum<Integer> {
 
-    SYSTEM("技能", 10),
+    INTERNAL("内部", 10),
 
-    HUB("mcp", 20),
+    EXTERNAL("外部", 20),
 
     ;
 
