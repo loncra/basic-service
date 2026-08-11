@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.ai.api.domain.metadata.hub;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.Version;
-import io.github.loncra.basic.service.ai.api.domain.BasicPluginMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.BasicPluginMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageOriginEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;

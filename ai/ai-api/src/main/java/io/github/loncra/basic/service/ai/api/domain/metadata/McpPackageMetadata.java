@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.api.domain.metadata;
 
-import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolsMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
@@ -22,6 +23,8 @@ public class McpPackageMetadata implements Serializable {
     private static final long serialVersionUID = -5408105700742175241L;
 
     private Map<String, Object> client = new LinkedHashMap<>();
+
+    private McpClarifyToolsMetadata clarifyTools = new McpClarifyToolsMetadata();
 
     public <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport() {
         if (MapUtils.isEmpty(client)) {

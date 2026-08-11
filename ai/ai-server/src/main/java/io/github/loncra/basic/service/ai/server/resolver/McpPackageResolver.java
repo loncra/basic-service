@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.resolver;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
-import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
 
 public interface McpPackageResolver {
 

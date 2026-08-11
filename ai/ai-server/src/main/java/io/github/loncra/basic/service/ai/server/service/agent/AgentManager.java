@@ -9,6 +9,7 @@ import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
+import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
@@ -32,7 +33,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCall
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
-import io.github.loncra.basic.service.ai.server.middleware.InterruptSignalMiddleware;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
@@ -104,7 +104,7 @@ public class AgentManager {
 
     private final StreamConfig streamConfig;
 
-    private final InterruptSignalMiddleware interruptSignalMiddleware;
+    private final List<MiddlewareBase> middlewares;
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.agentConversationId]",
@@ -328,6 +328,7 @@ public class AgentManager {
         AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
 
         ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(assistant.getModel(), userMessage.getMetadata());
+
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(assistant.getType().toString())
                 .sysPrompt(aiAppConfig.getSystemPrompt())
@@ -340,7 +341,7 @@ public class AgentManager {
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
                 // 中断信号中间件实现
-                .middleware(interruptSignalMiddleware);
+                .middlewares(middlewares);
         if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
             builder.enablePlanMode()
                     .planFileDirectory(assistant.getType().toString());

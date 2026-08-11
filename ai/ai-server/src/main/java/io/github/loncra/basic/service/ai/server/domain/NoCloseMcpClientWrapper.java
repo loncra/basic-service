@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.domain;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
-import io.github.loncra.basic.service.ai.api.domain.metadata.IdPluginMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.ClarifyPluginMetadata;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.Getter;
 import reactor.core.publisher.Mono;
@@ -17,11 +17,11 @@ public class NoCloseMcpClientWrapper extends McpClientWrapper {
     private final boolean dynamicActivation;
 
     @Getter
-    private final IdPluginMetadata metadata;
+    private final ClarifyPluginMetadata metadata;
 
     public NoCloseMcpClientWrapper(
             McpClientWrapper delegate,
-            IdPluginMetadata metadata,
+            ClarifyPluginMetadata metadata,
             boolean dynamicActivation
     ) {
         super(delegate.getName());

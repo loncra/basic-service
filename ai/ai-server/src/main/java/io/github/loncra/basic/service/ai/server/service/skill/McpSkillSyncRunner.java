@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.service.skill;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.metadata.McpSkillGenerateMetadata;
@@ -10,6 +11,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Async;
@@ -20,8 +22,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,6 +55,15 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 McpSkillGenerateMetadata model = CastUtils.of(wrapper.getMetadata(), McpSkillGenerateMetadata.class);
                 model.setCreationTime(Instant.now());
                 model.setTools(tools);
+                if (Objects.nonNull(wrapper.getMetadata().getClarifyTools())
+                        && wrapper.getMetadata().getClarifyTools().getEnabled().toBoolean()
+                        && CollectionUtils.isNotEmpty(wrapper.getMetadata().getClarifyTools().getPolicies())) {
+                    String toolNames = wrapper.getMetadata()
+                            .getClarifyTools()
+                            .getPolicies().stream().map(McpClarifyToolPolicyMetadata::getToolName)
+                            .collect(Collectors.joining(CastUtils.COMMA));
+                    model.setClarification(MessageFormat.format(skillConfig.getClarification(), toolNames));
+                }
 
                 Configuration configuration = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
                 configuration.setSharedVariable(CastUtils.getObjectMapper().getClass().getSimpleName(), CastUtils.getObjectMapper());

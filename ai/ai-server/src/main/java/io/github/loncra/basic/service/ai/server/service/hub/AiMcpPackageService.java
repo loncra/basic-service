@@ -1,9 +1,11 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
-import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.IdPluginMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.ClarifyPluginMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.McpPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiMcpPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
@@ -11,11 +13,11 @@ import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEn
 import io.github.loncra.basic.service.ai.server.resolver.McpPackageResolver;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.annotation.Async;
@@ -49,12 +51,29 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     @Getter
     private final Map<String, McpClientWrapper> mcpClientCache = new ConcurrentHashMap<>();
 
-    @Deprecated
-    public List<AiMcpPackageEntity> findSystemDynamicActivationMcpPackage() {
-        return lambdaQuery().eq(PluginPackageMetadata::getType, PackageTypeEnum.SYSTEM.getValue())
-                .eq(PluginPackageMetadata::getStatus, DataStatusEnum.RELEASE.getValue())
-                .eq(AiMcpPackageEntity::getDynamicActivation, YesOrNo.Yes.getValue())
-                .list();
+    public List<McpClarifyToolPolicyMetadata> findMcpClientCacheClarifyToolPolicyMetadata() {
+        return mcpClientCache.values()
+                .stream()
+                .filter(s -> NoCloseMcpClientWrapper.class.isAssignableFrom(s.getClass()))
+                .map(NoCloseMcpClientWrapper.class::cast)
+                .filter(s -> Objects.nonNull(s.getMetadata().getClarifyTools()))
+                .filter(s -> s.getMetadata().getClarifyTools().getEnabled().toBoolean())
+                .filter(s -> CollectionUtils.isNotEmpty(s.getMetadata().getClarifyTools().getPolicies()))
+                .flatMap(s -> s.getMetadata().getClarifyTools().getPolicies().stream())
+                .toList();
+    }
+
+    public Optional<McpClarifyToolPolicyMetadata> getMcpClientCacheClarifyToolPolicyMetadata(String mcpName, String toolName) {
+        return mcpClientCache.values()
+                .stream()
+                .filter(s -> NoCloseMcpClientWrapper.class.isAssignableFrom(s.getClass()))
+                .map(NoCloseMcpClientWrapper.class::cast)
+                .filter(s -> Objects.nonNull(s.getMetadata().getClarifyTools()))
+                .filter(s -> CollectionUtils.isNotEmpty(s.getMetadata().getClarifyTools().getPolicies()))
+                .filter(s -> s.getName().equals(mcpName))
+                .flatMap(s -> s.getMetadata().getClarifyTools().getPolicies().stream())
+                .filter(s -> s.getToolName().equals(toolName))
+                .findFirst();
     }
 
     public List<AiMcpPackageEntity> findSystemMcpPackage() {
@@ -73,11 +92,15 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     private void syncMcpClientCache(AiMcpPackageEntity entity) {
         McpClientWrapper client = initializeThenGetMcpClient(entity);
         if (Objects.nonNull(client)) {
-            IdPluginMetadata idPluginMetadata = CastUtils.of(entity,  IdPluginMetadata.class);
-            idPluginMetadata.setId(client.getName());
+            ClarifyPluginMetadata clarifyPluginMetadata = CastUtils.convertValue(entity, ClarifyPluginMetadata.class);
+            clarifyPluginMetadata.setId(client.getName());
+
+            McpPackageMetadata mcpPackageMetadata = entity.obtainMetadata();
+            clarifyPluginMetadata.setClarifyTools(mcpPackageMetadata.getClarifyTools());
+
             NoCloseMcpClientWrapper noCloseMcpClientWrapper = new NoCloseMcpClientWrapper(
                     client,
-                    idPluginMetadata,
+                    clarifyPluginMetadata,
                     entity.getDynamicActivation().toBoolean()
             );
             mcpClientCache.put(noCloseMcpClientWrapper.getName(), noCloseMcpClientWrapper);

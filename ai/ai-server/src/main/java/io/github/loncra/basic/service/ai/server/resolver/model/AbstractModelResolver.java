@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEn
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.ModelResolver;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
+import io.github.loncra.basic.service.ai.server.tool.AgentToolkitContributor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +24,9 @@ public abstract class AbstractModelResolver implements ModelResolver {
 
     @Getter(AccessLevel.NONE)
     private AiMcpPackageService aiMcpPackageService;
+
+    @Getter(AccessLevel.NONE)
+    private List<AgentToolkitContributor> agentToolkitContributors;
 
     @Override
     public ModelResolverMetadata resolve(
@@ -44,29 +48,24 @@ public abstract class AbstractModelResolver implements ModelResolver {
                 continue;
             }
             McpClientWrapper mcpClientWrapper = optional.get();
-            /*if (Objects.isNull(p.getGroup())) {
-                toolkit.registration()
-                        .mcpClient(mcpClientWrapper)
-                        .apply();
-            } else {
-                String group = Objects.toString(p.getGroup().getValue(), BeanDefinitionParserDelegate.DEFAULT_VALUE);*/
-                // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
-                if (Objects.isNull(toolkit.getToolGroup(p.getPackageKey()))) {
-                    toolkit.createToolGroup(
-                            p.getPackageKey(),
-                            p.getName(),
-                            false
-                    );
-                }
+            // 组不存在就建；active=false → 首轮 schema 不暴露组内 MCP tools
+            if (Objects.isNull(toolkit.getToolGroup(p.getPackageKey()))) {
+                toolkit.createToolGroup(
+                        p.getPackageKey(),
+                        p.getName(),
+                        false
+                );
+            }
 
-                toolkit.registration()
-                        .mcpClient(mcpClientWrapper)
-                        .group(p.getPackageKey())
-                        .apply();
-            /*}*/
+            toolkit.registration()
+                    .mcpClient(mcpClientWrapper)
+                    .group(p.getPackageKey())
+                    .apply();
         }
 
         modelResolverMetadata.setToolkit(toolkit);
+
+        agentToolkitContributors.forEach(c -> c.contribute(toolkit));
 
         return modelResolverMetadata;
     }

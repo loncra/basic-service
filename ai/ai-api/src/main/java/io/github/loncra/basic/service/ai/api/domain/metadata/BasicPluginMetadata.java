@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.api.domain;
+package io.github.loncra.basic.service.ai.api.domain.metadata;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
@@ -32,6 +32,6 @@ public class BasicPluginMetadata implements Serializable {
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private DataDictionaryMetadata group;
 
-    private String guidance;
+    private String additionalInformation;
 
 }

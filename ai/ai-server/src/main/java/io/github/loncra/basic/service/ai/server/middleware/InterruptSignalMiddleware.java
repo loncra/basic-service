@@ -8,6 +8,7 @@ import io.agentscope.core.event.ModelCallEndEvent;
 import io.agentscope.core.middleware.AgentInput;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.ChatUsage;
+import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.domain.AssistantMessageStopEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
@@ -31,7 +32,6 @@ import reactor.core.publisher.Sinks;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -70,7 +70,7 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
         Object returnValue = agentSseStreamPublishResolver.listenerInterrupt(agent, ctx, stopEventSink);
         // ---------- 开跑前已 interrupt：不跑模型，手工 Stop → End ----------
         if (agentSseStreamPublishResolver.isStreamBeforeInterrupt(ctx)) {
-            String replyId = newReplyId();
+            String replyId = AiConstants.newReplyId();
             AgentMessageEntity message = ctx.get(AgentMessageRoleEnum.ASSISTANT.toString());
             AssistantMessageStopEvent stopEvent = new AssistantMessageStopEvent(message.getId(), replyId);
             // 与你现有构造方式保持一致
@@ -132,7 +132,7 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
                 .time(Duration.between(creationTime, Instant.now()).toMillis() / 1000.0)
                 .build();
 
-        return Flux.just(new ModelCallEndEvent(newReplyId(),chatUsage), currentEvent);
+        return Flux.just(new ModelCallEndEvent(AiConstants.newReplyId(),chatUsage), currentEvent);
     }
 
     public static int estimateTokens(String text, ModelSettingMetadata metadata) {
@@ -143,9 +143,5 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
         // 至少输出过一点内容时给 1，避免全 0 看不出停过
         int tokens = (int) Math.ceil(text.length() / (double) charsPerToken);
         return Math.max(tokens, text.isEmpty() ? 0 : 1);
-    }
-
-    private String newReplyId() {
-        return UUID.randomUUID().toString().replace(CastUtils.NEGATIVE, StringUtils.EMPTY);
     }
 }

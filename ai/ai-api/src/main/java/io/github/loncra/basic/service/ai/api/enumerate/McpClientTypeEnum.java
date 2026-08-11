@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.ai.api.enumerate;
 
-import io.github.loncra.basic.service.ai.api.domain.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.McpClientSseTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.McpClientStdioTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.McpClientStreamableHttpTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.type.McpClientSseTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.type.McpClientStdioTransportMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.type.McpClientStreamableHttpTransportMetadata;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

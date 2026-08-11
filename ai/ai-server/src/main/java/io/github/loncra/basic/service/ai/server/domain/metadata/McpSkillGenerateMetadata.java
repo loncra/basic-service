@@ -22,4 +22,6 @@ public class McpSkillGenerateMetadata extends IdPluginMetadata {
     private Instant creationTime;
 
     private List<McpSchema.Tool> tools = new LinkedList<>();
+
+    private String clarification;
 }
