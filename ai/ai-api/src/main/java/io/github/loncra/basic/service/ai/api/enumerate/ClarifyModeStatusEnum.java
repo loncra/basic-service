@@ -24,5 +24,5 @@ public enum ClarifyModeStatusEnum implements NameEnum {
 
     private final String name;
 
-    public static final List<ClarifyModeStatusEnum> ACTIVE_STATUS = List.of(PENDING, RUNNING);
+    public static final List<ClarifyModeStatusEnum> ACTIVE_STATUS = List.of(READY, PENDING, RUNNING);
 }

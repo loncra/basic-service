@@ -17,6 +17,8 @@ public enum AgentChatStatusEnum implements NameValueEnum<Integer> {
 
     REQUEST_STOP(25, "请求停止"),
 
+    REJECT_ALL(26, "请求停止"),
+
     STOPPED(30, "已停止"),
 
     COMPLETED(35, "已完成"),

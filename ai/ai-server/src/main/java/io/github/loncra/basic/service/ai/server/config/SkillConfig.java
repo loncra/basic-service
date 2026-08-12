@@ -36,11 +36,17 @@ public class SkillConfig {
 
     private String clarification = """
             ## Clarify before controlled tools
-            These tools are clarify-gated: {0}.
-            1. If the request is already clear enough to call a gated tool safely, skip clarify and call that tool directly.
-            2. If it is too vague, call `clarify_enter` (with `clarify_target_name` and `clarify_tool_name`), then ask **one** question at a time with `clarify_ask` and show that same question in plain chat text.
-            3. Wait for the user's typed reply (normal chat). Repeat step 2 only if still unclear.
-            4. When you have enough information, call `clarify_exit`, then call the gated tool. While clarify mode is active (after `clarify_enter`, before `clarify_exit`), do not call gated tools.
+            These tools are blocked until clarify finishes: {0}.
+            Hard rule: never call a gated tool before `clarify_exit`. Calling them while status is READY/PENDING will fail.
+            Required flow whenever you need a gated tool:
+            1. Call `clarify_enter` first with `clarify_mcp_name` (MCP group id) and `clarify_tool_name` (MCP tool name).
+            2. If any required argument is still missing, ask **exactly ONE** question in plain chat text, then STOP and wait for the user's reply.
+               - Prefer a short multiple-choice question with options labeled A / B / C (and more if needed).
+               - Do NOT ask several questions in one message. Do NOT dump a checklist.
+            3. After the user replies, ask another single question only if still unclear.
+            4. When you have enough information (or the request was already complete), call `clarify_exit`, then call the gated tool.
+            If the request is already clear: still call `clarify_enter`, then `clarify_exit` immediately (no question), then the gated tool.
+            Never answer market/quote/data from memory — use the gated tool only after `clarify_exit`.
             """;
 
     private String contentTemplate = """

@@ -38,10 +38,9 @@ public class ClarifyModelMiddleware implements MiddlewareBase {
 
     private final AiMcpPackageService aiMcpPackageService;
 
-    private static final String DENY_MESSAGE =
-            "Blocked: you are in CLARIFY mode (read-only). You may investigate and run read-only"
-                    + " tools, record your clarify with clarify_ask, and call clarify_exit when ready to"
-                    + " execute.";
+    private static final String DENY_MESSAGE = "Blocked: gated tool requires " + ClarifyModeManager.CLARIFY_EXIT + " first."
+            + "If not in clarify mode, call " + ClarifyModeManager.CLARIFY_ENTER + " (" + ClarifyModeManager.CLARIFY_MCP_NAME_KEY + ", " + ClarifyModeManager.CLARIFY_TOOL_NAME_KEY + ")."
+            + "If clarifying, ask ONE A / B / C (and more if needed) question in plain chat, wait for the user, then " + ClarifyModeManager.CLARIFY_EXIT + ", then retry this tool.";
 
     @Override
     public Flux<AgentEvent> onActing(
@@ -98,13 +97,13 @@ public class ClarifyModelMiddleware implements MiddlewareBase {
         List<AgentEvent> events = new ArrayList<>();
         for (ToolUseBlock call : denied) {
             ToolResultBlock result = ToolResultBlock.text(DENY_MESSAGE)
-                            .withIdAndName(call.getId(), call.getName())
-                            .withState(ToolResultState.DENIED);
-            Msg msg =ToolResultMessageBuilder.buildToolResultMsg(result, call, agent.getName());
+                    .withIdAndName(call.getId(), call.getName())
+                    .withState(ToolResultState.DENIED);
+            Msg msg = ToolResultMessageBuilder.buildToolResultMsg(result, call, agent.getName());
             state.contextMutable().add(msg);
             events.add(new ToolResultStartEvent(replyId, call.getId(), call.getName()));
-            events.add(new ToolResultTextDeltaEvent(replyId,call.getId(),call.getName(),DENY_MESSAGE));
-            events.add(new ToolResultEndEvent(replyId,call.getId(),call.getName(),ToolResultState.DENIED));
+            events.add(new ToolResultTextDeltaEvent(replyId, call.getId(), call.getName(), DENY_MESSAGE));
+            events.add(new ToolResultEndEvent(replyId, call.getId(), call.getName(), ToolResultState.DENIED));
         }
         return Flux.fromIterable(events);
     }

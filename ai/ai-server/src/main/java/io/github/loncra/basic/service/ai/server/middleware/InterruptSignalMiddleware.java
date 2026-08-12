@@ -2,9 +2,9 @@ package io.github.loncra.basic.service.ai.server.middleware;
 
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.event.AgentEndEvent;
-import io.agentscope.core.event.AgentEvent;
-import io.agentscope.core.event.ModelCallEndEvent;
+import io.agentscope.core.event.*;
+import io.agentscope.core.message.GenerateReason;
+import io.agentscope.core.middleware.ActingInput;
 import io.agentscope.core.middleware.AgentInput;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.ChatUsage;
@@ -14,6 +14,7 @@ import io.github.loncra.basic.service.ai.server.domain.AssistantMessageStopEvent
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractBlockDeltaContentMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
@@ -143,5 +144,28 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
         // 至少输出过一点内容时给 1，避免全 0 看不出停过
         int tokens = (int) Math.ceil(text.length() / (double) charsPerToken);
         return Math.max(tokens, text.isEmpty() ? 0 : 1);
+    }
+
+    @Override
+    public Flux<AgentEvent> onActing(
+            Agent agent,
+            RuntimeContext ctx,
+            ActingInput input,
+            Function<ActingInput, Flux<AgentEvent>> next
+    ) {
+        return next.apply(input).concatMap(event -> {
+            if (!(event instanceof AllToolsDeniedEvent)) {
+                return Flux.just(event);
+            }
+            AgentMessageEntity assistant = ctx.get(AgentMessageRoleEnum.ASSISTANT.toString());
+
+            if (assistant == null || !AgentChatStatusEnum.REJECT_ALL.equals(assistant.getStatus())) {
+                return Flux.just(event);
+            }
+            return Flux.just(
+                    event,
+                    new RequestStopEvent("All tools denied by user", GenerateReason.ALL_TOOLS_DENIED)
+            );
+        });
     }
 }

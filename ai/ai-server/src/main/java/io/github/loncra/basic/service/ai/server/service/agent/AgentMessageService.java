@@ -2,6 +2,8 @@ package io.github.loncra.basic.service.ai.server.service.agent;
 
 import io.github.loncra.basic.service.ai.server.dao.agent.AgentMessageDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,5 +39,12 @@ public class AgentMessageService extends BasicService<AgentMessageDao, AgentMess
 
     public List<AgentMessageEntity> findByConversationId(Long agentConversationId) {
         return lambdaQuery().eq(AgentMessageEntity::getAgentConversationId, agentConversationId).list();
+    }
+
+    public List<AgentMessageEntity> findRequestStopAssistantMessage(Long agentConversationId) {
+        return lambdaQuery().eq(AgentMessageEntity::getStatus, AgentChatStatusEnum.REQUEST_STOP.getValue())
+                .eq(AgentMessageEntity::getAgentConversationId, agentConversationId)
+                .eq(AgentMessageEntity::getRole, AgentMessageRoleEnum.ASSISTANT.getValue())
+                .list();
     }
 }
