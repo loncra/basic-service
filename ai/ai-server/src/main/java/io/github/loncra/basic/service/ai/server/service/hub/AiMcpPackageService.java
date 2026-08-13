@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
-import io.github.loncra.basic.service.ai.api.domain.metadata.ClarifyPluginMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.BasicPluginMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.McpPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
@@ -13,11 +13,16 @@ import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEn
 import io.github.loncra.basic.service.ai.server.resolver.McpPackageResolver;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.TimeProperties;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import io.modelcontextprotocol.spec.McpSchema;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.annotation.Async;
@@ -28,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 /**
  *
@@ -35,10 +41,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>Table: tb_ai_mcp_package - MCP 连接器目录</p>
  *
- * @see AiMcpPackageEntity
- *
  * @author maurice.chen
- *
+ * @see AiMcpPackageEntity
  * @since 2026-08-04 09:21:08
  */
 @Slf4j
@@ -52,29 +56,65 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     private final Map<String, McpClientWrapper> mcpClientCache = new ConcurrentHashMap<>();
 
     public List<McpClarifyToolPolicyMetadata> findMcpClientCacheClarifyToolPolicyMetadata() {
-        return mcpClientCache.values()
-                .stream()
-                .filter(s -> NoCloseMcpClientWrapper.class.isAssignableFrom(s.getClass()))
-                .map(NoCloseMcpClientWrapper.class::cast)
-                .filter(s -> Objects.nonNull(s.getMetadata().getClarifyTools()))
-                .filter(s -> s.getMetadata().getClarifyTools().getEnabled().toBoolean())
-                .filter(s -> CollectionUtils.isNotEmpty(s.getMetadata().getClarifyTools().getPolicies()))
-                .flatMap(s -> s.getMetadata().getClarifyTools().getPolicies().stream())
+        return streamClarifyWrappers(null)
+                .filter(s -> s.getEnabled().toBoolean())
                 .toList();
     }
 
-    public Optional<McpClarifyToolPolicyMetadata> getMcpClientCacheClarifyToolPolicyMetadata(String mcpName, String toolName) {
-        return mcpClientCache.values()
-                .stream()
-                .filter(s -> NoCloseMcpClientWrapper.class.isAssignableFrom(s.getClass()))
-                .map(NoCloseMcpClientWrapper.class::cast)
-                .filter(s -> Objects.nonNull(s.getMetadata().getClarifyTools()))
-                .filter(s -> CollectionUtils.isNotEmpty(s.getMetadata().getClarifyTools().getPolicies()))
-                .filter(s -> s.getName().equals(mcpName))
-                .flatMap(s -> s.getMetadata().getClarifyTools().getPolicies().stream())
+    public Optional<McpClarifyToolPolicyMetadata> getMcpClientCacheClarifyToolPolicyMetadata(
+            String mcpName,
+            String toolName
+    ) {
+        return streamClarifyWrappers(mcpName)
                 .filter(s -> s.getToolName().equals(toolName))
                 .findFirst();
     }
+
+    public List<McpSchema.Tool> remoteTools(
+            String name,
+            Map<String, Object> client
+    ) {
+        SystemException.isTrue(MapUtils.isNotEmpty(client), "MCP 配置不能为空");
+        AbstractMcpClientTransportMetadata transportMetadata = McpPackageMetadata.obtainClientTransport(client);
+        try(McpClientWrapper clientWrapper = createMcpClientWrapper(name, transportMetadata).orElseThrow(() -> new SystemException("无法根据当前传输配置创建 MCP 客户端"))) {
+            return clientWrapper.listTools().block();
+        }
+    }
+
+    /*public List<McpToolBriefMetadata> listRemoteTools(AiMcpPackageEntity entity) {
+        SystemException.isTrue(Objects.nonNull(entity), "MCP 配置不能为空");
+        SystemException.isTrue(StringUtils.isNotBlank(entity.getPackageKey()), "packageKey 不能为空");
+        Optional<McpClientWrapper> optional = convertMcpClientWrapper(entity);
+        SystemException.isTrue(optional.isPresent(), "无法根据当前传输配置创建 MCP 客户端");
+        McpClientWrapper client = optional.get();
+        TimeProperties timeout = resolveRemoteToolsTimeout(entity.getInitializeTimeout());
+        try {
+            initializeClient(client, timeout);
+            List<McpSchema.Tool> tools = listClientTools(client, timeout);
+            if (Objects.isNull(tools) || tools.isEmpty()) {
+                return List.of();
+            }
+            return tools.stream()
+                    .map(tool -> {
+                        McpToolBriefMetadata brief = new McpToolBriefMetadata();
+                        brief.setName(tool.name());
+                        brief.setDescription(tool.description());
+                        return brief;
+                    })
+                    .toList();
+        } catch (RuntimeException e) {
+            if (e instanceof SystemException) {
+                throw e;
+            }
+            throw new SystemException("拉取 MCP 工具失败: " + e.getMessage(), e);
+        } finally {
+            try {
+                client.close();
+            } catch (Exception closeError) {
+                log.warn("关闭临时 MCP 客户端失败", closeError);
+            }
+        }
+    }*/
 
     public List<AiMcpPackageEntity> findSystemMcpPackage() {
         return lambdaQuery().eq(PluginPackageMetadata::getType, PackageTypeEnum.SYSTEM.getValue())
@@ -92,15 +132,11 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     private void syncMcpClientCache(AiMcpPackageEntity entity) {
         McpClientWrapper client = initializeThenGetMcpClient(entity);
         if (Objects.nonNull(client)) {
-            ClarifyPluginMetadata clarifyPluginMetadata = CastUtils.convertValue(entity, ClarifyPluginMetadata.class);
-            clarifyPluginMetadata.setId(client.getName());
-
             McpPackageMetadata mcpPackageMetadata = entity.obtainMetadata();
-            clarifyPluginMetadata.setClarifyTools(mcpPackageMetadata.getClarifyTools());
-
             NoCloseMcpClientWrapper noCloseMcpClientWrapper = new NoCloseMcpClientWrapper(
                     client,
-                    clarifyPluginMetadata,
+                    CastUtils.of(entity, BasicPluginMetadata.class),
+                    mcpPackageMetadata.getClarifyPolicies(),
                     entity.getDynamicActivation().toBoolean()
             );
             mcpClientCache.put(noCloseMcpClientWrapper.getName(), noCloseMcpClientWrapper);
@@ -109,13 +145,20 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
 
     public Optional<McpClientWrapper> convertMcpClientWrapper(AiMcpPackageEntity mcpPackage) {
         AbstractMcpClientTransportMetadata metadata = mcpPackage.obtainMetadata().obtainClientTransport();
+        return createMcpClientWrapper(mcpPackage.getPackageKey(), metadata);
+    }
+
+    private @NonNull Optional<McpClientWrapper> createMcpClientWrapper(
+            String name,
+            AbstractMcpClientTransportMetadata metadata
+    ) {
         if (Objects.isNull(metadata)) {
             return Optional.empty();
         }
         return packageResolvers.stream()
                 .filter(p -> p.isSupport(metadata.getType()))
                 .findFirst()
-                .map(s -> s.resolve(mcpPackage.getPackageKey(), metadata));
+                .map(s -> s.resolve(name, metadata));
     }
 
     @Async
@@ -138,13 +181,31 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
             return null;
         }
         McpClientWrapper client = optional.get();
-        if (Objects.nonNull(mcpPackage.getInitializeTimeout())) {
-            client.initialize().block(mcpPackage.getInitializeTimeout().toDuration());
+        initializeClient(client, mcpPackage.getInitializeTimeout());
+        client.listTools();
+        return client;
+    }
+
+    private Stream<McpClarifyToolPolicyMetadata> streamClarifyWrappers(String mcpName) {
+        Stream<NoCloseMcpClientWrapper> stream =  mcpClientCache.values()
+                .stream()
+                .filter(s -> NoCloseMcpClientWrapper.class.isAssignableFrom(s.getClass()))
+                .map(NoCloseMcpClientWrapper.class::cast);
+        if (StringUtils.isNotEmpty(mcpName)) {
+            stream = stream.filter(s -> s.getName().equals(mcpName));
+        }
+        return stream.flatMap(s -> s.getToolClarifyPolicies().stream());
+    }
+
+    private void initializeClient(
+            McpClientWrapper client,
+            TimeProperties timeout
+    ) {
+        if (Objects.nonNull(timeout)) {
+            client.initialize().block(timeout.toDuration());
         } else {
             client.initialize().block();
         }
-        client.listTools();
-        return client;
     }
 
     @Override

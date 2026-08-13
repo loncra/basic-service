@@ -94,8 +94,14 @@ public class ClarifyModeManager implements AgentToolkitContributor {
         if (optional.isEmpty()) {
             return "Error: tool not found.";
         }
+
+        McpClarifyToolPolicyMetadata metadata = optional.get();
+        if (!metadata.getEnabled().toBoolean()) {
+            return "Error: tool is not gated.";
+        }
+
         ClarifyModeContextState contextState =
-                enter(state, Objects.requireNonNullElse(optional.get().getMaxClarifyRounds(), aiAppConfig.getDefaultMaxClarifyRounds()));
+                enter(state, Objects.requireNonNullElse(metadata.getMaxClarifyRounds(), aiAppConfig.getDefaultMaxClarifyRounds()));
         return "Entered CLARIFY mode (" + contextState.getStatus().toString() + "). Gated MCP tools are still blocked."
                 + "Next: ask exactly ONE clarifying question in plain chat with A / B / C (and more if needed) options, then stop and wait for the user."
                 + " If you already have enough information, call clarify_exit now (no question), then call the gated tool."

@@ -33,8 +33,6 @@ public class AiAppConfig {
     /** 上下文压缩配置，enabled=false 时整个 compaction 不生效 */
     private Compaction compaction = new Compaction();
 
-    private String rejectSystemPrompt = "Previous pending tool call(s) were cancelled because the user sent a new message instead of approving them. Do not retry those tools unless the new message still requires them.";
-
     private String systemPrompt = """
             # Role and Goals
             You are a reliable, restrained, and executable assistant. Prioritize completing the user's current task, then add necessary explanations. Do not fabricate facts, capabilities, or tool results.
@@ -139,7 +137,6 @@ public class AiAppConfig {
                 // ── 行为开关 ──
                 .flushBeforeCompact(compaction.isFlushBeforeCompact())    // 默认 true
                 .offloadBeforeCompact(compaction.isOffloadBeforeCompact());// 默认 true
-        ;
 
         // ── 摘要专用模型（字符串形式通过 ModelRegistry.resolve 解析）──
         if (compaction.getModelId() != null && !compaction.getModelId().isBlank()) {
@@ -178,7 +175,7 @@ public class AiAppConfig {
                         new LinkedHashSet<>(p.getExcludedTools()));
             }
             builder.prune(pruneBuilder.build());
-        } else if (compaction.getPrune() != null && !compaction.getPrune().isEnabled()) {
+        } else if (compaction.getPrune() != null) {
             // 显式 disabled → 传 null 关闭裁剪
             builder.prune(null);
         }

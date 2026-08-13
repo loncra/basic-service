@@ -15,7 +15,7 @@ public class StdioMcpClientResolver implements McpPackageResolver {
 
     @Override
     public boolean isSupport(String type) {
-        return McpClientTypeEnum.SSE.toString().equals(type);
+        return McpClientTypeEnum.STDIO.toString().equals(type);
     }
 
     @Override

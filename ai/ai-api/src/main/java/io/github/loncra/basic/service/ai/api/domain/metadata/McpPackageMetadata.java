@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.api.domain.metadata;
 
 import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolsMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
@@ -13,6 +13,8 @@ import org.apache.commons.collections4.MapUtils;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -24,9 +26,13 @@ public class McpPackageMetadata implements Serializable {
 
     private Map<String, Object> client = new LinkedHashMap<>();
 
-    private McpClarifyToolsMetadata clarifyTools = new McpClarifyToolsMetadata();
+    private List<McpClarifyToolPolicyMetadata> clarifyPolicies = new LinkedList<>();
 
     public <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport() {
+        return obtainClientTransport(client);
+    }
+
+    public static <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport(Map<String, Object> client) {
         if (MapUtils.isEmpty(client)) {
             return null;
         }

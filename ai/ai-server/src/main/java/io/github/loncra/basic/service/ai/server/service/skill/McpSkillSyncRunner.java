@@ -53,16 +53,21 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 List<McpSchema.Tool> tools = wrapper.listTools().block(skillConfig.getTimeout().toDuration());
 
                 McpSkillGenerateMetadata model = CastUtils.of(wrapper.getMetadata(), McpSkillGenerateMetadata.class);
+                model.setId(wrapper.getName());
                 model.setCreationTime(Instant.now());
                 model.setTools(tools);
-                if (Objects.nonNull(wrapper.getMetadata().getClarifyTools())
-                        && wrapper.getMetadata().getClarifyTools().getEnabled().toBoolean()
-                        && CollectionUtils.isNotEmpty(wrapper.getMetadata().getClarifyTools().getPolicies())) {
-                    String toolNames = wrapper.getMetadata()
-                            .getClarifyTools()
-                            .getPolicies().stream().map(McpClarifyToolPolicyMetadata::getToolName)
-                            .collect(Collectors.joining(CastUtils.COMMA));
-                    model.setClarification(MessageFormat.format(skillConfig.getClarification(), toolNames));
+                if (Objects.nonNull(wrapper.getToolClarifyPolicies())) {
+                    List<McpClarifyToolPolicyMetadata> enabledPolicies = wrapper.getToolClarifyPolicies()
+                            .stream()
+                            .filter(s -> s.getEnabled().toBoolean())
+                            .toList();
+
+                    if (CollectionUtils.isNotEmpty(enabledPolicies)) {
+                        String toolNames = enabledPolicies.stream()
+                                .map(McpClarifyToolPolicyMetadata::getToolName)
+                                .collect(Collectors.joining(CastUtils.COMMA));
+                        model.setClarification(MessageFormat.format(skillConfig.getClarification(), toolNames));
+                    }
                 }
 
                 Configuration configuration = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
