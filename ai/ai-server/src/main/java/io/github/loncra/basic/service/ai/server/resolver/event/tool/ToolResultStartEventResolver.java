@@ -25,7 +25,7 @@ public class ToolResultStartEventResolver extends UpdateToolCallDataResolver {
         content.setId(resultStartEvent.getToolCallId());
         content.setName(resultStartEvent.getToolCallName());
         content.setStatus(AgentBlockStatusEnum.RUNNING);
-        content.setResultState(ToolResultState.RUNNING);
+        //content.setResultState(ToolResultState.RUNNING);
 
         return List.of(content);
     }

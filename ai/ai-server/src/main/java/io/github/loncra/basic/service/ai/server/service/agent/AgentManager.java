@@ -15,6 +15,7 @@ import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
@@ -590,7 +591,7 @@ public class AgentManager {
         List<ToolUseBlock> toolUseBlocks = assistantMessage.obtainMessageContents().stream()
                 .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
                 .map(s -> CastUtils.cast(s, ToolCallBlockContentMetadata.class))
-                .filter(s -> ToolCallState.PENDING.equals(s.getHitlStatus()))
+                .filter(s -> AgentBlockStatusEnum.PENDING.equals(s.getStatus()))
                 .map(ToolCallBlockContentMetadata::toToolUseBlock)
                 .toList();
 
@@ -612,7 +613,7 @@ public class AgentManager {
             if (optional.isPresent()) {
                 ToolCallBlockContentMetadata contentMetadata = optional.get();
                 contentMetadata.setUserConfirmed(confirm);
-                contentMetadata.setHitlStatus(ToolCallState.SUBMITTED);
+                contentMetadata.setHitlStatus(confirm ? ToolCallState.ALLOWED : ToolCallState.FINISHED);
                 assistantMessage.updateContent(contentMetadata);
             }
 

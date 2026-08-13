@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.ai.server.resolver.event.tool;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ToolResultDataDeltaEvent;
+import io.agentscope.core.message.ToolResultBlock;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
@@ -24,6 +25,11 @@ public class ToolResultDataDeltaEventResolver extends AbstractAgentEventResolver
         ToolCallBlockContentMetadata result = new ToolCallBlockContentMetadata();
         result.setId(deltaEvent.getToolCallId());
         result.getOutputParts().add(deltaEvent.getData());
+        /*if (deltaEvent.getData() ToolResultBlock.class.isAssignableFrom(deltaEvent.getData().getClass())) {
+            ToolResultBlock block = CastUtils.cast(deltaEvent.getData());
+            result.setResultState(block.getState());
+            result.setName(block.getName());
+        }*/
         return List.of(result);
     }
 
