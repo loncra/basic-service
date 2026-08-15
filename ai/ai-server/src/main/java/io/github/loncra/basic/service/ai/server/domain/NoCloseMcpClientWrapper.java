@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.ai.server.domain;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.github.loncra.basic.service.ai.api.domain.metadata.BasicPluginMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.Getter;
 import reactor.core.publisher.Mono;

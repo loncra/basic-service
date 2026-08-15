@@ -14,9 +14,11 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum McpPackageAuthModeEnum implements NameValueEnum<Integer> {
 
-    API_KEY("apiKey", 10),
+    API_KEY("Api Key", 10),
 
     OAUTH("OAuth", 20),
+
+    NONE("免费开源", 30),
     ;
 
     private final String name;

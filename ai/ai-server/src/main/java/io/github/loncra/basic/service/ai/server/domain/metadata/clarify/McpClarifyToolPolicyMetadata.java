@@ -1,6 +1,7 @@
-package io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify;
+package io.github.loncra.basic.service.ai.server.domain.metadata.clarify;
 
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.modelcontextprotocol.spec.McpSchema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,4 +20,8 @@ public class McpClarifyToolPolicyMetadata implements Serializable {
     private Integer maxClarifyRounds = 3;
 
     private String toolName;
+
+    private String description;
+
+    private McpSchema.ToolAnnotations annotation;
 }

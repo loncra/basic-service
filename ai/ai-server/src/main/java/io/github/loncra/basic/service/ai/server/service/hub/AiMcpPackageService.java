@@ -2,14 +2,15 @@ package io.github.loncra.basic.service.ai.server.service.hub;
 
 import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.github.loncra.basic.service.ai.api.domain.metadata.BasicPluginMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.McpPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.type.McpClientSseTransportMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiMcpPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.McpPackageMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.McpPackageResolver;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
@@ -76,45 +77,15 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     ) {
         SystemException.isTrue(MapUtils.isNotEmpty(client), "MCP 配置不能为空");
         AbstractMcpClientTransportMetadata transportMetadata = McpPackageMetadata.obtainClientTransport(client);
-        try(McpClientWrapper clientWrapper = createMcpClientWrapper(name, transportMetadata).orElseThrow(() -> new SystemException("无法根据当前传输配置创建 MCP 客户端"))) {
+        try (McpClientWrapper clientWrapper = createMcpClientWrapper(name, transportMetadata).orElseThrow(() -> new SystemException("无法根据当前传输配置创建 MCP 客户端"))) {
+            if (transportMetadata instanceof McpClientSseTransportMetadata sse) {
+                initializeClient(clientWrapper, sse.getTimeout());
+            } else {
+                initializeClient(clientWrapper);
+            }
             return clientWrapper.listTools().block();
         }
     }
-
-    /*public List<McpToolBriefMetadata> listRemoteTools(AiMcpPackageEntity entity) {
-        SystemException.isTrue(Objects.nonNull(entity), "MCP 配置不能为空");
-        SystemException.isTrue(StringUtils.isNotBlank(entity.getPackageKey()), "packageKey 不能为空");
-        Optional<McpClientWrapper> optional = convertMcpClientWrapper(entity);
-        SystemException.isTrue(optional.isPresent(), "无法根据当前传输配置创建 MCP 客户端");
-        McpClientWrapper client = optional.get();
-        TimeProperties timeout = resolveRemoteToolsTimeout(entity.getInitializeTimeout());
-        try {
-            initializeClient(client, timeout);
-            List<McpSchema.Tool> tools = listClientTools(client, timeout);
-            if (Objects.isNull(tools) || tools.isEmpty()) {
-                return List.of();
-            }
-            return tools.stream()
-                    .map(tool -> {
-                        McpToolBriefMetadata brief = new McpToolBriefMetadata();
-                        brief.setName(tool.name());
-                        brief.setDescription(tool.description());
-                        return brief;
-                    })
-                    .toList();
-        } catch (RuntimeException e) {
-            if (e instanceof SystemException) {
-                throw e;
-            }
-            throw new SystemException("拉取 MCP 工具失败: " + e.getMessage(), e);
-        } finally {
-            try {
-                client.close();
-            } catch (Exception closeError) {
-                log.warn("关闭临时 MCP 客户端失败", closeError);
-            }
-        }
-    }*/
 
     public List<AiMcpPackageEntity> findSystemMcpPackage() {
         return lambdaQuery().eq(PluginPackageMetadata::getType, PackageTypeEnum.SYSTEM.getValue())
@@ -125,7 +96,9 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     @Override
     public int updateById(AiMcpPackageEntity entity) {
         int result = super.updateById(entity);
-        syncMcpClientCache(entity);
+        if (DataStatusEnum.RELEASE.equals(entity.getStatus()) && PackageTypeEnum.SYSTEM.equals(entity.getType())) {
+            syncMcpClientCache(entity);
+        }
         return result;
     }
 
@@ -198,6 +171,11 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     }
 
     private void initializeClient(
+            McpClientWrapper client
+    ) {
+        initializeClient(client, null);
+    }
+    private void initializeClient(
             McpClientWrapper client,
             TimeProperties timeout
     ) {
@@ -215,5 +193,11 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
                 .filter(s -> NoCloseMcpClientWrapper.class.isAssignableFrom(s.getClass()))
                 .map(NoCloseMcpClientWrapper.class::cast)
                 .forEach(NoCloseMcpClientWrapper::closeDelegate);
+    }
+
+    @Override
+    public int insert(AiMcpPackageEntity entity) {
+        entity.setStatus(DataStatusEnum.NEW);
+        return super.insert(entity);
     }
 }

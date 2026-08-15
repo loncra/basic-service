@@ -2,8 +2,8 @@ package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.ai.api.domain.metadata.McpPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.McpPackageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.McpPackageAuthModeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.TimeProperties;

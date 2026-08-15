@@ -2,10 +2,10 @@ package io.github.loncra.basic.service.ai.server.service.skill;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.metadata.McpSkillGenerateMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.modelcontextprotocol.spec.McpSchema;

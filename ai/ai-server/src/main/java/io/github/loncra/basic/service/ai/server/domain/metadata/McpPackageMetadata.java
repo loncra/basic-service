@@ -1,8 +1,8 @@
-package io.github.loncra.basic.service.ai.api.domain.metadata;
+package io.github.loncra.basic.service.ai.server.domain.metadata;
 
 import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.McpClientTypeEnum;
+import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;

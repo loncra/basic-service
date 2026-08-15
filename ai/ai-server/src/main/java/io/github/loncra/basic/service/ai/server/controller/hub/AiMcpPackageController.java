@@ -15,7 +15,6 @@ import io.modelcontextprotocol.spec.McpSchema;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -84,18 +83,15 @@ public class AiMcpPackageController {
     /**
      * 按当前传输配置临时建连并拉取 MCP 可调用工具（不写入缓存）
      *
-     * @param name mcp 形成
      * @param client 客户端配置信息
      *
      * @return 工具简要列表
      */
-    @PostMapping("tools/{name}")
+    @PostMapping("tools")
     public List<McpSchema.Tool> tools(
-            @PathVariable(required = false) String name,
             @RequestBody Map<String, Object> client
     ) {
-        name = StringUtils.defaultIfEmpty(name, AiConstants.newReplyId());
-        return aiMcpPackageService.remoteTools(name, client);
+        return aiMcpPackageService.remoteTools(AiConstants.newReplyId(), client);
     }
 
     /**

@@ -68,18 +68,7 @@ public class SkillConfig {
             
             ${clarification}
             </#if>
-            
-            ## Available tools
-            <#list tools as tool>
-            ### `${tool.name()}`
-            ${tool.description()!}
-            
-            Input schema:
-            ```json
-            ${ObjectMapper.writeValueAsString(tool.inputSchema())}
-            ```
-            </#list>
-            <#if guidance?? && additionalInformation?has_content>
+            <#if additionalInformation?? && additionalInformation?has_content>
             
             ${additionalInformation}
             </#if>
