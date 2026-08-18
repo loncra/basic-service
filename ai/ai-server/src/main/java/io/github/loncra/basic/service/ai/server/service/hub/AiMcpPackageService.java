@@ -200,4 +200,16 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
         entity.setStatus(DataStatusEnum.NEW);
         return super.insert(entity);
     }
+
+    public void release(List<Long> ids) {
+        get(ids).stream()
+                .peek(entity -> entity.setStatus(DataStatusEnum.RELEASE))
+                .forEach(this::updateById);
+    }
+
+    public void revoke(List<Long> ids) {
+        get(ids).stream()
+                .peek(entity -> entity.setStatus(DataStatusEnum.REVOKE))
+                .forEach(this::updateById);
+    }
 }

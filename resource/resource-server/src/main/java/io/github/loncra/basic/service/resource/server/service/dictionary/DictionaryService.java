@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.resource.server.config.ResourceAppConfig;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DataDictionaryEntity;
 import io.github.loncra.basic.service.resource.server.domain.entity.dictionary.DictionaryTypeEntity;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.tree.TreeUtils;
@@ -62,6 +63,7 @@ public class DictionaryService {
 
         List<DataDictionaryMetadata> metas = getDataDictionaryService().lambdaQuery()
                 .eq(DataDictionaryEntity::getTypeId, typeId)
+                .eq(DataDictionaryEntity::getEnabled, YesOrNo.Yes.getValue())
                 .list()
                 .stream()
                 .map(d -> CastUtils.of(d, DataDictionaryMetadata.class))
@@ -371,12 +373,11 @@ public class DictionaryService {
         return group;
     }
 
-
     public Map<String, List<DataDictionaryMetadata>> findGroupDataDictionariesByCodes(List<String> codes) {
         Map<String, List<DataDictionaryMetadata>> group = new LinkedHashMap<>();
-
         for (String code : codes) {
-            List<DataDictionaryMetadata> result = dataDictionaryService.findDataDictionaryMetas(code);
+            DictionaryTypeEntity type = dictionaryTypeService.getByCode(code);
+            List<DataDictionaryMetadata> result = concurrentInterceptor.invoke(CONCURRENT_PREFIX + type.getId(), () -> findDataDictionaries(type.getId()));
             TreeUtils.buildGenericTree(result);
             group.put(code, result);
         }

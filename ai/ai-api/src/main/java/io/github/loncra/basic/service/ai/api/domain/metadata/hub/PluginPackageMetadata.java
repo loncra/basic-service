@@ -6,6 +6,7 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.BasicPluginMetadata
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageOriginEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
+import io.github.loncra.basic.service.resource.api.domain.metadata.DataDictionaryMetadata;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import lombok.Data;
@@ -62,4 +63,15 @@ public class PluginPackageMetadata extends BasicPluginMetadata implements Versio
      * 类型:10.系统,整体系统启动时自动加载，20.广场，供用户自定义安装
      */
     private PackageTypeEnum type;
+
+    /**
+     * 所属类别
+     */
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private DataDictionaryMetadata category;
+
+    /**
+     * 图标内容
+     */
+    private String icon;
 }

@@ -142,12 +142,20 @@ public class DataDictionaryController {
      *
      * @return REST 响应结果
      */
-    @PostMapping("group")
+    @PostMapping("groupByTypIds")
     public Map<Long, List<DataDictionaryMetadata>> groupByTypeIds(
             @RequestParam
             List<Long> typeIds
     ) {
         return dictionaryService.findGroupDataDictionariesByTypeIds(typeIds);
+    }
+
+    @PostMapping("groupByCodes")
+    public Map<String, List<DataDictionaryMetadata>> groupByCodes(
+            @RequestParam
+            List<String> codes
+    ) {
+        return dictionaryService.findGroupDataDictionariesByCodes(codes);
     }
 
     @OperationDataTrace

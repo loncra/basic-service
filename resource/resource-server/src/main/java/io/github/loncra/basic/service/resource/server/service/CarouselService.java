@@ -25,14 +25,14 @@ import java.util.List;
 public class CarouselService extends BasicService<CarouselDao, CarouselEntity> {
 
     @Transactional(rollbackFor = Exception.class)
-    public void publish(List<Integer> ids) {
+    public void release(List<Long> ids) {
         get(ids).stream()
                 .peek(entity -> entity.setStatus(DataStatusEnum.RELEASE))
                 .forEach(this::updateById);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void revoke(List<Integer> ids) {
+    public void revoke(List<Long> ids) {
         get(ids).stream()
                 .peek(entity -> entity.setStatus(DataStatusEnum.REVOKE))
                 .forEach(this::updateById);

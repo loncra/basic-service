@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusE
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
     }
 
     @Transactional(rollbackFor = Exception.class)
+    @Concurrent(value = "createDefaultIfNotExist:[#token.name]")
     public AgentConversationEntity createDefaultIfNotExist(AuditAuthenticationToken token) {
 
         AgentConversationEntity entity = getDefaultWorkspace(token.getName());

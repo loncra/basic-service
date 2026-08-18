@@ -52,7 +52,7 @@ public class SkillConfig {
     private String contentTemplate = """
             ---
             name: ${id}
-            description: Use when the task needs ${group.getName()}<#if tags?? && tags?has_content>, ${tags?join(", ")}</#if>. Then call reset_equipped_tools with to_activate containing "${id}".
+            description: Use when the task needs <#if tags?? && tags?has_content>${tags?join(", ")}</#if>. Then call reset_equipped_tools with to_activate containing "${id}".
             ---
             
             # ${name}

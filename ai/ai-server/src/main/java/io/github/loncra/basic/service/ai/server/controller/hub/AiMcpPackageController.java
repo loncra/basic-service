@@ -11,6 +11,7 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.modelcontextprotocol.spec.McpSchema;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -63,7 +64,7 @@ public class AiMcpPackageController {
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return aiMcpPackageService.findPage(pageRequest, query);
+        return aiMcpPackageService.findTotalPage(pageRequest, query);
     }
 
     /**
@@ -122,4 +123,41 @@ public class AiMcpPackageController {
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 
+    /**
+     * 发布数据
+     *
+     * @param ids 主键 ID 集合
+     *
+     * @return REST 响应结果
+     */
+    @OperationDataTrace
+    @Plugin(name = "发布信息")
+    @PostMapping("release")
+    @PreAuthorize("hasAuthority('perms[ai_mcp_package:release]')")
+    public RestResult<Void> release(
+            @RequestParam
+            List<Long> ids
+    ) {
+        aiMcpPackageService.release(ids);
+        return RestResult.of("发布 " + ids.size() + " 条记录成功");
+    }
+
+    /**
+     * 下架数据
+     *
+     * @param ids 主键 ID 集合
+     *
+     * @return REST 响应结果
+     */
+    @OperationDataTrace
+    @Plugin(name = "下架信息")
+    @PostMapping("revoke")
+    @PreAuthorize("hasAuthority('perms[ai_mcp_package:revoke]')")
+    public RestResult<Void> revoke(
+            @RequestParam
+            List<Long> ids
+    ) {
+        aiMcpPackageService.revoke(ids);
+        return RestResult.of("下架 " + ids.size() + " 条记录成功");
+    }
 }

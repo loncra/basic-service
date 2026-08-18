@@ -136,9 +136,9 @@ public class CarouselController {
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:release]')")
     public RestResult<Void> release(
             @RequestParam
-            List<Integer> ids
+            List<Long> ids
     ) {
-        carouselService.publish(ids);
+        carouselService.release(ids);
         return RestResult.of("发布 " + ids.size() + " 条记录成功");
     }
 
@@ -153,9 +153,9 @@ public class CarouselController {
     @Plugin(name = "下架信息")
     @PostMapping("revoke")
     @PreAuthorize("hasAuthority('perms[resource_server_carousel:revoke]')")
-    public RestResult<Void> deactivate(
+    public RestResult<Void> revoke(
             @RequestParam
-            List<Integer> ids
+            List<Long> ids
     ) {
         carouselService.revoke(ids);
         return RestResult.of("下架 " + ids.size() + " 条记录成功");
