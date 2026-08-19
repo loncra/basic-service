@@ -122,7 +122,7 @@ public class AiSkillPackageController {
     @OperationDataTrace
     @Plugin(name = "发布信息")
     @PostMapping("release")
-    @PreAuthorize("hasAuthority('perms[ai_mcp_package:release]')")
+    @PreAuthorize("hasAuthority('perms[ai_skill_package:release]')")
     public RestResult<Void> release(
             @RequestParam
             List<Long> ids
@@ -141,7 +141,7 @@ public class AiSkillPackageController {
     @OperationDataTrace
     @Plugin(name = "下架信息")
     @PostMapping("revoke")
-    @PreAuthorize("hasAuthority('perms[ai_mcp_package:revoke]')")
+    @PreAuthorize("hasAuthority('perms[ai_skill_package:revoke]')")
     public RestResult<Void> revoke(
             @RequestParam
             List<Long> ids
