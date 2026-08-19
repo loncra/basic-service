@@ -28,6 +28,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -201,15 +202,19 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
         return super.insert(entity);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void release(List<Long> ids) {
-        get(ids).stream()
-                .peek(entity -> entity.setStatus(DataStatusEnum.RELEASE))
-                .forEach(this::updateById);
+        ids.forEach(id -> lambdaUpdate().set(PluginPackageMetadata::getStatus, DataStatusEnum.RELEASE.getValue())
+                .eq(PluginPackageMetadata::getId,id)
+                .update()
+        );
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void revoke(List<Long> ids) {
-        get(ids).stream()
-                .peek(entity -> entity.setStatus(DataStatusEnum.REVOKE))
-                .forEach(this::updateById);
+        ids.forEach(id -> lambdaUpdate().set(PluginPackageMetadata::getStatus, DataStatusEnum.REVOKE.getValue())
+                .eq(PluginPackageMetadata::getId,id)
+                .update()
+        );
     }
 }

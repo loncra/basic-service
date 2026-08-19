@@ -26,16 +26,19 @@ public class CarouselService extends BasicService<CarouselDao, CarouselEntity> {
 
     @Transactional(rollbackFor = Exception.class)
     public void release(List<Long> ids) {
-        get(ids).stream()
-                .peek(entity -> entity.setStatus(DataStatusEnum.RELEASE))
-                .forEach(this::updateById);
+        ids.forEach(id -> lambdaUpdate().set(CarouselEntity::getStatus, DataStatusEnum.RELEASE.getValue())
+                .eq(CarouselEntity::getId,id)
+                .update()
+        );
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void revoke(List<Long> ids) {
-        get(ids).stream()
-                .peek(entity -> entity.setStatus(DataStatusEnum.REVOKE))
-                .forEach(this::updateById);
+
+        ids.forEach(id -> lambdaUpdate().set(CarouselEntity::getStatus, DataStatusEnum.REVOKE.getValue())
+                .eq(CarouselEntity::getId,id)
+                .update()
+        );
     }
 
     @Transactional(rollbackFor = Exception.class)
