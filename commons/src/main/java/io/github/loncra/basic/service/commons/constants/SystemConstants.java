@@ -191,4 +191,6 @@ public interface SystemConstants {
     String READABLE_ANCHOR_ID_KEY = "readableAnchorId";
 
     String READABLE_ANCHOR_PAGE_KEY = "readableAnchorPage";
+
+    String RANDOM_NAME_KEY = "randomName";
 }

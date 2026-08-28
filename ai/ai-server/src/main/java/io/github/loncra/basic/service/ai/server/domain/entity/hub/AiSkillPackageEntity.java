@@ -44,7 +44,7 @@ public class AiSkillPackageEntity extends PluginPackageMetadata {
     private UpdatePolicyEnum defaultUpdatePolicy;
 
     /**
-     * 来源类型:10.Git,20.压缩包,30.广场托管
+     * 来源类型:10.Git, 20.手工录入
      */
     private SkillSourceTypeEnum sourceType;
 

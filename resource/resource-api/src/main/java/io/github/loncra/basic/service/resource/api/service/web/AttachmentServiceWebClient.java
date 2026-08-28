@@ -65,6 +65,26 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
     );
 
     /**
+     * 按类型与对象前缀列举附件
+     *
+     * @param type 桶类型
+     * @param filename 对象前缀 / 文件名
+     * @param formatObjectWriteResult true 时返回 {@link ObjectWriteResult}
+     *
+     * @return 对象列表
+     */
+    @Override
+    @PostExchange("find")
+    List<ObjectWriteResult> findAttachment(
+            @RequestParam
+            String type,
+            @RequestParam
+            String filename,
+            @RequestParam
+            boolean formatObjectWriteResult
+    );
+
+    /**
      * 判断文件是否存在
      *
      * @param bucketName 同名称

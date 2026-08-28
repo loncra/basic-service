@@ -73,6 +73,21 @@ public interface AttachmentServiceClient {
     );
 
     /**
+     * 按类型与对象前缀列举附件
+     *
+     * @param type 桶类型
+     * @param filename 对象前缀 / 文件名
+     * @param formatObjectWriteResult true 时返回可反序列化的 {@link ObjectWriteResult}；跨服务调用必须为 true
+     *
+     * @return 对象列表
+     */
+    List<ObjectWriteResult> findAttachment(
+            String type,
+            String filename,
+            boolean formatObjectWriteResult
+    );
+
+    /**
      * 删除附件
      *
      * @param fileObjects 文件对象集合

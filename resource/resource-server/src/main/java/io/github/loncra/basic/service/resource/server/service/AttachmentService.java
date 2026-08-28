@@ -471,7 +471,7 @@ public class AttachmentService implements InitializingBean {
                 .fetchOwner(true)
                 .prefix(fileObject.getObjectName())
                 .includeUserMetadata(true)
-                .recursive(true)
+                //.recursive(true)
                 .build();
 
         Iterable<Result<Item>> iterable = minioAsyncTemplate.listObjects(args);
@@ -687,7 +687,12 @@ public class AttachmentService implements InitializingBean {
         }
 
         FilenameObject filenameObject = FilenameObject.of(fileObject);
+        String randomName = Objects.toString(appendParam.get(SystemConstants.RANDOM_NAME_KEY), Boolean.TRUE.toString());
         UserMetadataFileObject userMetadataFileObject = new UserMetadataFileObject(filenameObject);
+        if (!BooleanUtils.toBoolean(randomName)) {
+            userMetadataFileObject.setObjectName(fileObject.getObjectName());
+            userMetadataFileObject.getUserMetadata().remove(FilenameObject.MINIO_ORIGINAL_FILE_NAME);
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
 

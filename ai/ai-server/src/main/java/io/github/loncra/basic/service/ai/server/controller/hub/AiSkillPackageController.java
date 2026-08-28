@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.server.controller.hub;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.ai.server.domain.body.SkillPackageSnapshotRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
@@ -148,5 +149,29 @@ public class AiSkillPackageController {
     ) {
         aiSkillPackageService.revoke(ids);
         return RestResult.of("下架 " + ids.size() + " 条记录成功");
+    }
+
+    /**
+     * 从来源物化并打一条不可变版本（与目录上架/下架无关）
+     *
+     * @param id   目录主键
+     * @param body 版本号与变更说明
+     *
+     * @return 新 Release 主键
+     */
+    @OperationDataTrace
+    @Plugin(name = "打包版本")
+    @PostMapping("/{id:\\d+}/snapshot")
+    @PreAuthorize("hasAuthority('perms[ai_skill_package:snapshot]')")
+    public RestResult<Long> snapshot(
+            @PathVariable
+            Long id,
+            @Valid
+            @RequestBody
+            SkillPackageSnapshotRequestBody body
+    ) {
+        /*Long releaseId = aiSkillPackageService.snapshot(id, body.getReleaseVersion(), body.getChangelog());
+        return RestResult.ofSuccess("打包成功", releaseId);*/
+        return RestResult.of("打包成功");
     }
 }

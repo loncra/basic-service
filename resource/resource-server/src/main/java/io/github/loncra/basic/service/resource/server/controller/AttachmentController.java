@@ -75,7 +75,7 @@ public class AttachmentController {
             type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
             sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
     )
-    @PreAuthorize("hasAuthority('perms[resource_server_attachment:find]')")
+    @PreAuthorize("hasAuthority('perms[resource_server_attachment:find]') or hasRole('ROLE_FEIGN')")
     public Object find(
             @RequestParam
             String type,
@@ -490,6 +490,8 @@ public class AttachmentController {
             @RequestBody
             MoveFileObject object
     ) throws Exception {
+        object.setSource(attachmentService.getFileObject(object.getSource().getBucketName(), object.getSource().getObjectName()));
+        object.setTarget(attachmentService.getFileObject(object.getTarget().getBucketName(), object.getTarget().getObjectName()));
         return attachmentService.moveObject(object);
     }
 
@@ -505,6 +507,8 @@ public class AttachmentController {
             @RequestBody
             CopyFileObject object
     ) throws Exception {
+        object.setSource(attachmentService.getFileObject(object.getSource().getBucketName(), object.getSource().getObjectName()));
+        object.setTarget(attachmentService.getFileObject(object.getTarget().getBucketName(), object.getTarget().getObjectName()));
         return attachmentService.copyObject(object);
     }
 }
