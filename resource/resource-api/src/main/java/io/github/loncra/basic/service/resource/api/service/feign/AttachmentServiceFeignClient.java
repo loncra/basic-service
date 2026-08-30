@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.resource.api.service.feign;
 
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.minio.CopyFileObject;
@@ -39,7 +40,7 @@ public interface AttachmentServiceFeignClient extends AttachmentServiceClient {
     @Override
     @PostMapping(value = "attachment/upload/{type}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ObjectWriteResult singleUploadAttachmentFile(
-            @RequestPart("file")
+            @RequestPart(MultipartUploadFile.DEFAULT_FILE_NAME)
             MultipartFile file,
             @PathVariable
             String type,

@@ -21,6 +21,8 @@ import java.io.InputStream;
 @Data
 public class MultipartUploadFile implements MultipartFile {
 
+    public static final  String DEFAULT_FILE_NAME = "file";
+
     private final String name;
 
     private final String originalFilename;

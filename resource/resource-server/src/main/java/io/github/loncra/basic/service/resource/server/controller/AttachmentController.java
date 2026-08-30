@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
 import io.github.loncra.basic.service.resource.server.domain.body.CompleteUploadRequestBody;
 import io.github.loncra.basic.service.resource.server.service.AttachmentService;
@@ -301,7 +302,7 @@ public class AttachmentController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("uploadPart/{partNumber}/{uploadId}")
     public RestResult<Map<String, Object>> uploadPart(
-            @RequestParam("file")
+            @RequestParam(MultipartUploadFile.DEFAULT_FILE_NAME)
             MultipartFile file,
             @PathVariable
             String uploadId,
@@ -326,7 +327,7 @@ public class AttachmentController {
     @PostMapping("upload/{type}")
     @PreAuthorize("isFullyAuthenticated()")
     public ObjectWriteResult singleUpload(
-            @RequestPart("file")
+            @RequestPart(MultipartUploadFile.DEFAULT_FILE_NAME)
             MultipartFile file,
             @CurrentSecurityContext
             SecurityContext securityContext,

@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.resource.api.service.web;
 
+import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.minio.CopyFileObject;
@@ -39,7 +40,7 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
     @Override
     @PostExchange(value = "upload/{type}", contentType = MediaType.MULTIPART_FORM_DATA_VALUE)
     ObjectWriteResult singleUploadAttachmentFile(
-            @RequestPart("file")
+            @RequestPart(MultipartUploadFile.DEFAULT_FILE_NAME)
             MultipartFile file,
             @PathVariable
             String type,

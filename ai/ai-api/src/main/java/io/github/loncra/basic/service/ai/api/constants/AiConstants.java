@@ -11,6 +11,8 @@ public class AiConstants {
 
     public static final String MQ_AGENT_EXECUTE_QUEUE = "ai.server.agent.execute";
 
+    public static final String MQ_SKILL_SOURCE_INGEST_QUEUE = "ai.server.skill.source.ingest";
+
     public static String newReplyId() {
         return UUID.randomUUID().toString().replace(CastUtils.NEGATIVE, StringUtils.EMPTY);
     }

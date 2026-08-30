@@ -43,7 +43,7 @@ public class UserAvatarController {
     public RestResult<Void> uploadAvatar(
             @CurrentSecurityContext
             SecurityContext securityContext,
-            @RequestPart("file")
+            @RequestPart(MultipartUploadFile.DEFAULT_FILE_NAME)
             MultipartFile file
     ) throws IOException {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());

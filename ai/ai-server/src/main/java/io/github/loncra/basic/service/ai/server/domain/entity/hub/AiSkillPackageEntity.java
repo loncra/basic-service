@@ -1,11 +1,14 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillSourceTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.metadata.SkillPackageMetadata;
 import io.github.loncra.basic.service.commons.enumerate.UpdatePolicyEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -47,6 +50,12 @@ public class AiSkillPackageEntity extends PluginPackageMetadata {
      * 来源类型:10.Git, 20.手工录入
      */
     private SkillSourceTypeEnum sourceType;
+
+    /**
+     * 来源物化执行状态，与上架 {@link #status} 分开。表单保存不覆盖。
+     */
+    @TableField(updateStrategy = FieldStrategy.NEVER)
+    private ExecuteStatus executeStatus;
 
     public SkillPackageMetadata obtainMetadata() {
         return CastUtils.convertValue(getMetadata(), SkillPackageMetadata.class);
