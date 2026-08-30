@@ -7,7 +7,6 @@ import io.github.loncra.basic.service.ai.server.resolver.SkillSourceResolver;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
-import io.github.loncra.framework.commons.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -44,48 +43,47 @@ public class SkillSourceIngestConsumer {
             )
     )
     public void ingest(
-            Long packageId,
+            Long id,
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long tag
     ) throws IOException {
-        AiSkillPackageEntity entity = aiSkillPackageService.get(packageId);
+        AiSkillPackageEntity entity = aiSkillPackageService.get(id);
         if (Objects.isNull(entity)) {
-            log.info("找不到 ID 为 [{}] 的 Skill 目录", packageId);
+            log.info("找不到 ID 为 [{}] 的 Skill 目录", id);
             channel.basicNack(tag, false, false);
             return;
         }
         if (entity.getExecuteStatus() != ExecuteStatus.Pending) {
-            log.info("ID 为 [{}] 的 Skill 目录执行状态为 [{}]，跳过物化", packageId, entity.getExecuteStatus());
+            log.info("ID 为 [{}] 的 Skill 目录执行状态为 [{}]，跳过物化", id, entity.getExecuteStatus());
             channel.basicNack(tag, false, false);
             return;
         }
         boolean cas = aiSkillPackageService.lambdaUpdate()
                 .set(AiSkillPackageEntity::getExecuteStatus, ExecuteStatus.Processing.getValue())
-                .eq(AiSkillPackageEntity::getId, packageId)
+                .eq(AiSkillPackageEntity::getId, id)
                 .eq(AiSkillPackageEntity::getExecuteStatus, ExecuteStatus.Pending.getValue())
                 .update();
         if (!cas) {
-            log.info("ID 为 [{}] 的 Skill 目录未能 CAS 为执行中，跳过物化", packageId);
+            log.info("ID 为 [{}] 的 Skill 目录未能 CAS 为执行中，跳过物化", id);
             channel.basicNack(tag, false, false);
             return;
         }
         try {
-            AiSkillPackageEntity current = aiSkillPackageService.get(packageId);
-            SkillSourceResolver resolver = skillSourceResolvers.stream()
+            AiSkillPackageEntity current = aiSkillPackageService.get(id);
+            skillSourceResolvers.stream()
                     .filter(item -> item.isSupport(current.getSourceType()))
                     .findFirst()
-                    .orElseThrow(() -> new ServiceException("找不到来源类型为 [" + current.getSourceType() + "] 的解析器"));
-            resolver.ingest(current);
+                    .ifPresent(resolver -> resolver.ingest(current));
             aiSkillPackageService.lambdaUpdate()
                     .set(AiSkillPackageEntity::getExecuteStatus, ExecuteStatus.Success.getValue())
-                    .eq(AiSkillPackageEntity::getId, packageId)
+                    .eq(AiSkillPackageEntity::getId, id)
                     .update();
             channel.basicAck(tag, false);
         } catch (Exception e) {
-            log.error("物化 ID 为 [{}] 的 Skill 目录失败", packageId, e);
+            log.error("物化 ID 为 [{}] 的 Skill 目录失败", id, e);
             aiSkillPackageService.lambdaUpdate()
                     .set(AiSkillPackageEntity::getExecuteStatus, ExecuteStatus.Failure.getValue())
-                    .eq(AiSkillPackageEntity::getId, packageId)
+                    .eq(AiSkillPackageEntity::getId, id)
                     .update();
             channel.basicNack(tag, false, false);
         }

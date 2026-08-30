@@ -52,7 +52,7 @@ public class AiSkillPackageEntity extends PluginPackageMetadata {
     private SkillSourceTypeEnum sourceType;
 
     /**
-     * 来源物化执行状态，与上架 {@link #status} 分开。表单保存不覆盖。
+     * 来源物化执行状态，与上架 {@link #getStatus()} 分开。表单保存不覆盖。
      */
     @TableField(updateStrategy = FieldStrategy.NEVER)
     private ExecuteStatus executeStatus;

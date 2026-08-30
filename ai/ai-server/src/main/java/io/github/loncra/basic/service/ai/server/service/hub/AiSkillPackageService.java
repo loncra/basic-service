@@ -2,7 +2,6 @@ package io.github.loncra.basic.service.ai.server.service.hub;
 
 import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
-import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillSourceTypeEnum;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiSkillPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -17,7 +16,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  *
@@ -154,36 +152,17 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
     @Transactional(rollbackFor = Exception.class)
     public int insert(AiSkillPackageEntity entity) {
         entity.setStatus(DataStatusEnum.NEW);
-        if (SkillSourceTypeEnum.GIT.equals(entity.getSourceType())) {
-            entity.setExecuteStatus(ExecuteStatus.Pending);
-        }
-        else {
-            entity.setExecuteStatus(ExecuteStatus.Success);
-        }
-        int rows = super.insert(entity);
-        publishSourceIngest(entity);
-        return rows;
-    }
-
-    private void publishSourceIngest(AiSkillPackageEntity entity) {
-        if (!SkillSourceTypeEnum.GIT.equals(entity.getSourceType()) || Objects.isNull(entity.getId())) {
-            return;
-        }
-        Long packageId = entity.getId();
-        Runnable send = () -> amqpTemplate.convertAndSend(
-                SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                AiConstants.MQ_SKILL_SOURCE_INGEST_QUEUE,
-                packageId
-        );
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    send.run();
-                }
-            });
-            return;
-        }
-        send.run();
+        entity.setExecuteStatus(ExecuteStatus.Pending);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                amqpTemplate.convertAndSend(
+                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
+                        AiConstants.MQ_SKILL_SOURCE_INGEST_QUEUE,
+                        entity.getId()
+                );
+            }
+        });
+        return super.insert(entity);
     }
 }
