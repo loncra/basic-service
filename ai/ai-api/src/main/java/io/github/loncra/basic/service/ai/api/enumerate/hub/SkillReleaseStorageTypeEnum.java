@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.ai.api.enumerate.hub;
 
 import io.github.loncra.basic.service.ai.api.domain.metadata.skill.AbstractSkillReleaseStorageMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.skill.type.GitTreeSkillReleaseStorageMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.skill.type.InlineSkillReleaseStorageMetadata;
-import io.github.loncra.basic.service.ai.api.domain.metadata.skill.type.ObjectSkillReleaseStorageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.skill.release.GitTreeSkillReleaseStorageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.skill.release.InlineSkillReleaseStorageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.skill.release.ObjectSkillReleaseStorageMetadata;
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

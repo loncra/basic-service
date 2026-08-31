@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.api.domain.metadata.skill.type;
+package io.github.loncra.basic.service.ai.api.domain.metadata.skill.release;
 
 import io.github.loncra.basic.service.ai.api.domain.metadata.skill.AbstractSkillReleaseStorageMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillReleaseStorageTypeEnum;

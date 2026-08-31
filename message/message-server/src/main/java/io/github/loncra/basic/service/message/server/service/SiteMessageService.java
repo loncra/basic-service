@@ -160,5 +160,4 @@ public class SiteMessageService extends BasicService<SiteMessageDao, SiteMessage
         return List.of(MessageTypeEnum.SYSTEM, MessageTypeEnum.NOTICE, MessageTypeEnum.WARNING);
     }
 
-
 }

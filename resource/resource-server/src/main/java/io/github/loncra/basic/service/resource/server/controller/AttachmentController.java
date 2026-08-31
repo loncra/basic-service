@@ -85,7 +85,7 @@ public class AttachmentController {
             boolean formatObjectWriteResult
     ) throws Exception {
         FileObject fileObject = attachmentService.getFileObject(type, filename);
-        List<ObjectItem> items = attachmentService.list(fileObject, null);
+        List<ObjectItem> items = attachmentService.list(fileObject, false, null);
         if (formatObjectWriteResult) {
             return MinioAsyncTemplate.convertObjectWriteResult(items, fileObject.getBucketName());
         }
@@ -151,7 +151,7 @@ public class AttachmentController {
         );
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         FileObject fileObject = attachmentService.getFileObject(type, filename);
-        List<ObjectItem> items = attachmentService.list(fileObject, token);
+        List<ObjectItem> items = attachmentService.list(fileObject,true, token);
         if (formatObjectWriteResult) {
             return MinioAsyncTemplate.convertObjectWriteResult(items, fileObject.getBucketName());
         }

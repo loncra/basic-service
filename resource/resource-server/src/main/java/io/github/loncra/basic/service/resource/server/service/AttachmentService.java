@@ -463,6 +463,7 @@ public class AttachmentService implements InitializingBean {
 
     public List<ObjectItem> list(
             FileObject fileObject,
+            boolean recursive,
             AuditAuthenticationToken token
     ) throws Exception {
 
@@ -471,7 +472,7 @@ public class AttachmentService implements InitializingBean {
                 .fetchOwner(true)
                 .prefix(fileObject.getObjectName())
                 .includeUserMetadata(true)
-                //.recursive(true)
+                .recursive(recursive)
                 .build();
 
         Iterable<Result<Item>> iterable = minioAsyncTemplate.listObjects(args);
@@ -496,19 +497,12 @@ public class AttachmentService implements InitializingBean {
         for (FileObject object : fileObjects) {
 
             if (Strings.CS.endsWith(object.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
-
-                FileObject listFileObject = FileObject.of(Strings.CS.removeStart(object.getBucketName(), attachmentConfig.getBucketPrefix()), object.getObjectName());
-
-                List<ObjectItem> listFile = list(listFileObject, token);
-
+                List<ObjectItem> listFile = list(object, true, token);
                 List<FileObject> fileObjectList = listFile.stream()
-                        .map(f -> FileObject.of(listFileObject.getBucketName(), f.getObjectName()))
-                        .peek(f -> f.setBucketName(Strings.CS.removeStart(f.getBucketName(), attachmentConfig.getBucketPrefix())))
+                        .map(f -> FileObject.of(object.getBucketName(), f.getObjectName()))
                         .collect(Collectors.toList());
-
                 result.addAll(delete(fileObjectList, token, appendParam));
-            }
-            else {
+            } else {
                 StatObjectArgs args = StatObjectArgs.builder()
                         .bucket(object.getBucketName())
                         .object(object.getObjectName())

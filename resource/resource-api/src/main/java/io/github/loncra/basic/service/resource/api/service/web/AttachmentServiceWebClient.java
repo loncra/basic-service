@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
+import org.springframework.web.service.annotation.PutExchange;
 
 import java.util.List;
 import java.util.Map;
@@ -111,7 +112,7 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
      * @return rest 结果集
      */
     @Override
-    @PostExchange("delete")
+    @PutExchange("delete")
     RestResult<Object> deleteAttachment(
             @RequestBody
             List<FileObject> fileObjects,

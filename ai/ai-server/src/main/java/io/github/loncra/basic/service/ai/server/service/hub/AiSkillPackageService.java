@@ -6,16 +6,24 @@ import io.github.loncra.basic.service.ai.server.dao.hub.AiSkillPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
+import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
+import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
+import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.AntPathMatcher;
 
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
 
 /**
  *
@@ -33,9 +41,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSkillPackageEntity> {
 
+    public static final String SKILL_OBJECT_PREFIX = "ai/skill/";
+
     private final AiSkillReleaseService aiSkillReleaseService;
 
     private final AmqpTemplate amqpTemplate;
+
+    private final AttachmentServiceClient attachmentServiceClient;
 
     @Transactional(rollbackFor = Exception.class)
     public void release(List<Long> ids) {
@@ -164,5 +176,46 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
             }
         });
         return super.insert(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteById(Collection<? extends Serializable> ids, boolean errorThrow, boolean useFill) {
+        int result = ids.stream().mapToInt(id -> deleteById(id, useFill)).sum();
+        if (result != ids.size() && errorThrow) {
+            String msg = "删除 id 为 [" + ids + "] 的 [技能信息] 失败";
+            throw new SystemException(msg);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteById(Serializable id, boolean useFill) {
+        return deleteByEntity(get(id));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteByEntity(Collection<AiSkillPackageEntity> entities, boolean errorThrow) {
+        int result = entities.stream().mapToInt(this::deleteByEntity).sum();
+        if (result != entities.size() && errorThrow) {
+            String msg = "删除 id 为 [" + entities.stream().map(AiSkillPackageEntity::getId).toList() + "] 的 [技能信息] 失败";
+            throw new SystemException(msg);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteByEntity(AiSkillPackageEntity entity) {
+
+        int result = super.deleteByEntity(entity);
+
+        String objectName = SKILL_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
+        FileObject fileObject = FileObject.of(AttachmentTypeEnum.SYSTEM_FILE.getValue(), objectName);
+        attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of());
+
+        return result;
     }
 }

@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.SkillPackageMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.SkillSourceResolver;
+import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.commons.config.AttachmentConfig;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
@@ -37,8 +38,6 @@ import java.util.stream.Stream;
 @Component
 @RequiredArgsConstructor
 public class GitSkillSourceResolver implements SkillSourceResolver {
-
-    private static final String SKILL_OBJECT_PREFIX = "ai/skill/";
 
     private static final String GIT_DIR = ".git";
 
@@ -94,7 +93,7 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
                 },
                 "[skill] 遍历 Git 工作区失败"
         );
-        String prefix = SKILL_OBJECT_PREFIX + packageId;
+        String prefix = AiSkillPackageService.SKILL_OBJECT_PREFIX + packageId;
         Map<String, String> requestParam = Map.of(
                 attachmentConfig.getUploadFilePrefixParamName(), prefix,
                 SystemConstants.RANDOM_NAME_KEY, Boolean.FALSE.toString()
