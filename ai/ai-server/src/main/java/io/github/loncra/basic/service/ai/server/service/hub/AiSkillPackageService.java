@@ -1,21 +1,23 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
+import com.fasterxml.jackson.core.util.VersionUtil;
 import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiSkillPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
-import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
+import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +26,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.AntPathMatcher;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  *
@@ -32,10 +37,8 @@ import java.util.*;
  *
  * <p>Table: tb_ai_skill_package - Skill 目录</p>
  *
- * @see AiSkillPackageEntity
- *
  * @author maurice.chen
- *
+ * @see AiSkillPackageEntity
  * @since 2026-08-04 09:21:08
  */
 @Service
@@ -53,7 +56,7 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
     @Transactional(rollbackFor = Exception.class)
     public void release(List<Long> ids) {
         ids.forEach(id -> lambdaUpdate().set(PluginPackageMetadata::getStatus, DataStatusEnum.RELEASE.getValue())
-                .eq(PluginPackageMetadata::getId,id)
+                .eq(PluginPackageMetadata::getId, id)
                 .update()
         );
     }
@@ -61,105 +64,41 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
     @Transactional(rollbackFor = Exception.class)
     public void revoke(List<Long> ids) {
         ids.forEach(id -> lambdaUpdate().set(PluginPackageMetadata::getStatus, DataStatusEnum.REVOKE.getValue())
-                .eq(PluginPackageMetadata::getId,id)
+                .eq(PluginPackageMetadata::getId, id)
                 .update()
         );
     }
 
     /**
-     * 从来源物化目录树并写入一条不可变 Release（与目录上架 {@link #release} 无关）。
+     * 将工作区拷贝为一条不可变 Release，并更新 {@link AiSkillPackageEntity#getLatestVersion()}。
+     * 不改变目录上架 {@link #release} 状态。
      *
      * @return 新 Release 主键
      */
-    /*@Transactional(rollbackFor = Exception.class)
-    public Long snapshot(Long packageId, String releaseVersion, String changelog) {
+    @Transactional(rollbackFor = Exception.class)
+    public Long snapshot(
+            Long packageId,
+            String releaseVersion,
+            String changelog
+    ) {
         String version = StringUtils.trimToEmpty(releaseVersion);
         SystemException.isTrue(
                 !VersionUtil.parseVersion(version, null, null).isUnknownVersion(),
                 () -> new ServiceException("版本号非法")
         );
-
         AiSkillPackageEntity entity = get(packageId);
         SystemException.isTrue(Objects.nonNull(entity), () -> new ServiceException("找不到 ID 为 [" + packageId + "] 的 Skill 目录"));
-        SystemException.isTrue(Objects.nonNull(entity.getSourceType()), () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 未配置来源类型"));
-        boolean duplicated = aiSkillReleaseService.lambdaQuery()
-                .eq(AiSkillReleaseEntity::getAiSkillPackageId, packageId)
-                .eq(AiSkillReleaseEntity::getReleaseVersion, version)
-                .exists();
-        SystemException.isTrue(!duplicated, () -> new ServiceException("版本 [" + version + "] 已存在"));
-        SkillPackageMetadata packageMetadata = entity.obtainMetadata();
-        AbstractSkillSourceMetadata source = Objects.isNull(packageMetadata) ? null : packageMetadata.obtainSource();
-        SystemException.isTrue(Objects.nonNull(source), () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 缺少来源配置"));
-        SkillSourceResolver resolver = skillSourceResolvers.stream()
-                .filter(item -> item.isSupport(entity.getSourceType().toString()))
-                .findFirst()
-                .orElseThrow(() -> new ServiceException("找不到来源类型为 [" + entity.getSourceType() + "] 的解析器"));
-
-        Path local = resolver.materialize(entity.getPackageKey(), source);
-        try {
-            String contentHash = hashTree(local);
-            String storagePrefix = "skill/" + packageId + "/" + version + "/";
-            skillObjectStorage.uploadDirectory(local, storagePrefix);
-
-            ObjectSkillReleaseStorageMetadata storage = new ObjectSkillReleaseStorageMetadata();
-            storage.setPrefix(storagePrefix);
-            storage.setBucket(skillObjectStorage.systemFileBucket());
-
-            Map<String, Object> storageMap = new LinkedHashMap<>(CastUtils.convertValue(storage, CastUtils.MAP_TYPE_REFERENCE));
-            storageMap.put(TypeIdNameMetadata.TYPE_FIELD_NAME, storage.getType());
-
-            AiSkillReleaseEntity release = new AiSkillReleaseEntity();
-            release.setAiSkillPackageId(packageId);
-            release.setReleaseVersion(version);
-            release.setContentHash(contentHash);
-            release.setStorage(storageMap);
-            release.setChangelog(changelog);
-            release.setReleaseTime(Instant.now());
-            release.setEnabled(YesOrNo.Yes);
-            aiSkillReleaseService.insert(release);
-
-            lambdaUpdate()
-                    .set(AiSkillPackageEntity::getLatestVersion, version)
-                    .eq(PluginPackageMetadata::getId, packageId)
-                    .update();
-            return release.getId();
-        }
-        finally {
-            skillObjectStorage.deleteQuietly(local);
-        }
-    }
-
-    private String hashTree(Path root) {
-        MessageDigest digest = DigestUtils.getSha256Digest();
-        List<Path> files = SystemException.convertSupplier(
-                () -> {
-                    try (var walk = Files.walk(root)) {
-                        return walk.filter(Files::isRegularFile)
-                                .sorted(Comparator.comparing(path -> toUnixPath(root.relativize(path))))
-                                .toList();
-                    }
-                },
-                "[skill] 计算内容指纹失败"
+        SystemException.isTrue(
+                ExecuteStatus.Success.equals(entity.getExecuteStatus()),
+                () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 尚未摄取成功，不能打包")
         );
-        for (Path file : files) {
-            String relative = toUnixPath(root.relativize(file));
-            digest.update(relative.getBytes(StandardCharsets.UTF_8));
-            digest.update((byte) 0);
-            SystemException.convertRunnable(
-                    () -> {
-                        try (InputStream inputStream = Files.newInputStream(file)) {
-                            DigestUtils.updateDigest(digest, inputStream);
-                        }
-                    },
-                    "[skill] 计算内容指纹失败: " + relative
-            );
-        }
-        return Hex.encodeHexString(digest.digest());
+        Long releaseId = aiSkillReleaseService.snapshot(entity, version, changelog);
+        lambdaUpdate()
+                .set(AiSkillPackageEntity::getLatestVersion, version)
+                .eq(PluginPackageMetadata::getId, packageId)
+                .update();
+        return releaseId;
     }
-
-    private String toUnixPath(Path relative) {
-        return Strings.CS.replace(relative.toString(), "\\", AntPathMatcher.DEFAULT_PATH_SEPARATOR);
-    }*/
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -181,7 +120,11 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int deleteById(Collection<? extends Serializable> ids, boolean errorThrow, boolean useFill) {
+    public int deleteById(
+            Collection<? extends Serializable> ids,
+            boolean errorThrow,
+            boolean useFill
+    ) {
         int result = ids.stream().mapToInt(id -> deleteById(id, useFill)).sum();
         if (result != ids.size() && errorThrow) {
             String msg = "删除 id 为 [" + ids + "] 的 [技能信息] 失败";
@@ -192,13 +135,19 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int deleteById(Serializable id, boolean useFill) {
+    public int deleteById(
+            Serializable id,
+            boolean useFill
+    ) {
         return deleteByEntity(get(id));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int deleteByEntity(Collection<AiSkillPackageEntity> entities, boolean errorThrow) {
+    public int deleteByEntity(
+            Collection<AiSkillPackageEntity> entities,
+            boolean errorThrow
+    ) {
         int result = entities.stream().mapToInt(this::deleteByEntity).sum();
         if (result != entities.size() && errorThrow) {
             String msg = "删除 id 为 [" + entities.stream().map(AiSkillPackageEntity::getId).toList() + "] 的 [技能信息] 失败";
@@ -210,13 +159,18 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int deleteByEntity(AiSkillPackageEntity entity) {
-
+        List<AiSkillReleaseEntity> releases = aiSkillReleaseService.lambdaQuery()
+                .eq(AiSkillReleaseEntity::getAiSkillPackageId, entity.getId())
+                .list();
         int result = super.deleteByEntity(entity);
-
-        String objectName = SKILL_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
-        FileObject fileObject = FileObject.of(AttachmentTypeEnum.SYSTEM_FILE.getValue(), objectName);
+        if (CollectionUtils.isNotEmpty(releases)) {
+            aiSkillReleaseService.deleteById(releases.stream().map(AiSkillReleaseEntity::getId).toList());
+        }
+        FileObject fileObject = FileObject.of(
+                AttachmentTypeEnum.SYSTEM_FILE.getValue(),
+                SKILL_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR
+        );
         attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of());
-
         return result;
     }
 

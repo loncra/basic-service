@@ -170,9 +170,8 @@ public class AiSkillPackageController {
             @RequestBody
             SkillPackageSnapshotRequestBody body
     ) {
-        /*Long releaseId = aiSkillPackageService.snapshot(id, body.getReleaseVersion(), body.getChangelog());
-        return RestResult.ofSuccess("打包成功", releaseId);*/
-        return RestResult.of("打包成功");
+        Long releaseId = aiSkillPackageService.snapshot(id, body.getReleaseVersion(), body.getChangelog());
+        return RestResult.ofSuccess("打包成功", releaseId);
     }
 
     @OperationDataTrace
