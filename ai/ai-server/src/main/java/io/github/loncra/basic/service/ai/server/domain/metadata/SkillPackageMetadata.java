@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.ai.server.domain.metadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.skill.AbstractSkillSourceMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillSourceTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import lombok.Data;
@@ -27,6 +28,8 @@ public class SkillPackageMetadata implements Serializable {
     private static final long serialVersionUID = 7394058612749305167L;
 
     private Map<String, Object> source = new LinkedHashMap<>();
+
+    private TimeProperties updatePolicyTime;
 
     public <T extends AbstractSkillSourceMetadata> T obtainSource() {
         return obtainSource(source);
