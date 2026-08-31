@@ -6,7 +6,9 @@ import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackage
 import io.github.loncra.basic.service.ai.server.resolver.SkillSourceResolver;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
+import io.github.loncra.framework.commons.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -76,6 +78,7 @@ public class SkillSourceIngestConsumer {
                     .ifPresent(resolver -> resolver.ingest(current));
             aiSkillPackageService.lambdaUpdate()
                     .set(AiSkillPackageEntity::getExecuteStatus, ExecuteStatus.Success.getValue())
+                    .set(AiSkillPackageEntity::getMetadata, CastUtils.getObjectMapper().writeValueAsString(current.getMetadata()))
                     .eq(AiSkillPackageEntity::getId, id)
                     .update();
             channel.basicAck(tag, false);

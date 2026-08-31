@@ -13,18 +13,24 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,21 +71,76 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
         );
         try {
             int timeoutSeconds = (int) Math.max(1, skillConfig.getTimeout().toSeconds());
-            try (Git ignored = Git.cloneRepository()
+            String ref = StringUtils.trimToNull(source.getRef());
+            String sha = StringUtils.trimToNull(source.getSha());
+            CloneCommand cloneCommand = Git.cloneRepository()
                     .setURI(source.getUrl().trim())
                     .setDirectory(local.toFile())
-                    .setTimeout(timeoutSeconds)
-                    .call()) {
-                // clone 完成后关闭句柄，再遍历工作区上传
+                    .setTimeout(timeoutSeconds);
+            if (Objects.nonNull(ref)) {
+                cloneCommand.setBranch(ref);
             }
-            uploadTree(local, entity.getId());
-        }
-        catch (Exception e) {
+            try (Git git = cloneCommand.call()) {
+                if (Objects.nonNull(sha)) {
+                    git.checkout().setName(sha).call();
+                } else if (Objects.nonNull(ref)) {
+                    git.checkout().setName(ref).call();
+                }
+                ObjectId head = git.getRepository().resolve(Constants.HEAD);
+                SystemException.isTrue(
+                        Objects.nonNull(head),
+                        () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 无法解析 Git HEAD")
+                );
+                writeResolvedSha(entity, source, head.getName());
+                Path uploadRoot = resolveSkillRoot(local, source.getPath(), entity.getPackageKey());
+                uploadTree(uploadRoot, entity.getId());
+            }
+        } catch (ServiceException e) {
+            throw e;
+        } catch (Exception e) {
             throw new ServiceException("拉取 Git 仓库失败: " + e.getMessage(), e);
-        }
-        finally {
+        } finally {
             FileUtil.del(local.toFile());
         }
+    }
+
+    private void writeResolvedSha(AiSkillPackageEntity entity, GitSkillSourceMetadata source, String sha) {
+        source.setSha(sha);
+        Map<String, Object> metadata = entity.getMetadata();
+        if (Objects.isNull(metadata)) {
+            metadata = new LinkedHashMap<>();
+            entity.setMetadata(metadata);
+        }
+        Map<String, Object> sourceMap = new LinkedHashMap<>(CastUtils.convertValue(source, CastUtils.MAP_TYPE_REFERENCE));
+        sourceMap.put(TypeIdNameMetadata.TYPE_FIELD_NAME, source.getType().getValue());
+        metadata.put(AiSkillPackageEntity.SOURCE_FIELD, sourceMap);
+    }
+
+    private Path resolveSkillRoot(Path local, String path, String packageKey) {
+        if (StringUtils.isBlank(path)) {
+            return local;
+        }
+        String relative = toUnixPath(Path.of(path.trim()))
+                .replaceAll("^/+", StringUtils.EMPTY)
+                .replaceAll("/+$", StringUtils.EMPTY);
+        if (StringUtils.isBlank(relative)) {
+            return local;
+        }
+        SystemException.isTrue(
+                !relative.contains(".."),
+                () -> new ServiceException("Skill 目录 [" + packageKey + "] 的 path 非法")
+        );
+        Path base = local.toAbsolutePath().normalize();
+        Path root = base.resolve(relative).normalize();
+        SystemException.isTrue(
+                root.startsWith(base),
+                () -> new ServiceException("Skill 目录 [" + packageKey + "] 的 path 非法")
+        );
+        SystemException.isTrue(
+                Files.isDirectory(root),
+                () -> new ServiceException("仓库内找不到目录 [" + relative + "]")
+        );
+        return root;
     }
 
     private void uploadTree(Path root, Long packageId) {

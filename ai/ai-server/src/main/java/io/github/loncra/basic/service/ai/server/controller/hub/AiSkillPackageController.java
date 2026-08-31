@@ -174,4 +174,14 @@ public class AiSkillPackageController {
         return RestResult.ofSuccess("打包成功", releaseId);*/
         return RestResult.of("打包成功");
     }
+
+    @OperationDataTrace
+    @Plugin(name = "重新摄取")
+    @PostMapping("/reingest")
+    @PreAuthorize("hasAuthority('perms[ai_skill_package:reingest]')")
+    public RestResult<Void> reingest(@RequestParam List<Long> ids) {
+        aiSkillPackageService.reingest(ids);
+        return RestResult.of("重新摄取 " + ids.size() + " 条记录成功");
+    }
+
 }

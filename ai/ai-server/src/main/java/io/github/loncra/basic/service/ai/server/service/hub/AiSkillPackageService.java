@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -217,5 +218,30 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
         attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of());
 
         return result;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void reingest(List<Long> ids) {
+        List<AiSkillPackageEntity> skills = get(ids).stream()
+                .filter(Objects::nonNull)
+                .filter(s -> ExecuteStatus.PENDING_STATUS.contains(s.getExecuteStatus()))
+                .toList();
+        for (AiSkillPackageEntity skill : skills) {
+            lambdaUpdate()
+                    .set(AiSkillPackageEntity::getExecuteStatus, ExecuteStatus.Pending.getValue())
+                    .eq(AiSkillPackageEntity::getId, skill.getId())
+                    .update();
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    amqpTemplate.convertAndSend(
+                            SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
+                            AiConstants.MQ_SKILL_SOURCE_INGEST_QUEUE,
+                            skill.getId()
+                    );
+                }
+            });
+        }
     }
 }

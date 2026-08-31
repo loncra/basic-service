@@ -39,8 +39,8 @@ public class ManualSkillSourceMetadata extends AbstractSkillSourceMetadata imple
     private List<Tree<String, List<ManualSkillSourceMetadata>>> children = new LinkedList<>();
 
     @Override
-    public String getType() {
-        return SkillSourceTypeEnum.MANUAL.toString();
+    public SkillSourceTypeEnum getType() {
+        return SkillSourceTypeEnum.MANUAL;
     }
 
     @Override

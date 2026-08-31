@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.ai.api.domain.metadata.skill;
 
+import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillSourceTypeEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -18,5 +19,5 @@ public abstract class AbstractSkillSourceMetadata implements Serializable {
     @Serial
     private static final long serialVersionUID = 4182736501928475610L;
 
-    abstract public String getType();
+    abstract public SkillSourceTypeEnum getType();
 }

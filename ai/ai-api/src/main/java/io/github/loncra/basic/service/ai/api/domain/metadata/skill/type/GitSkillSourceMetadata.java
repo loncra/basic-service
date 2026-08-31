@@ -46,7 +46,7 @@ public class GitSkillSourceMetadata extends AbstractSkillSourceMetadata {
     private String path;
 
     @Override
-    public String getType() {
-        return SkillSourceTypeEnum.GIT.toString();
+    public SkillSourceTypeEnum getType() {
+        return SkillSourceTypeEnum.GIT;
     }
 }
