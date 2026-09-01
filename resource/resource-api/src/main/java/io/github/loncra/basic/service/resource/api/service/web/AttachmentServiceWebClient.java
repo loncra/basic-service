@@ -83,6 +83,8 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
             @RequestParam
             String filename,
             @RequestParam
+            boolean recursive,
+            @RequestParam
             boolean formatObjectWriteResult
     );
 

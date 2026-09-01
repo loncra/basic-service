@@ -81,6 +81,8 @@ public interface AttachmentServiceFeignClient extends AttachmentServiceClient {
             String type,
             @RequestParam("filename")
             String filename,
+            @RequestParam("recursive")
+            boolean recursive,
             @RequestParam("formatObjectWriteResult")
             boolean formatObjectWriteResult
     );

@@ -84,6 +84,7 @@ public interface AttachmentServiceClient {
     List<ObjectWriteResult> findAttachment(
             String type,
             String filename,
+            boolean recursive,
             boolean formatObjectWriteResult
     );
 

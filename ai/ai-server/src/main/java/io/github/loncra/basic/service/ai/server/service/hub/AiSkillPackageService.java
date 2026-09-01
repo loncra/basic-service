@@ -55,10 +55,17 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
 
     @Transactional(rollbackFor = Exception.class)
     public void release(List<Long> ids) {
-        ids.forEach(id -> lambdaUpdate().set(PluginPackageMetadata::getStatus, DataStatusEnum.RELEASE.getValue())
-                .eq(PluginPackageMetadata::getId, id)
-                .update()
-        );
+        for (Long id : ids) {
+            AiSkillPackageEntity entity = get(id);
+            SystemException.isTrue(Objects.nonNull(entity), () -> new ServiceException("找不到 ID 为 [" + id + "] 的 Skill 目录"));
+            SystemException.isTrue(
+                    StringUtils.isNotBlank(entity.getLatestVersion()),
+                    () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 尚未打包版本，不能发布")
+            );
+            lambdaUpdate().set(PluginPackageMetadata::getStatus, DataStatusEnum.RELEASE.getValue())
+                    .eq(PluginPackageMetadata::getId, id)
+                    .update();
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)

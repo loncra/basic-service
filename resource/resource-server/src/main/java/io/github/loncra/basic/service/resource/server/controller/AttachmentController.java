@@ -82,10 +82,12 @@ public class AttachmentController {
             String type,
             String filename,
             @RequestParam(required = false, defaultValue = "false")
+            boolean recursive,
+            @RequestParam(required = false, defaultValue = "false")
             boolean formatObjectWriteResult
     ) throws Exception {
         FileObject fileObject = attachmentService.getFileObject(type, filename);
-        List<ObjectItem> items = attachmentService.list(fileObject, false, null);
+        List<ObjectItem> items = attachmentService.list(fileObject, recursive, null);
         if (formatObjectWriteResult) {
             return MinioAsyncTemplate.convertObjectWriteResult(items, fileObject.getBucketName());
         }
