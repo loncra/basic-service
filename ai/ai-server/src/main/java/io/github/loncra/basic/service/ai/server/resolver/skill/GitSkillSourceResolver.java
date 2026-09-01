@@ -175,7 +175,7 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
                     contentType,
                     content
             );
-            attachmentServiceClient.singleUploadAttachmentFile(
+            attachmentServiceClient.uploadAttachmentFile(
                     uploadFile,
                     AttachmentTypeEnum.SYSTEM_FILE.getValue(),
                     requestParam

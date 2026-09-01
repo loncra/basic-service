@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.basic.service.resource.api.domain.CompleteUploadRequestBody;
 import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
-import io.github.loncra.basic.service.resource.server.domain.body.CompleteUploadRequestBody;
 import io.github.loncra.basic.service.resource.server.service.AttachmentService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -256,7 +256,7 @@ public class AttachmentController {
      *
      * @return rest 结果集
      */
-    @PreAuthorize("isFullyAuthenticated()")
+    @PreAuthorize("isFullyAuthenticated() or hasRole('ROLE_FEIGN')")
     @PostMapping("completeMultipartUpload")
     public ObjectWriteResult completeMultipartUpload(
             @RequestBody
@@ -278,7 +278,7 @@ public class AttachmentController {
      *
      * @return rest 结果集
      */
-    @PreAuthorize("isFullyAuthenticated()")
+    @PreAuthorize("isFullyAuthenticated() or hasRole('ROLE_FEIGN')")
     @GetMapping("createMultipartUpload/{type}")
     public RestResult<Map<String, Object>> createMultipartUpload(
             @PathVariable
@@ -301,7 +301,7 @@ public class AttachmentController {
         return RestResult.ofSuccess("创建 [" + objectName + "] 的分片信息成功", data);
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() or hasRole('ROLE_FEIGN')")
     @PostMapping("uploadPart/{partNumber}/{uploadId}")
     public RestResult<Map<String, Object>> uploadPart(
             @RequestParam(MultipartUploadFile.DEFAULT_FILE_NAME)
@@ -327,7 +327,7 @@ public class AttachmentController {
      * @throws Exception 上传错误时抛出
      */
     @PostMapping("upload/{type}")
-    @PreAuthorize("isFullyAuthenticated()")
+    @PreAuthorize("isFullyAuthenticated() or hasRole('ROLE_FEIGN')")
     public ObjectWriteResult singleUpload(
             @RequestPart(MultipartUploadFile.DEFAULT_FILE_NAME)
             MultipartFile file,

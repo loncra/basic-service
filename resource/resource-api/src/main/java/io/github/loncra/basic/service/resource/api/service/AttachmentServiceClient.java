@@ -2,8 +2,10 @@ package io.github.loncra.basic.service.resource.api.service;
 
 import cn.hutool.poi.excel.ExcelUtil;
 import cn.hutool.poi.excel.ExcelWriter;
+import io.github.loncra.basic.service.commons.config.AttachmentConfig;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
+import io.github.loncra.basic.service.resource.api.domain.CompleteUploadRequestBody;
 import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.MetadataUtils;
@@ -13,6 +15,7 @@ import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.IdValueRecordMetadata;
 import io.github.loncra.framework.commons.minio.CopyFileObject;
 import io.github.loncra.framework.commons.minio.FileObject;
@@ -58,6 +61,139 @@ public interface AttachmentServiceClient {
             String type,
             Map<String, String> requestParam
     );
+
+    /**
+     * 创建分片上传
+     *
+     * @param type         桶类型
+     * @param objectName   对象名称
+     * @param contentType  内容类型
+     * @param size         文件大小
+     * @param appendParam  附加参数
+     *
+     * @return 分片初始化信息
+     */
+    RestResult<Map<String, Object>> createMultipartUpload(
+            String type,
+            String objectName,
+            String contentType,
+            Integer size,
+            Map<String, Object> appendParam
+    );
+
+    /**
+     * 上传分片
+     *
+     * @param file       分片内容
+     * @param partNumber 分片序号（从 1 开始）
+     * @param uploadId   分片上传 id
+     *
+     * @return 分片结果
+     */
+    RestResult<Map<String, Object>> uploadPart(
+            MultipartFile file,
+            int partNumber,
+            String uploadId
+    );
+
+    /**
+     * 完成分片上传
+     *
+     * @param body        完成分片上传请求体
+     * @param appendParam 附加参数
+     *
+     * @return 写入结果
+     */
+    ObjectWriteResult completeMultipartUpload(
+            @RequestBody
+            CompleteUploadRequestBody body,
+            Map<String, Object> appendParam
+    );
+
+    /**
+     * 按文件大小自动选择单次或分片上传。
+     *
+     * @param file         文件内容
+     * @param type         桶类型
+     * @param requestParam 附加参数
+     *
+     * @return 写入结果
+     */
+    default ObjectWriteResult uploadAttachmentFile(
+            MultipartFile file,
+            String type,
+            Map<String, String> requestParam
+    ) {
+        SystemException.isTrue(Objects.nonNull(file) && file.getSize() > 0, "上传文件不能为空");
+        if (file.getSize() < AttachmentConfig.DEFAULT_UPLOAD_BLOCK_SIZE) {
+            return singleUploadAttachmentFile(file, type, requestParam);
+        }
+        return multipartUploadAttachmentFile(file, type, requestParam);
+    }
+
+    private ObjectWriteResult multipartUploadAttachmentFile(
+            MultipartFile file,
+            String type,
+            Map<String, String> requestParam
+    ) {
+        String objectName = StringUtils.defaultIfBlank(file.getOriginalFilename(), file.getName());
+        String contentType = StringUtils.defaultIfBlank(file.getContentType(), MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        Map<String, Object> appendParam = new LinkedHashMap<>();
+        if (MapUtils.isNotEmpty(requestParam)) {
+            appendParam.putAll(requestParam);
+        }
+
+        RestResult<Map<String, Object>> initResult = createMultipartUpload(
+                type,
+                objectName,
+                contentType,
+                Math.toIntExact(file.getSize()),
+                appendParam
+        );
+        SystemException.isTrue(
+                Objects.nonNull(initResult) && initResult.isSuccess() && MapUtils.isNotEmpty(initResult.getData()),
+                "创建分片上传失败"
+        );
+
+        Map<String, Object> initData = initResult.getData();
+        int chunk = toInt(initData.get("chunk"));
+        int uploadBlockSize = toInt(initData.get("uploadBlockSize"));
+        String uploadId = Objects.toString(initData.get("uploadId"), StringUtils.EMPTY);
+        SystemException.isTrue(chunk > 0 && StringUtils.isNotEmpty(uploadId), "没有可使用的分片上传路径");
+
+        byte[] content = SystemException.convertSupplier(file::getBytes, "读取上传文件失败");
+        List<IdValueMetadata<String, Integer>> parts = new LinkedList<>();
+        for (int i = 1; i <= chunk; i++) {
+            int from = (i - 1) * uploadBlockSize;
+            int to = (int) Math.min((long) i * uploadBlockSize, content.length);
+            MultipartUploadFile partFile = new MultipartUploadFile(
+                    MultipartUploadFile.DEFAULT_FILE_NAME,
+                    objectName,
+                    contentType,
+                    Arrays.copyOfRange(content, from, to)
+            );
+            RestResult<Map<String, Object>> partResult = uploadPart(partFile, i, uploadId);
+            SystemException.isTrue(
+                    Objects.nonNull(partResult) && partResult.isSuccess() && MapUtils.isNotEmpty(partResult.getData()),
+                    "分片上传响应无效"
+            );
+            Map<String, Object> partData = partResult.getData();
+            parts.add(IdValueMetadata.of(
+                    Objects.toString(partData.get("etag"), StringUtils.EMPTY),
+                    toInt(partData.get("partNumber"))
+            ));
+        }
+
+        CompleteUploadRequestBody body = new CompleteUploadRequestBody();
+        body.setUploadId(uploadId);
+        body.setParts(parts);
+        return completeMultipartUpload(body, appendParam);
+    }
+
+    private static int toInt(Object value) {
+        SystemException.isTrue(value instanceof Number, "分片上传响应字段无效");
+        return ((Number) value).intValue();
+    }
 
     /**
      * 获取文件
@@ -212,7 +348,7 @@ public interface AttachmentServiceClient {
             appendParams.put(MinioAsyncTemplate.AMZ_META_UPLOADER_ID, dto.getPrincipal());
         }
 
-        ObjectWriteResult writeResult = singleUploadAttachmentFile(
+        ObjectWriteResult writeResult = uploadAttachmentFile(
                 new MultipartUploadFile(dto.toUploadFilename(), dto.getFilename(), MediaType.APPLICATION_OCTET_STREAM_VALUE, outputStream.toByteArray()),
                 SystemConstants.EXPORT_BUCKET.getBucketName(),
                 appendParams

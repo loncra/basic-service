@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.resource.api.service.feign;
 
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.resource.api.domain.CompleteUploadRequestBody;
 import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.RestResult;
@@ -46,6 +47,69 @@ public interface AttachmentServiceFeignClient extends AttachmentServiceClient {
             String type,
             @RequestParam
             Map<String, String> requestParam
+    );
+
+    /**
+     * 创建分片上传
+     *
+     * @param type        桶类型
+     * @param objectName  对象名称
+     * @param contentType 内容类型
+     * @param size        文件大小
+     * @param appendParam 附加参数
+     *
+     * @return 分片初始化信息
+     */
+    @Override
+    @GetMapping("attachment/createMultipartUpload/{type}")
+    RestResult<Map<String, Object>> createMultipartUpload(
+            @PathVariable
+            String type,
+            @RequestParam("objectName")
+            String objectName,
+            @RequestParam("contentType")
+            String contentType,
+            @RequestParam("size")
+            Integer size,
+            @RequestParam
+            Map<String, Object> appendParam
+    );
+
+    /**
+     * 上传分片
+     *
+     * @param file       分片内容
+     * @param partNumber 分片序号（从 1 开始）
+     * @param uploadId   分片上传 id
+     *
+     * @return 分片结果
+     */
+    @Override
+    @PostMapping(value = "attachment/uploadPart/{partNumber}/{uploadId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    RestResult<Map<String, Object>> uploadPart(
+            @RequestPart(MultipartUploadFile.DEFAULT_FILE_NAME)
+            MultipartFile file,
+            @PathVariable
+            int partNumber,
+            @PathVariable
+            String uploadId
+    );
+
+    /**
+     * 完成分片上传
+     *
+     * @param body        完成分片上传请求体
+     * @param appendParam 附加参数
+     *
+     * @return 写入结果
+     */
+    @Override
+    @PostMapping("attachment/completeMultipartUpload")
+    ObjectWriteResult completeMultipartUpload(
+            @RequestBody
+            CompleteUploadRequestBody body,
+            @RequestParam
+            Map<String, Object> appendParam
     );
 
     /**

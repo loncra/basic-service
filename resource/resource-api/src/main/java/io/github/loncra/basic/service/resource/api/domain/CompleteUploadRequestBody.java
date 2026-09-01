@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.resource.server.domain.body;
+package io.github.loncra.basic.service.resource.api.domain;
 
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.minio.FileObject;
@@ -19,6 +19,7 @@ public class CompleteUploadRequestBody extends FileObject {
 
     @Serial
     private static final long serialVersionUID = -5171636355118685747L;
+
     /**
      * 分片上传 id
      */

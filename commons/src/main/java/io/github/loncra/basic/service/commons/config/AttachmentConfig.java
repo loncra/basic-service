@@ -28,6 +28,11 @@ import java.util.concurrent.TimeUnit;
 public class AttachmentConfig {
 
     /**
+     * 默认分片阈值（字节）。小于该值走单次上传，大于则走分片。
+     */
+    public static final int DEFAULT_UPLOAD_BLOCK_SIZE = 5242880;
+
+    /**
      * 上传文件用于创建文件夹的参数名称
      */
     private String uploadFilePrefixParamName = "prefix";
@@ -67,7 +72,7 @@ public class AttachmentConfig {
      */
     private TimeProperties presignedTime = TimeProperties.of(3650, TimeUnit.DAYS);
 
-    private Integer uploadBlockSize = 5242880;
+    private Integer uploadBlockSize = DEFAULT_UPLOAD_BLOCK_SIZE;
 
     private String uploadBlockSizeParamName = "uploadBlockSize";
 

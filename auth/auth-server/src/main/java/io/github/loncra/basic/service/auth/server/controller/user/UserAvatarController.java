@@ -48,7 +48,7 @@ public class UserAvatarController {
     ) throws IOException {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         MultipartUploadFile uploadFile = new MultipartUploadFile(file);
-        ObjectWriteResult objectWriteResult = attachmentServiceClient.singleUploadAttachmentFile(
+        ObjectWriteResult objectWriteResult = attachmentServiceClient.uploadAttachmentFile(
                 uploadFile,
                 AttachmentTypeEnum.AVATAR.toString(),
                 Map.of(
