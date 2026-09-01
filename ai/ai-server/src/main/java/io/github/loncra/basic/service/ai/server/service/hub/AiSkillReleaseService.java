@@ -85,7 +85,11 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
 
         String releasePrefix = SKILL_RELEASE_OBJECT_PREFIX + release.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
         try {
-            copyWorkspaceToRelease(files, workPrefix, releasePrefix);
+            String bucket = AttachmentTypeEnum.SYSTEM_FILE.getValue();
+            attachmentServiceClient.copyAttachment(new CopyFileObject(
+                    FileObject.of(bucket, workPrefix),
+                    FileObject.of(bucket, releasePrefix)
+            ));
             release.setContentHash(hashWorkspaceFiles(files, workPrefix));
             updateById(release);
             return release.getId();
@@ -157,22 +161,6 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
                 .filter(item -> !Strings.CS.endsWith(item.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR))
                 .filter(item -> StringUtils.isNotBlank(relativeObjectName(workPrefix, item.getObjectName())))
                 .toList();
-    }
-
-    private void copyWorkspaceToRelease(
-            List<ObjectWriteResult> files,
-            String workPrefix,
-            String releasePrefix
-    ) {
-        String bucket = AttachmentTypeEnum.SYSTEM_FILE.getValue();
-        for (ObjectWriteResult file : files) {
-            String relative = relativeObjectName(workPrefix, file.getObjectName());
-            CopyFileObject copy = new CopyFileObject(
-                    FileObject.of(bucket, file.getObjectName()),
-                    FileObject.of(bucket, releasePrefix + relative)
-            );
-            attachmentServiceClient.copyAttachment(copy);
-        }
     }
 
     private String hashWorkspaceFiles(

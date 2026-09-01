@@ -369,6 +369,9 @@ public class AttachmentService implements InitializingBean {
             result.getExtraHeaders()
                     .putAll(userMetadataFileObject.getUserMetadata());
         }
+        if (Strings.CS.endsWith(result.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
+            return result;
+        }
         StatObjectResponse stat = minioAsyncTemplate.statObject(
                 StatObjectArgs.builder()
                         .bucket(result.getBucketName())
@@ -380,16 +383,59 @@ public class AttachmentService implements InitializingBean {
         return result;
     }
 
+    /**
+     * 移动对象。源 objectName 以 {@code /} 结尾时按前缀移动整棵目录（与 {@link #delete} 一致）。
+     */
     public ObjectWriteResult moveObject(MoveFileObject object) throws Exception {
-        minioAsyncTemplate.moveObject(object)
-                .get();
+        FileObject source = object.getSource();
+        if (Strings.CS.endsWith(source.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
+            copyObject(object);
+            delete(List.of(source), null, Map.of());
+        } else {
+            minioAsyncTemplate.moveObject(object)
+                    .get();
+        }
         return createObjectWriteResponseResult(object.getTarget());
     }
 
+    /**
+     * 复制对象。源 objectName 以 {@code /} 结尾时按前缀复制整棵目录（与 {@link #delete} 一致）。
+     */
     public ObjectWriteResult copyObject(CopyFileObject object) throws Exception {
-        minioAsyncTemplate.copyObject(object.getSource(), object.getTarget())
-                .get();
-        return createObjectWriteResponseResult(object.getTarget());
+        FileObject source = object.getSource();
+        FileObject target = object.getTarget();
+        if (Strings.CS.endsWith(source.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
+            copyPrefix(source, target);
+        } else {
+            minioAsyncTemplate.copyObject(source, target)
+                    .get();
+        }
+        return createObjectWriteResponseResult(target);
+    }
+
+    private void copyPrefix(
+            FileObject source,
+            FileObject target
+    ) throws Exception {
+        String sourcePrefix = source.getObjectName();
+        String targetPrefix = target.getObjectName();
+        if (!Strings.CS.endsWith(targetPrefix, AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
+            targetPrefix = targetPrefix + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
+        }
+        List<ObjectItem> items = list(source, true, null);
+        for (ObjectItem item : items) {
+            if (item.isDir() || StringUtils.isBlank(item.getObjectName())) {
+                continue;
+            }
+            if (!Strings.CS.startsWith(item.getObjectName(), sourcePrefix)) {
+                continue;
+            }
+            String relative = Strings.CS.removeStart(item.getObjectName(), sourcePrefix);
+            FileObject from = FileObject.of(source.getBucketName(), item.getObjectName());
+            FileObject to = FileObject.of(target.getBucketName(), targetPrefix + relative);
+            minioAsyncTemplate.copyObject(from, to)
+                    .get();
+        }
     }
 
     @Override
