@@ -49,6 +49,14 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
 
     private final SkillConfig skillConfig;
 
+    public List<AiSkillReleaseEntity> findEnabledByPackageId(Long packageId) {
+        return lambdaQuery()
+                .eq(AiSkillReleaseEntity::getAiSkillPackageId, packageId)
+                .eq(AiSkillReleaseEntity::getEnabled, YesOrNo.Yes)
+                .orderByDesc(AiSkillReleaseEntity::getId)
+                .list();
+    }
+
     /**
      * 将目录工作区拷贝为一条不可变版本。
      *

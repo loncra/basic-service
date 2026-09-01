@@ -3,7 +3,9 @@ package io.github.loncra.basic.service.ai.server.controller.hub;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.ai.server.domain.body.SkillPackageSnapshotRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
+import io.github.loncra.basic.service.ai.server.service.hub.AiSkillReleaseService;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
@@ -45,6 +47,8 @@ import java.util.List;
 public class AiSkillPackageController {
 
     private final AiSkillPackageService aiSkillPackageService;
+
+    private final AiSkillReleaseService aiSkillReleaseService;
 
     /**
      * 获取分页
@@ -130,6 +134,17 @@ public class AiSkillPackageController {
     ) {
         aiSkillPackageService.release(ids);
         return RestResult.of("发布 " + ids.size() + " 条记录成功");
+    }
+
+    /**
+     * 已启用的不可变版本（广场更新日志）
+     *
+     * @param id 目录主键
+     */
+    @GetMapping("release/{id:\\d+}")
+    @PreAuthorize("isAuthenticated()")
+    public List<AiSkillReleaseEntity> findEnabledReleases(@PathVariable Long id) {
+        return aiSkillReleaseService.findEnabledByPackageId(id);
     }
 
     /**

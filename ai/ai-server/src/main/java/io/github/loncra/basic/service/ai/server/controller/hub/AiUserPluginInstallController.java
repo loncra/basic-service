@@ -3,11 +3,8 @@ package io.github.loncra.basic.service.ai.server.controller.hub;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
 import io.github.loncra.basic.service.ai.server.service.hub.AiUserPluginInstallService;
-import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
-import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.validation.Valid;
@@ -27,14 +24,6 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("ai/user/plugin/install")
-@Plugin(
-        name = "插件安装",
-        id = "ai_user_plugin_install",
-        parent = "agent",
-        authority = "isFullyAuthenticated()",
-        type = ResourceTypeEnum.RESOURCE_TOOL_TYPE,
-        sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
-)
 public class AiUserPluginInstallController {
 
     private final AiUserPluginInstallService aiUserPluginInstallService;
