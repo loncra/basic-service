@@ -16,6 +16,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.tenant.TenantContext;
 import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
@@ -24,6 +25,8 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,13 +69,13 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         SystemException.isTrue(Objects.nonNull(body.getPackageId()), () -> new ServiceException("插件目录不能为空"));
         SystemException.isTrue(Objects.nonNull(body.getWorkspaceScope()), () -> new ServiceException("工作空间范围不能为空"));
 
-        List<Long> workspaceIds = resolveWorkspaceIds(body, token);
+        List<IdNameMetadata> workspace = resolveWorkspace(body, token);
         AiUserPluginInstallEntity existing = findMinePackage(token.getName(), body.getTargetType(), body.getPackageId());
         if (Objects.nonNull(existing)) {
             existing.setWorkspaceScope(body.getWorkspaceScope());
             updateById(existing);
-            replaceSpecific(existing.getId(), workspaceIds);
-            return toResult(existing, workspaceIds);
+            replaceSpecific(existing.getId(), workspace);
+            return toResult(existing, workspace);
         }
 
         AiUserPluginInstallEntity entity = new AiUserPluginInstallEntity();
@@ -86,8 +89,8 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         entity.setMetadata(CastUtils.convertValue(createMetadata(body.getTargetType(), body.getPackageId()), CastUtils.MAP_TYPE_REFERENCE));
         insert(entity);
         SystemException.isTrue(Objects.nonNull(entity.getId()), () -> new ServiceException("写入插件安装失败"));
-        replaceSpecific(entity.getId(), workspaceIds);
-        return toResult(entity, workspaceIds);
+        replaceSpecific(entity.getId(), workspace);
+        return toResult(entity, workspace);
     }
 
     public List<UserPluginInstallResult> find(AuditAuthenticationToken token) {
@@ -107,8 +110,14 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                         LinkedHashMap::new,
                         Collectors.mapping(AiUserPluginInstallSpecificEntity::getAgentConversationId, Collectors.toCollection(LinkedList::new))
                 ));
+        Map<Long, AiSkillPackageEntity> skillPackages = findSkillPackages(installs);
+        Map<Long, AiMcpPackageEntity> mcpPackages = findMcpPackages(installs);
         return installs.stream()
-                .map(entity -> toResult(entity, workspaceIdsByInstall.getOrDefault(entity.getId(), List.of())))
+                .map(entity -> toResult(
+                        entity,
+                        getWorkspaceIdNameMetadata(token, new HashSet<>(workspaceIdsByInstall.getOrDefault(entity.getId(), List.of()))),
+                        resolvePluginPackage(entity, skillPackages, mcpPackages)
+                ))
                 .toList();
     }
 
@@ -217,7 +226,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         );
     }
 
-    private List<Long> resolveWorkspaceIds(
+    private List<IdNameMetadata> resolveWorkspace(
             UserPluginInstallRequestBody body,
             AuditAuthenticationToken token
     ) {
@@ -228,7 +237,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                 PluginInstallWorkspaceScopeEnum.ORG.equals(body.getWorkspaceScope()),
                 () -> new ServiceException("不支持的工作空间范围")
         );
-        LinkedHashSet<Long> ids = new LinkedHashSet<>();
+        Set<Long> ids = new LinkedHashSet<>();
         if (CollectionUtils.isNotEmpty(body.getAgentConversationIds())) {
             body.getAgentConversationIds()
                     .stream()
@@ -236,6 +245,14 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                     .forEach(ids::add);
         }
         SystemException.isTrue(CollectionUtils.isNotEmpty(ids), () -> new ServiceException("指定工作空间时至少选择一个工作空间"));
+        return getWorkspaceIdNameMetadata(token, ids);
+    }
+
+    private @NonNull List<IdNameMetadata> getWorkspaceIdNameMetadata(
+            AuditAuthenticationToken token,
+            Set<Long> ids
+    ) {
+        List<IdNameMetadata> workspaces = new LinkedList<>();
         for (Long workspaceId : ids) {
             AgentConversationEntity conversation = agentConversationService.get(workspaceId);
             SystemException.isTrue(Objects.nonNull(conversation), () -> new ServiceException("找不到 ID 为 [" + workspaceId + "] 的工作空间"));
@@ -248,19 +265,20 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                             || AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE.equals(conversation.getType()),
                     () -> new ServiceException("只能绑定工作空间，不能绑定会话")
             );
+            workspaces.add(IdNameMetadata.of(conversation.getId().toString(), conversation.getName()));
         }
-        return List.copyOf(ids);
+        return workspaces;
     }
 
     private void replaceSpecific(
             Long installId,
-            List<Long> workspaceIds
+            List<IdNameMetadata> workspaces
     ) {
         clearSpecific(installId);
-        for (Long workspaceId : workspaceIds) {
+        for (IdNameMetadata workspace : workspaces) {
             AiUserPluginInstallSpecificEntity row = new AiUserPluginInstallSpecificEntity();
             row.setAiUserPluginInstallId(installId);
-            row.setAgentConversationId(workspaceId);
+            row.setAgentConversationId(NumberUtils.toLong(workspace.getId()));
             aiUserPluginInstallSpecificService.insert(row);
         }
     }
@@ -282,12 +300,78 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         return tenantContext.getId().toString();
     }
 
+    private Map<Long, AiSkillPackageEntity> findSkillPackages(List<AiUserPluginInstallEntity> installs) {
+        List<Long> ids = packageIdsOf(installs, PluginTargetTypeEnum.SKILL);
+        if (CollectionUtils.isEmpty(ids)) {
+            return Map.of();
+        }
+        return aiSkillPackageService.lambdaQuery()
+                .in(AiSkillPackageEntity::getId, ids)
+                .list()
+                .stream()
+                .filter(item -> Objects.nonNull(item.getId()))
+                .collect(Collectors.toMap(AiSkillPackageEntity::getId, item -> item, (left, right) -> left));
+    }
+
+    private Map<Long, AiMcpPackageEntity> findMcpPackages(List<AiUserPluginInstallEntity> installs) {
+        List<Long> ids = packageIdsOf(installs, PluginTargetTypeEnum.MCP);
+        if (CollectionUtils.isEmpty(ids)) {
+            return Map.of();
+        }
+        return aiMcpPackageService.lambdaQuery()
+                .in(AiMcpPackageEntity::getId, ids)
+                .list()
+                .stream()
+                .filter(item -> Objects.nonNull(item.getId()))
+                .collect(Collectors.toMap(AiMcpPackageEntity::getId, item -> item, (left, right) -> left));
+    }
+
+    private List<Long> packageIdsOf(
+            List<AiUserPluginInstallEntity> installs,
+            PluginTargetTypeEnum targetType
+    ) {
+        return installs.stream()
+                .filter(item -> targetType.equals(item.getTargetType()))
+                .map(AiUserPluginInstallEntity::getPackageId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private PluginPackageMetadata resolvePluginPackage(
+            AiUserPluginInstallEntity entity,
+            Map<Long, AiSkillPackageEntity> skillPackages,
+            Map<Long, AiMcpPackageEntity> mcpPackages
+    ) {
+        if (Objects.isNull(entity.getPackageId())) {
+            return null;
+        }
+        if (PluginTargetTypeEnum.SKILL.equals(entity.getTargetType())) {
+            return skillPackages.get(entity.getPackageId());
+        }
+        if (PluginTargetTypeEnum.MCP.equals(entity.getTargetType())) {
+            return mcpPackages.get(entity.getPackageId());
+        }
+        return null;
+    }
+
     private UserPluginInstallResult toResult(
             AiUserPluginInstallEntity entity,
-            List<Long> workspaceIds
+            List<IdNameMetadata> workspaces
+    ) {
+        Map<Long, AiSkillPackageEntity> skillPackages = findSkillPackages(List.of(entity));
+        Map<Long, AiMcpPackageEntity> mcpPackages = findMcpPackages(List.of(entity));
+        return toResult(entity, workspaces, resolvePluginPackage(entity, skillPackages, mcpPackages));
+    }
+
+    private UserPluginInstallResult toResult(
+            AiUserPluginInstallEntity entity,
+            List<IdNameMetadata> workspaces,
+            PluginPackageMetadata pluginPackage
     ) {
         UserPluginInstallResult result = CastUtils.convertValue(entity, UserPluginInstallResult.class);
-        result.setAgentConversationIds(new LinkedList<>(workspaceIds));
+        result.setWorkspaces(new LinkedList<>(workspaces));
+        result.setPluginPackage(pluginPackage);
         return result;
     }
 }
