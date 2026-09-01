@@ -2,10 +2,12 @@ package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallStatusEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallUserScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspaceScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import lombok.Data;
@@ -15,6 +17,7 @@ import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.util.Map;
+import java.util.Objects;
 
 
 /**
@@ -74,5 +77,12 @@ public class AiUserPluginInstallEntity extends LongVersionEntity<Integer> {
      */
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata;
+
+    public <T extends AbstractUserPluginInstallMetadata> T obtainMetadata() {
+        if (Objects.isNull(targetType) || Objects.isNull(metadata) || metadata.isEmpty()) {
+            return null;
+        }
+        return CastUtils.cast(CastUtils.convertValue(metadata, targetType.getTargetClass()));
+    }
 
 }

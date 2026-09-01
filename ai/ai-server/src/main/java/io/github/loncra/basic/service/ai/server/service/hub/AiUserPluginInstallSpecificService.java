@@ -4,7 +4,11 @@ import io.github.loncra.basic.service.ai.server.dao.hub.AiUserPluginInstallSpeci
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallSpecificEntity;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  *
@@ -21,5 +25,20 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AiUserPluginInstallSpecificService extends BasicService<AiUserPluginInstallSpecificDao, AiUserPluginInstallSpecificEntity> {
+
+    public List<AiUserPluginInstallSpecificEntity> findByInstallId(Long installId) {
+        return lambdaQuery()
+                .eq(AiUserPluginInstallSpecificEntity::getAiUserPluginInstallId, installId)
+                .list();
+    }
+
+    public List<AiUserPluginInstallSpecificEntity> findByInstallIds(Collection<Long> installIds) {
+        if (CollectionUtils.isEmpty(installIds)) {
+            return List.of();
+        }
+        return lambdaQuery()
+                .in(AiUserPluginInstallSpecificEntity::getAiUserPluginInstallId, installIds)
+                .list();
+    }
 
 }

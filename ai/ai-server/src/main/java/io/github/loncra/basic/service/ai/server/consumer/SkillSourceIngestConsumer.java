@@ -8,7 +8,6 @@ import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageServic
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
-import io.github.loncra.framework.commons.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.Exchange;
