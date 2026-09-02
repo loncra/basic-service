@@ -146,7 +146,7 @@ public class EnterpriseController {
         return RestResult.of("移除企业成员成功");
     }
 
-    @DeleteMapping("members/{organizationId:\\d+}")
+    @DeleteMapping("members/leave/{organizationId:\\d+}")
     @PreAuthorize("isFullyAuthenticated()")
     public RestResult<Void> leave(
             @CurrentSecurityContext
