@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.domain.entity.organization;
+package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationInvitationStatusEnum;
@@ -19,16 +19,16 @@ import java.io.Serial;
 import java.time.Instant;
 
 /**
- * <p>Table: tb_organization_invitation - 企业邀请表</p>
+ * <p>Table: tb_enterprise_invitation - 企业邀请表</p>
  *
  * @author maurice.chen
  */
 @Data
 @NoArgsConstructor
-@Alias("organizationInvitation")
+@Alias("enterpriseInvitation")
 @EqualsAndHashCode(callSuper = true)
-@TableName("tb_organization_invitation")
-public class OrganizationInvitationEntity extends LongVersionEntity<Integer> {
+@TableName("tb_enterprise_invitation")
+public class EnterpriseInvitationEntity extends LongVersionEntity<Integer> {
 
     @Serial
     private static final long serialVersionUID = -6319209699259121659L;

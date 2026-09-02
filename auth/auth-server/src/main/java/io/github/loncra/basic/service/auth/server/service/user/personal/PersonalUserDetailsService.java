@@ -3,7 +3,7 @@ package io.github.loncra.basic.service.auth.server.service.user.personal;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.security.AbstractRegistrationSystemUserDetailsService;
-import io.github.loncra.basic.service.auth.server.service.organization.OrganizationService;
+import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
@@ -34,7 +34,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
 
     private final SnowflakeIdGenerator snowflakeIdGenerator;
 
-    private final OrganizationService organizationService;
+    private final EnterpriseService enterpriseService;
 
     @Override
     protected PersonalUserEntity getByIdentity(String id) {
@@ -83,7 +83,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
         PersonalUserEntity user = personalUserService.getByIdentity(
                 Objects.toString(principal.getId())
         );
-        organizationService.applyActiveOrganizationMetadata(user, details);
+        enterpriseService.applyActiveOrganizationMetadata(user, details);
         return details;
     }
 

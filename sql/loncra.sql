@@ -3501,10 +3501,10 @@ CREATE TABLE `tb_open_platform_merchant_client`  (
 INSERT INTO `tb_open_platform_merchant_client` VALUES ('1', 1, '2026-03-14 20:52:05', 1, '19867271-501f-4c96-916f-d7e0a3fb7321', '2026-03-14 20:52:05', '$2a$10$n3PqiKyjQCA36NFhlHRnsua6t9HeiOWlNdQtwsH7o/E8DHOL/3VCu', '2045-03-01 20:45:01', 'basic-service', '[\"CLIENT_SECRET_BASIC\", \"CLIENT_SECRET_POST\"]', '[\"REFRESH_TOKEN\", \"AUTHORIZATION_CODE\"]', '[\"http://localhost:8080\"]', '[\"PROFILE\", \"OPENID\", \"UNIONID\", \"EMAIL\", \"ADDRESS\", \"PHONE\", \"ROLE\"]', '{\"requireProofKey\": \"No\", \"requireAuthorizationConsent\": \"Yes\", \"authorizationConsentExpirationTime\": {\"unit\": \"DAYS\", \"value\": 180}, \"tokenEndpointAuthenticationSigningAlgorithmType\": \"MAC_ALGORITHM\", \"tokenEndpointAuthenticationSigningAlgorithmValue\": \"HS256\"}', '{\"accessTokenFormat\": \"SELF_CONTAINED\", \"reuseRefreshTokens\": \"Yes\", \"accessTokenTimeToLive\": {\"unit\": \"DAYS\", \"value\": 1}, \"refreshTokenTimeToLive\": {\"unit\": \"DAYS\", \"value\": 1}, \"idTokenSignatureAlgorithm\": \"RS256\", \"authorizationCodeTimeToLive\": {\"unit\": \"MINUTES\", \"value\": 5}}', 1);
 
 -- ----------------------------
--- Table structure for tb_organization
+-- Table structure for tb_enterprise
 -- ----------------------------
-DROP TABLE IF EXISTS `tb_organization`;
-CREATE TABLE `tb_organization`  (
+DROP TABLE IF EXISTS `tb_enterprise`;
+CREATE TABLE `tb_enterprise`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID，同时作为企业空间租户 id',
   `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
@@ -3517,14 +3517,14 @@ CREATE TABLE `tb_organization`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '企业表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of tb_organization
+-- Records of tb_enterprise
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for tb_organization_invitation
+-- Table structure for tb_enterprise_invitation
 -- ----------------------------
-DROP TABLE IF EXISTS `tb_organization_invitation`;
-CREATE TABLE `tb_organization_invitation`  (
+DROP TABLE IF EXISTS `tb_enterprise_invitation`;
+CREATE TABLE `tb_enterprise_invitation`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
@@ -3541,14 +3541,14 @@ CREATE TABLE `tb_organization_invitation`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '企业邀请表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of tb_organization_invitation
+-- Records of tb_enterprise_invitation
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for tb_organization_member
+-- Table structure for tb_enterprise_member
 -- ----------------------------
-DROP TABLE IF EXISTS `tb_organization_member`;
-CREATE TABLE `tb_organization_member`  (
+DROP TABLE IF EXISTS `tb_enterprise_member`;
+CREATE TABLE `tb_enterprise_member`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
@@ -3562,7 +3562,7 @@ CREATE TABLE `tb_organization_member`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '企业成员表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of tb_organization_member
+-- Records of tb_enterprise_member
 -- ----------------------------
 
 -- ----------------------------

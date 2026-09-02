@@ -59,6 +59,12 @@ loncra:
             type: root
             sources:
               - CONSOLE
+          member:
+            name: "会员管理"
+            application-name: commons
+            type: root
+            sources:
+              - CONSOLE
           log:
             application-name: commons
             name: "日志查询"

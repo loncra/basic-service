@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.domain.entity.organization;
+package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationMemberRoleEnum;
@@ -14,16 +14,16 @@ import org.apache.ibatis.type.Alias;
 import java.io.Serial;
 
 /**
- * <p>Table: tb_organization_member - 企业成员表</p>
+ * <p>Table: tb_enterprise_member - 企业成员表</p>
  *
  * @author maurice.chen
  */
 @Data
 @NoArgsConstructor
-@Alias("organizationMember")
+@Alias("enterpriseMember")
 @EqualsAndHashCode(callSuper = true)
-@TableName("tb_organization_member")
-public class OrganizationMemberEntity extends LongVersionEntity<Integer> {
+@TableName("tb_enterprise_member")
+public class EnterpriseMemberEntity extends LongVersionEntity<Integer> {
 
     @Serial
     private static final long serialVersionUID = -4587229919034627913L;

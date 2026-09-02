@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.List;
+
 /**
  * 企业成员角色
  *
@@ -25,4 +27,6 @@ public enum OrganizationMemberRoleEnum implements NameValueEnum<Integer> {
     private final Integer value;
 
     private final String name;
+
+    public static final List<OrganizationMemberRoleEnum> MANAGER_ROLES = List.of(OWNER, ADMIN);
 }

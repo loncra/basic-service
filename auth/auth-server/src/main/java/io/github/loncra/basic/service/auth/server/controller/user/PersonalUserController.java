@@ -46,7 +46,7 @@ import java.util.List;
 @Plugin(
     name = "个人用户管理",
     id = "personal_user",
-    parent = "system",
+    parent = "member",
     authority = "perms[auth_server_personal_user:page]",
     type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
     sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
