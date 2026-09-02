@@ -3,17 +3,23 @@ package io.github.loncra.basic.service.auth.server.service.user.personal;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.security.AbstractRegistrationSystemUserDetailsService;
+import io.github.loncra.basic.service.auth.server.service.organization.OrganizationService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
 import io.github.loncra.framework.security.entity.SecurityPrincipal;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.TypeAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 个人用户明细认证授权服务实现
@@ -27,6 +33,8 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
     private final PersonalUserService personalUserService;
 
     private final SnowflakeIdGenerator snowflakeIdGenerator;
+
+    private final OrganizationService organizationService;
 
     @Override
     protected PersonalUserEntity getByIdentity(String id) {
@@ -57,6 +65,26 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
     @Override
     protected void insertUser(PersonalUserEntity user) {
         personalUserService.insert(user);
+    }
+
+    @Override
+    public AuditAuthenticationSuccessDetails getPrincipalDetails(
+            SecurityPrincipal principal,
+            TypeAuthenticationToken token,
+            AuditAuthenticationToken successToken,
+            Collection<? extends GrantedAuthority> grantedAuthorities
+    ) {
+        AuditAuthenticationSuccessDetails details = super.getPrincipalDetails(
+                principal,
+                token,
+                successToken,
+                grantedAuthorities
+        );
+        PersonalUserEntity user = personalUserService.getByIdentity(
+                Objects.toString(principal.getId())
+        );
+        organizationService.applyActiveOrganizationMetadata(user, details);
+        return details;
     }
 
     @Override

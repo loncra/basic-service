@@ -70,9 +70,14 @@ public class PersonalUserEntity extends AbstractPlatformUser implements PhoneNum
     private YesOrNo phoneNumberVerified = YesOrNo.No;
 
     /**
-     * 租户 id
+     * 个人空间租户 id
      */
     private String tenantId;
+
+    /**
+     * 上次使用的企业 id，为空表示个人空间
+     */
+    private Long lastActiveOrganizationId;
 
     /**
      * 推荐码

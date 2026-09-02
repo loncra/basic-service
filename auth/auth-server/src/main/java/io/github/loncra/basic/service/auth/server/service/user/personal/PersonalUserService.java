@@ -1,20 +1,31 @@
 package io.github.loncra.basic.service.auth.server.service.user.personal;
 
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
-import io.github.loncra.basic.service.auth.server.consumer.PersonalUserConsumer;
 import io.github.loncra.basic.service.auth.server.dao.user.PersonalUserDao;
+import io.github.loncra.basic.service.auth.server.domain.body.PersonalUserRegisterRequestBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
+import io.github.loncra.basic.service.commons.config.CommonsConfig;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
+import io.github.loncra.framework.captcha.ReceivingTargetSimpleCaptcha;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.enumerate.security.UserStatus;
+import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
+import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 
 /**
  *
@@ -40,6 +51,10 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
 
     private final AmqpTemplate amqpTemplate;
 
+    private final CommonsConfig commonsConfig;
+
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
+
     public PersonalUserEntity getByIdentity(String identity) {
         return lambdaQuery().eq(PersonalUserEntity::getId, identity)
                 .or()
@@ -49,6 +64,41 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
                 .or()
                 .eq(PersonalUserEntity::getPhoneNumber, identity)
                 .one();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Concurrent(value = "registerPersonalUser:[#body.phoneNumber]")
+    public PersonalUserEntity register(
+            PersonalUserRegisterRequestBody body,
+            ReceivingTargetSimpleCaptcha captcha
+    ) {
+        Assert.notNull(captcha, "找不到短信验证码校验结果");
+        Assert.isTrue(
+                Strings.CS.equals(body.getPhoneNumber(), captcha.getTarget()),
+                "短信验证码接收手机号与注册手机号不一致"
+        );
+        Assert.isTrue(
+                Strings.CS.equals(body.getPassword(), body.getConfirmPassword()),
+                "密码与确认密码不一致"
+        );
+
+        boolean exists = lambdaQuery()
+                .eq(PersonalUserEntity::getPhoneNumber, body.getPhoneNumber())
+                .exists();
+        SystemException.isTrue(!exists, "该手机号已注册");
+
+        PersonalUserEntity user = new PersonalUserEntity();
+        user.setUsername(commonsConfig.generateRandomUsername(body.getPhoneNumber()));
+        user.setNickname(StringUtils.defaultIfBlank(body.getNickname(), commonsConfig.generateRandomNickName()));
+        user.setPassword(passwordEncoder.encode(body.getPassword()));
+        user.setStatus(UserStatus.Enabled);
+        user.setPhoneNumber(body.getPhoneNumber());
+        user.setPhoneNumberVerified(YesOrNo.Yes);
+        user.setTenantId(snowflakeIdGenerator.generateId());
+        user.getInitialization().setRandomPassword(YesOrNo.No);
+
+        insert(user);
+        return user;
     }
 
     public void export(ExportDataMetadata dto) {

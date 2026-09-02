@@ -3501,6 +3501,71 @@ CREATE TABLE `tb_open_platform_merchant_client`  (
 INSERT INTO `tb_open_platform_merchant_client` VALUES ('1', 1, '2026-03-14 20:52:05', 1, '19867271-501f-4c96-916f-d7e0a3fb7321', '2026-03-14 20:52:05', '$2a$10$n3PqiKyjQCA36NFhlHRnsua6t9HeiOWlNdQtwsH7o/E8DHOL/3VCu', '2045-03-01 20:45:01', 'basic-service', '[\"CLIENT_SECRET_BASIC\", \"CLIENT_SECRET_POST\"]', '[\"REFRESH_TOKEN\", \"AUTHORIZATION_CODE\"]', '[\"http://localhost:8080\"]', '[\"PROFILE\", \"OPENID\", \"UNIONID\", \"EMAIL\", \"ADDRESS\", \"PHONE\", \"ROLE\"]', '{\"requireProofKey\": \"No\", \"requireAuthorizationConsent\": \"Yes\", \"authorizationConsentExpirationTime\": {\"unit\": \"DAYS\", \"value\": 180}, \"tokenEndpointAuthenticationSigningAlgorithmType\": \"MAC_ALGORITHM\", \"tokenEndpointAuthenticationSigningAlgorithmValue\": \"HS256\"}', '{\"accessTokenFormat\": \"SELF_CONTAINED\", \"reuseRefreshTokens\": \"Yes\", \"accessTokenTimeToLive\": {\"unit\": \"DAYS\", \"value\": 1}, \"refreshTokenTimeToLive\": {\"unit\": \"DAYS\", \"value\": 1}, \"idTokenSignatureAlgorithm\": \"RS256\", \"authorizationCodeTimeToLive\": {\"unit\": \"MINUTES\", \"value\": 5}}', 1);
 
 -- ----------------------------
+-- Table structure for tb_organization
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_organization`;
+CREATE TABLE `tb_organization`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID，同时作为企业空间租户 id',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '企业名称',
+  `owner_principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '企业主',
+  `enabled` tinyint NOT NULL DEFAULT 1 COMMENT '是否启用'
+  `remark` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_organization_owner_principal`(`owner_principal` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '企业表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_organization
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for tb_organization_invitation
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_organization_invitation`;
+CREATE TABLE `tb_organization_invitation`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `organization_id` bigint NOT NULL COMMENT '企业 id',
+  `code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '邀请码',
+  `phone_number` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '被邀请手机号',
+  `inviter_principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '邀请人',
+  `status` tinyint NOT NULL DEFAULT 10 COMMENT '状态:10.待接受,20.已接受,30.已过期,40.已取消',
+  `expiration_time` datetime(3) NOT NULL COMMENT '过期时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_organization_invitation_code`(`code` ASC) USING BTREE,
+  INDEX `idx_organization_invitation_organization_id`(`organization_id` ASC) USING BTREE,
+  INDEX `idx_organization_invitation_phone_status`(`phone_number` ASC, `status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '企业邀请表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_organization_invitation
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for tb_organization_member
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_organization_member`;
+CREATE TABLE `tb_organization_member`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `creation_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `version` int NOT NULL DEFAULT 1 COMMENT '更新版本号',
+  `organization_id` bigint NOT NULL COMMENT '企业 id',
+  `principal` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '成员认证主体',
+  `role` tinyint NOT NULL DEFAULT 30 COMMENT '角色:10.企业主,20.管理员,30.成员',
+  `status` tinyint NOT NULL DEFAULT 10 COMMENT '状态:10.待加入,20.已加入,30.已禁用',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `ux_organization_member`(`organization_id` ASC, `principal` ASC) USING BTREE,
+  INDEX `idx_organization_member_principal_status`(`principal` ASC, `status` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '企业成员表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of tb_organization_member
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for tb_personal_user
 -- ----------------------------
 DROP TABLE IF EXISTS `tb_personal_user`;
@@ -3523,7 +3588,8 @@ CREATE TABLE `tb_personal_user`  (
   `nickname` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '昵称',
   `initialization` json NOT NULL COMMENT '用户初始化信息',
   `promo_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '推荐人',
-  `tenant_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '租户 id',
+  `tenant_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '个人空间租户 id',
+  `last_active_organization_id` bigint NULL DEFAULT NULL COMMENT '上次使用的企业 id，为空表示个人空间',
   `avatar` json NULL COMMENT '头像',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '个人用户表' ROW_FORMAT = Dynamic;

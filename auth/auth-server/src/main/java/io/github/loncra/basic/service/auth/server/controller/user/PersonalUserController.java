@@ -2,19 +2,24 @@ package io.github.loncra.basic.service.auth.server.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.auth.server.domain.body.PersonalUserRegisterRequestBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.service.user.personal.PersonalUserService;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ImportExportTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.captcha.ReceivingTargetSimpleCaptcha;
+import io.github.loncra.framework.captcha.filter.CaptchaVerificationFilter;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
+import io.github.loncra.framework.security.audit.Auditable;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +55,21 @@ import java.util.List;
 public class PersonalUserController {
 
     private final PersonalUserService personalUserService;
+
+    @Auditable
+    @PostMapping("register")
+    public RestResult<Long> register(
+            @Valid
+            @ModelAttribute
+            PersonalUserRegisterRequestBody body
+    ) {
+        ReceivingTargetSimpleCaptcha captcha = CastUtils.convertValue(
+                SpringMvcUtils.getRequestAttribute(CaptchaVerificationFilter.ATTR_NAME),
+                ReceivingTargetSimpleCaptcha.class
+        );
+        PersonalUserEntity user = personalUserService.register(body, captcha);
+        return RestResult.ofSuccess("注册成功", user.getId());
+    }
 
     @PostMapping("export")
     @Plugin(name = "导出查询结果")
