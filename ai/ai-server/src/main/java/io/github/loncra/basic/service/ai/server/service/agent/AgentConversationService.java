@@ -5,11 +5,16 @@ import io.github.loncra.basic.service.ai.server.dao.agent.AgentConversationDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.tenant.TenantContext;
+import io.github.loncra.framework.commons.tenant.TenantEntity;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -37,8 +42,22 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
 
     private final ConversationConfig conversationConfig;
 
-    public AgentConversationEntity getDefaultWorkspace(String getPrincipal) {
-        return lambdaQuery().eq(AgentConversationEntity::getPrincipal, getPrincipal)
+    public AgentConversationEntity getDefaultWorkspace(String principal) {
+        TenantContext tenantContext = TenantContextHolder.get();
+        SystemException.isTrue(
+                Objects.nonNull(tenantContext) && Objects.nonNull(tenantContext.getId()),
+                "当前请求未设置租户 ID"
+        );
+        return getDefaultWorkspace(principal, tenantContext.getId().toString());
+    }
+
+    public AgentConversationEntity getDefaultWorkspace(
+            String principal,
+            String tenantId
+    ) {
+        return lambdaQuery()
+                .eq(AgentConversationEntity::getTenantId, tenantId)
+                .eq(AgentConversationEntity::getPrincipal, principal)
                 .eq(AgentConversationEntity::getType, AgentConversationTypeEnum.DEFAULT_WORKSPACE.getValue())
                 .one();
     }
@@ -47,7 +66,12 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
     @Concurrent(value = "createDefaultIfNotExist:[#token.name]")
     public AgentConversationEntity createDefaultIfNotExist(AuditAuthenticationToken token) {
 
-        AgentConversationEntity entity = getDefaultWorkspace(token.getName());
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        String tenantId = Objects.toString(
+                details.getMetadata().get(TenantEntity.TENANT_ID_FIELD),
+                token.getName()
+        );
+        AgentConversationEntity entity = getDefaultWorkspace(token.getName(), tenantId);
 
         if (Objects.isNull(entity)) {
             entity = new AgentConversationEntity();
@@ -56,6 +80,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
             entity.setStatus(AgentChatStatusEnum.READY);
             entity.setGenerateNameStatus(ExecuteStatus.Success);
             entity.setType(AgentConversationTypeEnum.DEFAULT_WORKSPACE);
+            entity.setTenantId(tenantId);
             insert(entity);
         }
 
@@ -88,6 +113,14 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
 
     @Override
     public int insert(AgentConversationEntity entity) {
+        if (StringUtils.isEmpty(entity.getTenantId())) {
+            TenantContext tenantContext = TenantContextHolder.get();
+            SystemException.isTrue(
+                    Objects.nonNull(tenantContext) && Objects.nonNull(tenantContext.getId()),
+                    "当前请求未设置租户 ID"
+            );
+            entity.setTenantId(tenantContext.getId().toString());
+        }
         entity.setGenerateNameStatus(conversationConfig.isGenerateName() ? ExecuteStatus.Pending : ExecuteStatus.Success);
         entity.setName(StringUtils.defaultIfEmpty(entity.getName(), conversationConfig.getNewConversation()));
         entity.setStatus(AgentChatStatusEnum.READY);
