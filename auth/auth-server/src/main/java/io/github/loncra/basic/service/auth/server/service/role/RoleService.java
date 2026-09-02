@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.auth.server.service.role;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.dao.RoleDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
@@ -39,8 +39,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class RoleService extends BasicService<RoleDao, RoleEntity> {
-
-    private final AuthAppConfig authAppConfig;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -87,6 +85,21 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> {
         }
 
         return pluginResourceService.getResourcesStream(group.getResourceIds(), group.getSources().toArray(new ResourceSourceEnum[0]));
+    }
+
+    public List<ResourceEntity> getSystemUserResource(
+            Set<Long> resourceIds,
+            List<ResourceTypeEnum> types,
+            List<ResourceSourceEnum> sourceContains
+
+    ) {
+        return pluginResourceService
+                .getResources()
+                .stream()
+                .filter(r -> resourceIds.contains(r.getId()))
+                .filter(r -> r.getSources().stream().anyMatch(sourceContains::contains))
+                .filter(r -> types.contains(r.getType()))
+                .toList();
     }
 
     @Override

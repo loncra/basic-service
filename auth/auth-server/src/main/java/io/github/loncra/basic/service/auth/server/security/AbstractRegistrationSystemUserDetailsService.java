@@ -22,6 +22,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -80,10 +81,7 @@ public abstract class AbstractRegistrationSystemUserDetailsService<T extends Abs
 
         SimpleSecurityPrincipal result;
         if (Objects.isNull(user)) {
-            result = new SimpleSecurityPrincipal();
-            result.setUsername(commonsConfig.generateRandomUsername(token.getPrincipal()
-                                                                            .toString()));
-            result.setCredentials(commonsConfig.generateRandomPassword());
+            result = createTempSecurityPrincipal(token);
             result.setStatus(UserStatus.Enabled);
         }
         else {
@@ -103,6 +101,13 @@ public abstract class AbstractRegistrationSystemUserDetailsService<T extends Abs
         else {
             return result;
         }
+    }
+
+    protected @NonNull SimpleSecurityPrincipal createTempSecurityPrincipal(RequestAuthenticationToken token) {
+        SimpleSecurityPrincipal result = new SimpleSecurityPrincipal();
+        result.setUsername(commonsConfig.generateRandomUsername(token.getPrincipal().toString()));
+        result.setCredentials(commonsConfig.generateRandomPassword());
+        return result;
     }
 
     @Override
@@ -163,9 +168,7 @@ public abstract class AbstractRegistrationSystemUserDetailsService<T extends Abs
                 .findFirst().ifPresent(s -> s.preInsertUser(requestAuthenticationToken, user));
 
         insertUser(user);
-
-        SimpleSecurityPrincipal simpleSecurityPrincipal = CastUtils.cast(principal);
-        simpleSecurityPrincipal.setId(user.getId());
+        principal.setId(user.getId());
 
         return user;
     }

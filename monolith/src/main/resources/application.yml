@@ -3,6 +3,7 @@ server:
   servlet:
     encoding:
       force: true
+      force-response: true
   tomcat:
     # 与 spring.servlet.multipart 配合；仅调 multipart 时，Tomcat 默认约 2MB 仍会拒绝大 POST
     max-http-form-post-size: 50MB

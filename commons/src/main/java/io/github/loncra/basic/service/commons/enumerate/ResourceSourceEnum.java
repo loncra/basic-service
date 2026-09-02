@@ -30,7 +30,7 @@ public enum ResourceSourceEnum implements NameValueEnum<String> {
     /**
      * 个人用户
      */
-    PERSONAL("个人用户", ResourceSourceEnum.PERSONAL_SOURCE_VALUE, "^" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + "|" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + ":\\d+$", null),
+    PERSONAL("个人用户", ResourceSourceEnum.PERSONAL_SOURCE_VALUE, "^" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + "|" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + ":\\d+$", new IdNameValueMetadata<>("PERSONAL", "个人用户", "personal")),
 
     ;
 

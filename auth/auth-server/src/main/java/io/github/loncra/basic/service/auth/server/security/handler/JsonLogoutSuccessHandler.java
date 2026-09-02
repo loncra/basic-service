@@ -171,7 +171,7 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
             HttpServletRequest request
     ) {
 
-        IdValueMetadata<String, Map<String, Object>> meta = failureHandler.getAllowableFailureMeta(request);
+        IdValueMetadata<String, Map<String, Object>> meta = failureHandler.getAllowableFailureMetadata(request);
         String numberString = Objects.toString(
                 meta.getValue().get(CaptchaAuthenticationFailureResponse.ALLOWABLE_FAILURE_NUMBER_NAME),
                 String.valueOf(BigDecimal.ZERO.intValue())

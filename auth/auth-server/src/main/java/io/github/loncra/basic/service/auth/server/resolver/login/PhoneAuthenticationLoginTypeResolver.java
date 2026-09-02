@@ -69,9 +69,8 @@ public class PhoneAuthenticationLoginTypeResolver implements LoginTypeResolver {
             RequestAuthenticationToken token,
             T user
     ) {
-        if (user instanceof PhoneNumberPrincipal phoneNumberPrincipal) {
-            String phoneNumber = token.getParameterMap()
-                    .getFirst(phoneNumberAuthConfig.getPhoneNumberParamName());
+        if ((user instanceof PhoneNumberPrincipal phoneNumberPrincipal)) {
+            String phoneNumber = token.getParameterMap().getFirst(phoneNumberAuthConfig.getPhoneNumberParamName());
             if (StringUtils.isNotEmpty(phoneNumber)) {
                 phoneNumberPrincipal.setPhoneNumber(phoneNumber);
                 phoneNumberPrincipal.setPhoneNumberVerified(YesOrNo.Yes);

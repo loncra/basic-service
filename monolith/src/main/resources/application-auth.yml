@@ -14,6 +14,7 @@ loncra:
   framework:
     captcha:
       verify-urls:
+        - "/login/**"
         - "/user/password/reset/**"
         - "/sms/send/**"
     authentication:

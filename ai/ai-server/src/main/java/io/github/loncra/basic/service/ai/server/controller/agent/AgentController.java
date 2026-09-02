@@ -37,7 +37,7 @@ import java.util.List;
         id = "agent",
         authority = "isFullyAuthenticated()",
         type = ResourceTypeEnum.RESOURCE_TOOL_TYPE,
-        sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+        sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE,ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
 )
 public class AgentController {
 

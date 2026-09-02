@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
-import io.github.loncra.basic.service.auth.server.consumer.ConsoleUserConsumer;
 import io.github.loncra.basic.service.auth.server.dao.user.ConsoleUserDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.ConsoleUserEntity;
@@ -33,7 +32,6 @@ import org.springframework.util.Assert;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Stream;
 
 /**
  * tb_console_user 的业务逻辑
@@ -179,23 +177,7 @@ public class ConsoleUserService extends BasicService<ConsoleUserDao, ConsoleUser
             List<ResourceSourceEnum> sourceContains
     ) {
         ConsoleUserEntity user = get(token.getSecurityPrincipal().getId().toString());
-
-        List<ResourceEntity> userResource = roleService
-                .getPluginResourceService()
-                .getResources()
-                .stream()
-                .filter(r -> user.getResourceIds().contains(r.getId()))
-                .toList();
-
-        Stream<ResourceEntity> stream = userResource
-                .stream()
-                .filter(r -> r.getSources().stream().anyMatch(sourceContains::contains));
-
-        if (Objects.nonNull(token.getType())) {
-            stream = stream.filter(r -> types.contains(r.getType()));
-        }
-
-        return stream.toList();
+        return roleService.getSystemUserResource(user.getResourceIds(), types, sourceContains);
     }
 
     public List<ConsoleUserEntity> findByRoleIds(Set<Long> roleIds) {

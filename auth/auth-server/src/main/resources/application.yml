@@ -27,14 +27,12 @@ loncra:
       captcha-verification:
         verify-urls:
           - "/login/**"
-          - "/personal/user/register"
       plugin:
         base-packages: io.github.loncra.basic.service.auth.server.controller
       permit-uri-ant-matchers:
         - "/prepare/**"
         - "/login/**"
         - "/logout/**"
-        - "/personal/user/register"
     mvc:
       enumerate-endpoint-base-packages:
         - io.github.loncra.basic.service.auth.api.enumerate

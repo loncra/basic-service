@@ -20,7 +20,6 @@ import io.github.loncra.basic.service.resource.api.service.web.AttachmentService
 import io.github.loncra.basic.service.resource.api.service.web.CaptchaServiceWebClient;
 import io.github.loncra.basic.service.resource.api.service.web.DictionaryServiceWebClient;
 import io.github.loncra.framework.captcha.CaptchaProperties;
-import io.github.loncra.framework.captcha.filter.CaptchaVerificationInterceptor;
 import io.github.loncra.framework.captcha.storage.support.RedissonCaptchaStorageManager;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.exception.SystemException;
@@ -37,8 +36,6 @@ import io.github.loncra.framework.spring.security.core.entity.support.AccessToke
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import io.github.loncra.framework.spring.web.result.RestResponseBodyAdvice;
 import jakarta.servlet.MultipartConfigElement;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RedissonClient;
@@ -254,7 +251,7 @@ public class MonolithStartupAutoConfig {
         return new Client(config);
     }
 
-    @Bean
+    /*@Bean
     public CaptchaVerificationInterceptor NopeCaptchaVerificationInterceptor() {
         return new CaptchaVerificationInterceptor() {
             @Override
@@ -265,7 +262,7 @@ public class MonolithStartupAutoConfig {
                 return CaptchaVerificationInterceptor.super.preVerify(request, response);
             }
         };
-    }
+    }*/
 
     @Bean
     public AgentStateStore agentStateStore(DataSource dataSource) throws SQLException {

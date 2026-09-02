@@ -103,6 +103,9 @@ public class PersonalUserEntity extends AbstractPlatformUser implements PhoneNum
         if (StringUtils.isNotEmpty(getTenantId())) {
             result.put(TenantEntity.TENANT_ID_FIELD, getTenantId());
         }
+        if (StringUtils.isNotEmpty(getNickname())) {
+            result.put(PrincipalDetailsConstants.NICKNAME_KEY, getNickname());
+        }
         return result;
     }
 }

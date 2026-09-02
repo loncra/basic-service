@@ -60,8 +60,7 @@ public class CaptchaAuthenticationFailureResponse implements JsonAuthenticationF
 
         if (e instanceof OAuth2AuthenticationException) {
             OAuth2AuthenticationException exception = CastUtils.cast(e);
-            result.setExecuteCode(exception.getError()
-                                          .getErrorCode());
+            result.setExecuteCode(exception.getError().getErrorCode());
             return;
         }
 
@@ -77,7 +76,7 @@ public class CaptchaAuthenticationFailureResponse implements JsonAuthenticationF
             return;
         }
 
-        IdValueMetadata<String, Map<String, Object>> meta = getAllowableFailureMeta(request);
+        IdValueMetadata<String, Map<String, Object>> meta = getAllowableFailureMetadata(request);
         // 获取错误次数
         Integer number = CastUtils.cast(
                 Objects.toString(meta.getValue().get(ALLOWABLE_FAILURE_NUMBER_NAME), String.valueOf(BigDecimal.ZERO.intValue())),
@@ -166,10 +165,9 @@ public class CaptchaAuthenticationFailureResponse implements JsonAuthenticationF
         redissonClient.getBucket(key).deleteAsync();
     }
 
-    public IdValueMetadata<String, Map<String, Object>> getAllowableFailureMeta(HttpServletRequest request) {
+    public IdValueMetadata<String, Map<String, Object>> getAllowableFailureMetadata(HttpServletRequest request) {
         String identified = SpringMvcUtils.getDeviceIdentified(request);
-        String key = authAppConfig.getAllowableFailureNumberCache()
-                .getName(identified);
+        String key = authAppConfig.getAllowableFailureNumberCache().getName(identified);
         RBucket<IdValueMetadata<String, Map<String, Object>>> bucket = redissonClient.getBucket(key);
 
         IdValueMetadata<String, Map<String, Object>> result = new IdValueMetadata<>();

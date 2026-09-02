@@ -1,31 +1,34 @@
 package io.github.loncra.basic.service.auth.server.service.user.personal;
 
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
+import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.dao.user.PersonalUserDao;
-import io.github.loncra.basic.service.auth.server.domain.body.PersonalUserRegisterRequestBody;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
+import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
+import io.github.loncra.basic.service.auth.server.service.role.RoleService;
 import io.github.loncra.basic.service.commons.config.CommonsConfig;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
-import io.github.loncra.framework.captcha.ReceivingTargetSimpleCaptcha;
-import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
-import io.github.loncra.framework.commons.enumerate.security.UserStatus;
+import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
-import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -45,6 +48,9 @@ import org.springframework.util.Assert;
 @EqualsAndHashCode(callSuper = true)
 public class PersonalUserService extends BasicService<PersonalUserDao, PersonalUserEntity> {
 
+    @Getter
+    private final RoleService roleService;
+
     private final PasswordEncoder passwordEncoder;
 
     private final RedissonClient redissonClient;
@@ -52,8 +58,6 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
     private final AmqpTemplate amqpTemplate;
 
     private final CommonsConfig commonsConfig;
-
-    private final SnowflakeIdGenerator snowflakeIdGenerator;
 
     public PersonalUserEntity getByIdentity(String identity) {
         return lambdaQuery().eq(PersonalUserEntity::getId, identity)
@@ -66,39 +70,16 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
                 .one();
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    @Concurrent(value = "registerPersonalUser:[#body.phoneNumber]")
-    public PersonalUserEntity register(
-            PersonalUserRegisterRequestBody body,
-            ReceivingTargetSimpleCaptcha captcha
-    ) {
-        Assert.notNull(captcha, "找不到短信验证码校验结果");
-        Assert.isTrue(
-                Strings.CS.equals(body.getPhoneNumber(), captcha.getTarget()),
-                "短信验证码接收手机号与注册手机号不一致"
-        );
-        Assert.isTrue(
-                Strings.CS.equals(body.getPassword(), body.getConfirmPassword()),
-                "密码与确认密码不一致"
-        );
-
-        boolean exists = lambdaQuery()
-                .eq(PersonalUserEntity::getPhoneNumber, body.getPhoneNumber())
-                .exists();
-        SystemException.isTrue(!exists, "该手机号已注册");
-
-        PersonalUserEntity user = new PersonalUserEntity();
-        user.setUsername(commonsConfig.generateRandomUsername(body.getPhoneNumber()));
-        user.setNickname(StringUtils.defaultIfBlank(body.getNickname(), commonsConfig.generateRandomNickName()));
-        user.setPassword(passwordEncoder.encode(body.getPassword()));
-        user.setStatus(UserStatus.Enabled);
-        user.setPhoneNumber(body.getPhoneNumber());
-        user.setPhoneNumberVerified(YesOrNo.Yes);
-        user.setTenantId(snowflakeIdGenerator.generateId());
-        user.getInitialization().setRandomPassword(YesOrNo.No);
-
-        insert(user);
-        return user;
+    @Override
+    public int insert(PersonalUserEntity entity) {
+        SystemException.isTrue(!lambdaQuery().eq(AbstractBasicSystemUser::getUsername, entity.getUsername()).exists(), "登录账户已存在");
+        if (StringUtils.isNotEmpty(entity.getPhoneNumber())) {
+            SystemException.isTrue(!lambdaQuery().eq(PersonalUserEntity::getPhoneNumber, entity.getPhoneNumber()).exists(), "手机号码已存在");
+        }
+        if (StringUtils.isNotEmpty(entity.getEmail())) {
+            SystemException.isTrue(!lambdaQuery().eq(PersonalUserEntity::getEmail, entity.getEmail()).exists(), "邮箱已存在");
+        }
+        return super.insert(entity);
     }
 
     public void export(ExportDataMetadata dto) {
@@ -109,5 +90,17 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
         }
         bucket.set(dto, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
         amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, AuthenticationMqConstants.PERSONAL_USER_EXPORT_QUEUE_NAME, dto.toExportCacheName());
+    }
+
+    public List<ResourceEntity> getResource(
+            AuditAuthenticationToken token,
+            List<ResourceTypeEnum> list,
+            List<ResourceSourceEnum> sourceContains
+    ) {
+        PersonalUserEntity user = get(token.getSecurityPrincipal().getId().toString());
+        List<RoleEntity> roles = roleService.get(user.getRoleIds());
+        Set<Long> resourceIds = roles.stream()
+                .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
+        return roleService.getSystemUserResource(resourceIds, list, sourceContains);
     }
 }

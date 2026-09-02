@@ -1,7 +1,9 @@
 package io.github.loncra.basic.service.auth.server.resolver.user;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.resolver.SystemUserAuthorizationResolver;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
@@ -191,6 +193,15 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
                 .set(AbstractPlatformUser::getResourceIds, json)
                 .eq(AbstractPlatformUser::getId, id)
                 .update();
+    }
+
+    @Override
+    public List<ResourceEntity> getSystemUserResource(
+            AuditAuthenticationToken token,
+            List<ResourceTypeEnum> list,
+            List<ResourceSourceEnum> sourceContains
+    ) {
+        return personalUserService.getResource(token, list, sourceContains);
     }
 
     @Override

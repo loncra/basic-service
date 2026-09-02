@@ -67,10 +67,13 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
         TypeIdNameMetadata typeIdNameMetadata = TypeIdNameMetadata.ofPrincipalString(principal);
         SystemUserAuthorizationResolver<T> resolver = getSystemUserAuthorizationResolver(typeIdNameMetadata.getType(), false);
         if (Objects.isNull(resolver)) {
-            return;
+            return ;
         }
 
         T entity = resolver.getByIdentity(typeIdNameMetadata.getId());
+        if (Objects.isNull(entity)) {
+            return ;
+        }
 
         deleteSystemUserAllCache(entity, ResourceSourceEnum.valueOf(typeIdNameMetadata.getType()));
     }

@@ -49,8 +49,10 @@ public interface LoginTypeResolver {
      * @param token 认证 token 请求
      * @param user 新增用户信息
      */
-    <T extends AbstractBasicSystemUser> void preInsertUser(
+    default <T extends AbstractBasicSystemUser> void preInsertUser(
             RequestAuthenticationToken token,
             T user
-    );
+    ) {
+
+    }
 }

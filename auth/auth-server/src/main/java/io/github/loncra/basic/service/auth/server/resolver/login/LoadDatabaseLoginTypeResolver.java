@@ -15,10 +15,12 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.security.entity.SecurityPrincipal;
 import io.github.loncra.framework.spring.security.core.authentication.token.RequestAuthenticationToken;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 加载数据库的登录类型解析器实现
@@ -28,6 +30,8 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class LoadDatabaseLoginTypeResolver implements LoginTypeResolver {
+
+    public static final String CONFIRM_PASSWORD_KEY = "confirmPassword";
 
     private final CaptchaServiceClient captchaServiceClient;
 
@@ -56,8 +60,10 @@ public class LoadDatabaseLoginTypeResolver implements LoginTypeResolver {
             RestResult<Object> result = captchaServiceClient.verifyCaptcha(params);
             SystemException.isTrue(result.isSuccess(), () -> new ErrorCodeException(result.getMessage(), result.getExecuteCode()));
             return true;
+        } else if (LoginTypeEnum.USERNAME_PASSWORD_REGISTER.toString().equals(loginType) && Objects.isNull(principal.getId())) {
+            return Strings.CS.equals(presentedPassword, token.getParameterMap().getFirst(CONFIRM_PASSWORD_KEY));
         } else {
-            return false;
+            return null;
         }
     }
 

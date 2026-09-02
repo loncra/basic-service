@@ -13,6 +13,7 @@ import io.github.loncra.framework.security.audit.ExtendAuditEventRepository;
 import io.github.loncra.framework.security.audit.IdAuditEvent;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.config.ControllerAuditProperties;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -102,14 +103,14 @@ public class AuditEventController {
     }
 
     @PostMapping("operationDataTrace/page")
-    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:operation_data_trace]')")
+    @PreAuthorize("hasAuthority('perms[auth_server_audit_event:operation_data_trace]') or isAuthenticated()")
     @Plugin(
             id = "operation_log",
             name = "操作日志查询",
             parent = "log",
             remark = "数据库操作数据留痕",
             type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-            sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
     )
     public Object operationDataTracePage(
             PageRequest pageRequest,
@@ -118,9 +119,13 @@ public class AuditEventController {
             @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
             Date after,
-            HttpServletRequest request
+            HttpServletRequest request,
+            @CurrentSecurityContext SecurityContext securityContext
     ) {
-
+        AuditAuthenticationToken auditAuthenticationToken = CastUtils.cast(securityContext.getAuthentication());
+        if (ResourceSourceEnum.PERSONAL_SOURCE_VALUE.equals(auditAuthenticationToken.getType())) {
+            principal = auditAuthenticationToken.getName();
+        }
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
             Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
             Map<String, Object> query = new LinkedHashMap<>(filter);

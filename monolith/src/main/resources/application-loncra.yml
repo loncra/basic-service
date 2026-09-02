@@ -83,18 +83,21 @@ loncra:
             type: tool
             sources:
               - CONSOLE
+              - PERSONAL
           setting:
             name: "系统设置"
             application-name: commons
             type: profile
             sources:
               - CONSOLE
+              - PERSONAL
           my_message:
             name: "我的消息"
             application-name: commons
             type: tool
             sources:
               - CONSOLE
+              - PERSONAL
       ignore-audit-types:
         - AUTHENTICATION_FAILURE
         - AUTHORIZATION_FAILURE
