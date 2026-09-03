@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationInvitationStatusEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.mybatis.plus.CryptoProperties;
 import io.github.loncra.framework.mybatis.plus.annotation.Decryption;
@@ -37,7 +37,7 @@ public class EnterpriseInvitationEntity extends LongVersionEntity<Integer> {
      * 企业 id
      */
     @NotNull
-    private Long organizationId;
+    private Long enterpriseId;
 
     /**
      * 邀请码
@@ -64,7 +64,7 @@ public class EnterpriseInvitationEntity extends LongVersionEntity<Integer> {
      * 邀请状态
      */
     @NotNull
-    private OrganizationInvitationStatusEnum status = OrganizationInvitationStatusEnum.PENDING;
+    private EnterpriseInvitationStatusEnum status = EnterpriseInvitationStatusEnum.PENDING;
 
     /**
      * 过期时间

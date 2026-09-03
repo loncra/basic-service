@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.enumerate.organization;
+package io.github.loncra.basic.service.auth.server.enumerate.enterprise;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -14,9 +14,9 @@ import java.util.List;
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum OrganizationMemberRoleEnum implements NameValueEnum<Integer> {
+public enum EnterpriseMemberRoleEnum implements NameValueEnum<Integer> {
 
-    OWNER(10, "企业主"),
+    OWNER(10, "拥有者"),
 
     ADMIN(20, "管理员"),
 
@@ -28,5 +28,7 @@ public enum OrganizationMemberRoleEnum implements NameValueEnum<Integer> {
 
     private final String name;
 
-    public static final List<OrganizationMemberRoleEnum> MANAGER_ROLES = List.of(OWNER, ADMIN);
+    public static final List<EnterpriseMemberRoleEnum> MANAGER_ROLES = List.of(OWNER, ADMIN);
+
+    public static final String SECURITY_ROLE_PREFIX = "ROLE_ENTERPRISE_";
 }

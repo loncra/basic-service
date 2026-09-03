@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.enumerate.organization;
+package io.github.loncra.basic.service.auth.server.enumerate.enterprise;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -6,21 +6,19 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 企业邀请状态
+ * 企业成员状态
  *
  * @author maurice.chen
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum OrganizationInvitationStatusEnum implements NameValueEnum<Integer> {
+public enum EnterpriseMemberStatusEnum implements NameValueEnum<Integer> {
 
-    PENDING(10, "待接受"),
+    INVITED(10, "待加入"),
 
-    ACCEPTED(20, "已接受"),
+    ACTIVE(20, "已加入"),
 
-    EXPIRED(30, "已过期"),
-
-    CANCELLED(40, "已取消"),
+    DISABLED(30, "已禁用"),
 
     ;
 

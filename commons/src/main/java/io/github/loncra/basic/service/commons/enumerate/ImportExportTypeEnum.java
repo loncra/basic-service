@@ -22,6 +22,12 @@ public enum ImportExportTypeEnum implements NameValueEnum<String> {
      * 未知类型
      */
     UNKNOWN("UNKNOWN", "未知类型"),
+
+    /**
+     * 企业
+     */
+    ENTERPRISE("Enterprise", "企业"),
+
     /**
      * 后台用户数据
      */

@@ -2,8 +2,8 @@ package io.github.loncra.basic.service.auth.server.service.enterprise;
 
 import io.github.loncra.basic.service.auth.server.dao.enterprise.EnterpriseMemberDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
-import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationMemberRoleEnum;
-import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationMemberStatusEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberStatusEnum;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,22 +24,22 @@ import java.util.List;
 public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, EnterpriseMemberEntity> {
 
     public EnterpriseMemberEntity getActiveMember(
-            Long organizationId,
+            Long enterpriseId,
             String principal
     ) {
         return lambdaQuery()
-                .eq(EnterpriseMemberEntity::getOrganizationId, organizationId)
+                .eq(EnterpriseMemberEntity::getEnterpriseId, enterpriseId)
                 .eq(EnterpriseMemberEntity::getPrincipal, principal)
-                .eq(EnterpriseMemberEntity::getStatus, OrganizationMemberStatusEnum.ACTIVE)
+                .eq(EnterpriseMemberEntity::getStatus, EnterpriseMemberStatusEnum.ACTIVE)
                 .one();
     }
 
     public EnterpriseMemberEntity getMember(
-            Long organizationId,
+            Long enterpriseId,
             String principal
     ) {
         return lambdaQuery()
-                .eq(EnterpriseMemberEntity::getOrganizationId, organizationId)
+                .eq(EnterpriseMemberEntity::getEnterpriseId, enterpriseId)
                 .eq(EnterpriseMemberEntity::getPrincipal, principal)
                 .one();
     }
@@ -47,34 +47,34 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
     public List<EnterpriseMemberEntity> findActiveByPrincipal(String principal) {
         return lambdaQuery()
                 .eq(EnterpriseMemberEntity::getPrincipal, principal)
-                .eq(EnterpriseMemberEntity::getStatus, OrganizationMemberStatusEnum.ACTIVE)
+                .eq(EnterpriseMemberEntity::getStatus, EnterpriseMemberStatusEnum.ACTIVE)
                 .list();
     }
 
-    public List<EnterpriseMemberEntity> findByOrganizationId(Long organizationId) {
+    public List<EnterpriseMemberEntity> findByEnterpriseId(Long enterpriseId) {
         return lambdaQuery()
-                .eq(EnterpriseMemberEntity::getOrganizationId, organizationId)
+                .eq(EnterpriseMemberEntity::getEnterpriseId, enterpriseId)
                 .list();
     }
 
     public EnterpriseMemberEntity requireManager(
-            Long organizationId,
+            Long enterpriseId,
             String principal
     ) {
-        EnterpriseMemberEntity member = getActiveMember(organizationId, principal);
+        EnterpriseMemberEntity member = getActiveMember(enterpriseId, principal);
         Assert.notNull(member, "当前用户不是该企业的有效成员");
         Assert.isTrue(
-                OrganizationMemberRoleEnum.MANAGER_ROLES.contains(member.getRole()),
+                EnterpriseMemberRoleEnum.MANAGER_ROLES.contains(member.getRole()),
                 "当前用户没有企业管理权限"
         );
         return member;
     }
 
-    public long countActiveOwners(Long organizationId) {
+    public long countActiveOwners(Long enterpriseId) {
         return lambdaQuery()
-                .eq(EnterpriseMemberEntity::getOrganizationId, organizationId)
-                .eq(EnterpriseMemberEntity::getRole, OrganizationMemberRoleEnum.OWNER)
-                .eq(EnterpriseMemberEntity::getStatus, OrganizationMemberStatusEnum.ACTIVE)
+                .eq(EnterpriseMemberEntity::getEnterpriseId, enterpriseId)
+                .eq(EnterpriseMemberEntity::getRole, EnterpriseMemberRoleEnum.OWNER)
+                .eq(EnterpriseMemberEntity::getStatus, EnterpriseMemberStatusEnum.ACTIVE)
                 .count();
     }
 }

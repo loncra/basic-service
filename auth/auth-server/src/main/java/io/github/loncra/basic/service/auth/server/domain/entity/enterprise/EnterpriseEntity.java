@@ -4,13 +4,13 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.time.Instant;
 
 /**
  * <p>Table: tb_enterprise - 企业表</p>
@@ -33,20 +33,30 @@ public class EnterpriseEntity extends LongVersionEntity<Integer> {
     @NotBlank
     private String name;
 
+    private String icon;
+
     /**
      * 企业主
      */
-    @NotBlank
     private String ownerPrincipal;
 
     /**
      * 是否启用
      */
-    @NotNull
     private YesOrNo enabled = YesOrNo.Yes;
+
+    /**
+     * 解散时间
+     */
+    private Instant disbandTime;
 
     /**
      * 备注
      */
     private String remark;
+
+    /**
+     * 租户 id
+     */
+    private String tenantId;
 }

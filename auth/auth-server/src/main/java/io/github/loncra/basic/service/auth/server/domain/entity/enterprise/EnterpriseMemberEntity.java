@@ -1,8 +1,8 @@
 package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationMemberRoleEnum;
-import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationMemberStatusEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberStatusEnum;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
+import java.time.Instant;
 
 /**
  * <p>Table: tb_enterprise_member - 企业成员表</p>
@@ -32,7 +33,7 @@ public class EnterpriseMemberEntity extends LongVersionEntity<Integer> {
      * 企业 id，同时作为企业空间租户 id
      */
     @NotNull
-    private Long organizationId;
+    private Long enterpriseId;
 
     /**
      * 成员认证主体
@@ -44,11 +45,13 @@ public class EnterpriseMemberEntity extends LongVersionEntity<Integer> {
      * 成员角色
      */
     @NotNull
-    private OrganizationMemberRoleEnum role = OrganizationMemberRoleEnum.MEMBER;
+    private EnterpriseMemberRoleEnum role = EnterpriseMemberRoleEnum.MEMBER;
 
     /**
      * 成员状态
      */
     @NotNull
-    private OrganizationMemberStatusEnum status = OrganizationMemberStatusEnum.INVITED;
+    private EnterpriseMemberStatusEnum status = EnterpriseMemberStatusEnum.INVITED;
+
+    private Instant lastAuthenticationTime;
 }

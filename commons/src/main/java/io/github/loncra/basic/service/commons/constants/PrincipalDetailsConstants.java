@@ -81,7 +81,7 @@ public interface PrincipalDetailsConstants {
 
     String SYSTEM_NAME_KEY = "systemName";
 
-    String ORGANIZATION_ID_KEY = "organizationId";
+    String ENTERPRISE_KEY = "enterprise";
 
     static void equals(
             AuditPrincipal source,

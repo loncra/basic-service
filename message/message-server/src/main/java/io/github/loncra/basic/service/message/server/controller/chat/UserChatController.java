@@ -44,7 +44,7 @@ import java.util.Map;
         parent = "my_message",
         authority = "isFullyAuthenticated()",
         type = ResourceTypeEnum.NAVIGATION_DATA_TYPE,
-        sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+        sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
 )
 public class UserChatController {
 

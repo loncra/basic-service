@@ -2,10 +2,12 @@ package io.github.loncra.basic.service.auth.server.service.enterprise;
 
 import io.github.loncra.basic.service.auth.server.dao.enterprise.EnterpriseInvitationDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseInvitationEntity;
-import io.github.loncra.basic.service.auth.server.enumerate.organization.OrganizationInvitationStatusEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * tb_enterprise_invitation 的业务逻辑
@@ -26,13 +28,20 @@ public class EnterpriseInvitationService extends BasicService<EnterpriseInvitati
     }
 
     public EnterpriseInvitationEntity getPendingInvitation(
-            Long organizationId,
+            Long enterpriseId,
             String phoneNumber
     ) {
         return lambdaQuery()
-                .eq(EnterpriseInvitationEntity::getOrganizationId, organizationId)
+                .eq(EnterpriseInvitationEntity::getEnterpriseId, enterpriseId)
                 .eq(EnterpriseInvitationEntity::getPhoneNumber, phoneNumber)
-                .eq(EnterpriseInvitationEntity::getStatus, OrganizationInvitationStatusEnum.PENDING)
+                .eq(EnterpriseInvitationEntity::getStatus, EnterpriseInvitationStatusEnum.PENDING)
                 .one();
+    }
+
+    public List<EnterpriseInvitationEntity> findPendingByEnterpriseId(Long enterpriseId) {
+        return lambdaQuery()
+                .eq(EnterpriseInvitationEntity::getEnterpriseId, enterpriseId)
+                .eq(EnterpriseInvitationEntity::getStatus, EnterpriseInvitationStatusEnum.PENDING)
+                .list();
     }
 }

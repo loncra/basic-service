@@ -108,7 +108,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
         PersonalUserEntity user = personalUserService.getByIdentity(
                 Objects.toString(principal.getId())
         );
-        enterpriseService.applyActiveOrganizationMetadata(user, details);
+        enterpriseService.applyActiveMetadata(user, details);
         return details;
     }
 
