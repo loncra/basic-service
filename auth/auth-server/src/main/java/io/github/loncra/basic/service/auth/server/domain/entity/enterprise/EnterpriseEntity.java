@@ -33,6 +33,9 @@ public class EnterpriseEntity extends LongVersionEntity<Integer> {
     @NotBlank
     private String name;
 
+    /**
+     * 图标
+     */
     private String icon;
 
     /**

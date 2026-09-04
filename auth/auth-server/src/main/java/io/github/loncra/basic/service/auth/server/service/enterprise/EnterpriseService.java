@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEntity> {
 
+    @Getter
     private final EnterpriseMemberService enterpriseMemberService;
 
     private final EnterpriseInvitationService enterpriseInvitationService;
@@ -104,11 +105,17 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         if (Objects.isNull(enterprise)) {
             details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, user.getTenantId());
             details.getMetadata().remove(PrincipalDetailsConstants.ENTERPRISE_KEY);
-            return;
-        }
+        } else {
+            details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, enterprise.getTenantId());
+            details.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName()));
 
-        details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, enterprise.getTenantId());
-        details.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName()));
+            /*SpringSecurityTenantContext tenantContext = new SpringSecurityTenantContext(enterprise.getTenantId(), details.getMetadata());
+            tenantContext.setType(token.getType());
+            tenantContext.setPrincipal(token.getSecurityPrincipal());
+            tenantContext.setLastAuthenticationTime(token.getLastAuthenticationTime());
+
+            TenantContextHolder.set(tenantContext);*/
+        }
     }
 
     public void switchByEnterpriseId(

@@ -120,7 +120,18 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
                 .toList();
         List<ResourceEntity> resourceMetadataList = pluginResourceService.getResourcesStream(user.getResourceIds(), ResourceSourceEnum.valueOf(token.getType()));
 
-        return new HashSet<>(createGrantedAuthorities(roleAuthorityMetadataList, resourceMetadataList));
+        Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(roleAuthorityMetadataList, resourceMetadataList));
+        postGetPrincipalGrantedAuthorities(user, token, principal, result);
+        return result;
+    }
+
+    protected void postGetPrincipalGrantedAuthorities(
+            T user,
+            TypeAuthenticationToken token,
+            SecurityPrincipal principal,
+            Collection<GrantedAuthority> result
+    ) {
+
     }
 
     /**

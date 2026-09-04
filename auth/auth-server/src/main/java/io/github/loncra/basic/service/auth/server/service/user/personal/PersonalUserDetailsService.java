@@ -3,8 +3,10 @@ package io.github.loncra.basic.service.auth.server.service.user.personal;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
+import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.LoginTypeEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.security.AbstractRegistrationSystemUserDetailsService;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -22,6 +24,7 @@ import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticatio
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -92,6 +95,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
         }
     }
 
+
     @Override
     public AuditAuthenticationSuccessDetails getPrincipalDetails(
             SecurityPrincipal principal,
@@ -105,11 +109,26 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
                 successToken,
                 grantedAuthorities
         );
-        PersonalUserEntity user = personalUserService.getByIdentity(
-                Objects.toString(principal.getId())
-        );
+        PersonalUserEntity user = personalUserService.getByIdentity(Objects.toString(principal.getId()));
         enterpriseService.applyActiveMetadata(user, details);
         return details;
+    }
+
+    @Override
+    protected void postGetPrincipalGrantedAuthorities(
+            PersonalUserEntity user,
+            TypeAuthenticationToken token,
+            SecurityPrincipal principal,
+            Collection<GrantedAuthority> result
+    ) {
+        if (Objects.isNull(user.getLastActiveOrganizationId())) {
+            return ;
+        }
+
+        EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
+                .getActiveMember(user.getLastActiveOrganizationId(), user.getSystemName());
+        String role = EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole().toString();
+        result.add(new SimpleGrantedAuthority(role));
     }
 
     @Override
