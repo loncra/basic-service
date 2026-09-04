@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.service.user.personal;
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
+import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.LoginTypeEnum;
@@ -102,7 +103,11 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
     ) {
         AuditAuthenticationToken result = super.createSuccessAuthentication(principal, token, grantedAuthorities);
         PersonalUserEntity user = personalUserService.getByIdentity(Objects.toString(principal.getId()));
-        enterpriseService.applyActiveMetadata(user.getLastActiveEnterpriseId(), result);
+        EnterpriseEntity enterprise = null;
+        if (Objects.nonNull(user.getLastActiveEnterpriseId())) {
+            enterprise = enterpriseService.get(user.getLastActiveEnterpriseId());
+        }
+        enterpriseService.applyActiveMetadata(enterprise, result);
         return result;
     }
 

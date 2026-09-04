@@ -97,7 +97,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
     }
 
     public void applyActiveMetadata(
-            Long enterpriseId,
+            EnterpriseEntity enterprise,
             AuditAuthenticationToken token
     ) {
         AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
@@ -109,11 +109,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         PersonalUserEntity user = personalUserService.get(typeIdNameMetadata.getId());
 
         SpringSecurityTenantContext tenantContext;
-        if (Objects.nonNull(enterpriseId)) {
-            EnterpriseEntity enterprise = Objects.requireNonNull(
-                    getAvailable( enterpriseId,token.getName()),
-                    "找不到 ID 为 [" + enterpriseId + "] 的企业"
-            );
+        if (Objects.nonNull(enterprise)) {
             details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, enterprise.getTenantId());
             IdNameMetadata enterpriseMetadata = IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName());
             details.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, enterpriseMetadata);
@@ -139,6 +135,21 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         TenantContextHolder.set(tenantContext);
     }
 
+    /*public void applyActiveMetadata(
+            Long enterpriseId,
+            AuditAuthenticationToken token
+    ) {
+        if (Objects.nonNull(enterpriseId)) {
+            EnterpriseEntity enterprise = Objects.requireNonNull(
+                    getAvailable(enterpriseId, token.getName()),
+                    "找不到 ID 为 [" + enterpriseId + "] 的企业"
+            );
+            applyActiveMetadata(enterprise, token);
+        } else {
+            applyActiveMetadata((EnterpriseEntity) null, token);
+        }
+    }*/
+
     public void switchByEnterpriseId(
             AuditAuthenticationToken token,
             Long enterpriseId
@@ -159,6 +170,9 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
 
         AuditAuthenticationToken newToken;
         if (Objects.nonNull(enterprise)) {
+
+            user.setLastActiveEnterpriseId(enterprise.getId());
+
             EnterpriseMemberEntity memberEntity = Objects.requireNonNull(
                     enterpriseMemberService.getActiveMember(enterprise.getId(),token.getName()),
                     "当前用户不是该企业的有效成员，或企业已被禁用"
@@ -169,9 +183,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                     .eq(IdEntity::getId, memberEntity.getId())
                     .update();
 
-            user.setLastActiveEnterpriseId(enterprise.getId());
-
-            applyActiveMetadata(enterprise.getId(), token);
+            applyActiveMetadata(enterprise, token);
             newToken = createAuditAuthenticationToken(
                     token,
                     memberEntity.getLastAuthenticationTime(),
@@ -224,27 +236,35 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
             AuditAuthenticationToken token,
             EnterpriseEntity body
     ) {
-        EnterpriseEntity organization;
+        EnterpriseEntity enterprise;
         if (Objects.nonNull(body.getId())) {
-            organization = body;
+            enterprise = body;
             updateById(body);
         } else {
-            organization = CastUtils.of(body, EnterpriseEntity.class);
-            organization.setOwnerPrincipal(token.getName());
-            organization.setEnabled(YesOrNo.Yes);
-            organization.setTenantId(snowflakeIdGenerator.generateId());
-            insert(organization);
+            enterprise = CastUtils.of(body, EnterpriseEntity.class);
+            enterprise.setOwnerPrincipal(token.getName());
+            enterprise.setEnabled(YesOrNo.Yes);
+            enterprise.setTenantId(snowflakeIdGenerator.generateId());
+            insert(enterprise);
 
             EnterpriseMemberEntity owner = new EnterpriseMemberEntity();
-            owner.setEnterpriseId(organization.getId());
+            owner.setEnterpriseId(enterprise.getId());
             owner.setPrincipal(token.getName());
             owner.setRole(EnterpriseMemberRoleEnum.OWNER);
             owner.setStatus(EnterpriseMemberStatusEnum.ACTIVE);
-            enterpriseMemberService.insert(owner);
+            owner.setLastAuthenticationTime(Instant.now());
 
-            switchByEnterprise(token, organization);
+            applyActiveMetadata(enterprise, token);
+            AuditAuthenticationToken newToken = createAuditAuthenticationToken(
+                    token,
+                    owner.getLastAuthenticationTime(),
+                    CastUtils.cast(token.getDetails()),
+                    authorities -> authorities.add(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + owner.getRole().toString())
+            );
+            accessTokenContextRepository.saveAuthentication(newToken);
+            enterpriseMemberService.insert(owner);
         }
-        return organization;
+        return enterprise;
     }
 
     public List<PersonalEnterpriseResponseBody> findByPrincipal(String principal) {

@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberStatusEnum;
+import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,7 +25,7 @@ import java.time.Instant;
 @Alias("enterpriseMember")
 @EqualsAndHashCode(callSuper = true)
 @TableName("tb_enterprise_member")
-public class EnterpriseMemberEntity extends LongVersionEntity<Integer> {
+public class EnterpriseMemberEntity extends LongVersionEntity<Integer> implements TenantEntity<String> {
 
     @Serial
     private static final long serialVersionUID = -4587229919034627913L;
@@ -54,4 +55,6 @@ public class EnterpriseMemberEntity extends LongVersionEntity<Integer> {
     private EnterpriseMemberStatusEnum status = EnterpriseMemberStatusEnum.INVITED;
 
     private Instant lastAuthenticationTime;
+
+    private String tenantId;
 }
