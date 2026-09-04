@@ -70,7 +70,7 @@ public class CommonsConfig {
      */
     private String defaultSmsChannel = "alibabaCloud";
 
-    private RuntimeModeEnum runtimeMode = RuntimeModeEnum.MICROSERVICE;
+    private RuntimeModeEnum runtimeMode = RuntimeModeEnum.MONOLITH;
 
     public String decrypt(String cipherText) {
         return decrypt(cipherText, getDataCryptoKey());

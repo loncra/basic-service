@@ -22,8 +22,10 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.AccessTokenContextRepository;
+import io.github.loncra.framework.spring.security.core.authentication.SpringSecurityTenantContext;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.Getter;
@@ -95,27 +97,46 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
     }
 
     public void applyActiveMetadata(
-            PersonalUserEntity user,
-            AuditAuthenticationSuccessDetails details
+            Long enterpriseId,
+            AuditAuthenticationToken token
     ) {
-        EnterpriseEntity enterprise = getAvailable(
-                user.getLastActiveOrganizationId(),
-                user.getSystemName()
-        );
-        if (Objects.isNull(enterprise)) {
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        if (Objects.isNull(details)) {
+            return ;
+        }
+
+        TypeIdNameMetadata typeIdNameMetadata = TypeIdNameMetadata.ofPrincipalString(token.getName());
+        PersonalUserEntity user = personalUserService.get(typeIdNameMetadata.getId());
+
+        SpringSecurityTenantContext tenantContext;
+        if (Objects.nonNull(enterpriseId)) {
+            EnterpriseEntity enterprise = Objects.requireNonNull(
+                    getAvailable( enterpriseId,token.getName()),
+                    "找不到 ID 为 [" + enterpriseId + "] 的企业"
+            );
+            details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, enterprise.getTenantId());
+            IdNameMetadata enterpriseMetadata = IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName());
+            details.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, enterpriseMetadata);
+            personalUserService.lambdaUpdate()
+                    .set(PersonalUserEntity::getLastActiveEnterpriseId, enterprise.getId())
+                    .eq(PersonalUserEntity::getId, user.getId())
+                    .update();
+            tenantContext = new SpringSecurityTenantContext(enterprise.getTenantId(), details.getMetadata());
+            tenantContext.setLastAuthenticationTime(Instant.now());
+        } else {
             details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, user.getTenantId());
             details.getMetadata().remove(PrincipalDetailsConstants.ENTERPRISE_KEY);
-        } else {
-            details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, enterprise.getTenantId());
-            details.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName()));
-
-            /*SpringSecurityTenantContext tenantContext = new SpringSecurityTenantContext(enterprise.getTenantId(), details.getMetadata());
-            tenantContext.setType(token.getType());
-            tenantContext.setPrincipal(token.getSecurityPrincipal());
+            personalUserService.lambdaUpdate()
+                    .set(PersonalUserEntity::getLastActiveEnterpriseId, null)
+                    .eq(PersonalUserEntity::getId, user.getId())
+                    .update();
+            tenantContext = new SpringSecurityTenantContext(user.getTenantId(), details.getMetadata());
             tenantContext.setLastAuthenticationTime(token.getLastAuthenticationTime());
-
-            TenantContextHolder.set(tenantContext);*/
         }
+
+        tenantContext.setType(token.getType());
+        tenantContext.setPrincipal(token.getSecurityPrincipal());
+        TenantContextHolder.set(tenantContext);
     }
 
     public void switchByEnterpriseId(
@@ -136,7 +157,6 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                 "找不到当前个人用户"
         );
 
-        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
         AuditAuthenticationToken newToken;
         if (Objects.nonNull(enterprise)) {
             EnterpriseMemberEntity memberEntity = Objects.requireNonNull(
@@ -148,31 +168,23 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                     .set(EnterpriseMemberEntity::getLastAuthenticationTime, memberEntity.getLastAuthenticationTime())
                     .eq(IdEntity::getId, memberEntity.getId())
                     .update();
-            personalUserService.lambdaUpdate()
-                    .set(PersonalUserEntity::getLastActiveOrganizationId, enterprise.getId())
-                    .eq(PersonalUserEntity::getId, user.getId())
-                    .update();
-            user.setLastActiveOrganizationId(enterprise.getId());
 
-            applyActiveMetadata(user, details);
+            user.setLastActiveEnterpriseId(enterprise.getId());
+
+            applyActiveMetadata(enterprise.getId(), token);
             newToken = createAuditAuthenticationToken(
                     token,
-                    user.getLastAuthenticationTime(),
-                    details,
+                    memberEntity.getLastAuthenticationTime(),
+                    CastUtils.cast(token.getDetails()),
                     authorities -> authorities.add(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + memberEntity.getRole().toString())
             );
         } else {
-            personalUserService.lambdaUpdate()
-                    .set(PersonalUserEntity::getLastActiveOrganizationId, null)
-                    .eq(PersonalUserEntity::getId, user.getId())
-                    .update();
-            user.setLastActiveOrganizationId(null);
-
-            applyActiveMetadata(user, details);
+            user.setLastActiveEnterpriseId(null);
+            applyActiveMetadata(null, token);
             newToken = createAuditAuthenticationToken(
                     token,
                     user.getLastAuthenticationTime(),
-                    details,
+                    CastUtils.cast(token.getDetails()),
                     newPrincipalGrantedAuthorities -> {}
             );
         }
@@ -426,9 +438,9 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
     private void clearRemovedMemberContext(EnterpriseMemberEntity member) {
         TypeIdNameMetadata principal = IdNameMetadata.ofPrincipalString(member.getPrincipal());
         PersonalUserEntity user = personalUserService.getByIdentity(principal.getId());
-        if (Objects.nonNull(user) && Objects.equals(user.getLastActiveOrganizationId(), member.getEnterpriseId())) {
+        if (Objects.nonNull(user) && Objects.equals(user.getLastActiveEnterpriseId(), member.getEnterpriseId())) {
             personalUserService.lambdaUpdate()
-                    .set(PersonalUserEntity::getLastActiveOrganizationId, null)
+                    .set(PersonalUserEntity::getLastActiveEnterpriseId, null)
                     .eq(PersonalUserEntity::getId, user.getId())
                     .update();
         }

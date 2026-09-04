@@ -77,7 +77,7 @@ public class PersonalUserEntity extends AbstractPlatformUser implements PhoneNum
     /**
      * 上次使用的企业 id，为空表示个人空间
      */
-    private Long lastActiveOrganizationId;
+    private Long lastActiveEnterpriseId;
 
     /**
      * 推荐码

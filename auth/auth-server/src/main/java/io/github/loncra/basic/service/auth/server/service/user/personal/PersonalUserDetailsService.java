@@ -20,7 +20,6 @@ import io.github.loncra.framework.security.entity.support.SimpleSecurityPrincipa
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.RequestAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.TypeAuthenticationToken;
-import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
@@ -95,23 +94,16 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
         }
     }
 
-
     @Override
-    public AuditAuthenticationSuccessDetails getPrincipalDetails(
+    public AuditAuthenticationToken createSuccessAuthentication(
             SecurityPrincipal principal,
             TypeAuthenticationToken token,
-            AuditAuthenticationToken successToken,
             Collection<? extends GrantedAuthority> grantedAuthorities
     ) {
-        AuditAuthenticationSuccessDetails details = super.getPrincipalDetails(
-                principal,
-                token,
-                successToken,
-                grantedAuthorities
-        );
+        AuditAuthenticationToken result = super.createSuccessAuthentication(principal, token, grantedAuthorities);
         PersonalUserEntity user = personalUserService.getByIdentity(Objects.toString(principal.getId()));
-        enterpriseService.applyActiveMetadata(user, details);
-        return details;
+        enterpriseService.applyActiveMetadata(user.getLastActiveEnterpriseId(), result);
+        return result;
     }
 
     @Override
@@ -121,12 +113,12 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
             SecurityPrincipal principal,
             Collection<GrantedAuthority> result
     ) {
-        if (Objects.isNull(user.getLastActiveOrganizationId())) {
+        if (Objects.isNull(user.getLastActiveEnterpriseId())) {
             return ;
         }
 
         EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
-                .getActiveMember(user.getLastActiveOrganizationId(), user.getSystemName());
+                .getActiveMember(user.getLastActiveEnterpriseId(), user.getSystemName());
         String role = EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole().toString();
         result.add(new SimpleGrantedAuthority(role));
     }
