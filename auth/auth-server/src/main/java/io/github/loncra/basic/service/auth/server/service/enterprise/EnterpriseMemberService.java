@@ -111,13 +111,13 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
     public Collection<SimpleGrantedAuthority> getAuthorities(EnterpriseMemberEntity enterpriseMember) {
         List<RoleEntity> roles = personalUserService.getRoleService()
                 .get(enterpriseMember.getRoleIds());
-        if (CollectionUtils.isNotEmpty(enterpriseMember.getRoleIds())) {
+        if (CollectionUtils.isEmpty(enterpriseMember.getRoleIds())) {
             return List.of();
         }
-        Set<Long> resourceIds = roles.stream()
-                .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
-        List<ResourceEntity> resources = personalUserService.getRoleService()
-                .getSystemUserResource(resourceIds, List.of(), List.of(ResourceSourceEnum.ENTERPRISE));
+
+        List<ResourceEntity> resources = roles.stream()
+                .flatMap(s -> personalUserService.getRoleService().getGroupResource(s).stream())
+                .toList();
         return AbstractSystemUserDetailsService.createGrantedAuthorities(roles, resources);
     }
 

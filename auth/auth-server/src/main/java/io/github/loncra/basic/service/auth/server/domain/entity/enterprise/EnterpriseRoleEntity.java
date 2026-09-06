@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
@@ -30,7 +31,7 @@ import java.util.List;
 @Alias("enterpriseRole")
 @TableName("tb_enterprise_role")
 @EqualsAndHashCode(callSuper = true)
-public class EnterpriseRoleEntity extends RoleAuthority implements TenantEntity<String>, Tree<Long, EnterpriseRoleEntity> {
+public class EnterpriseRoleEntity extends BasicSystemRole implements TenantEntity<String>, Tree<Long, EnterpriseRoleEntity> {
 
     public static final String DEFAULT_ROLE_PREFIX = "ROLE_ENTERPRISE";
 

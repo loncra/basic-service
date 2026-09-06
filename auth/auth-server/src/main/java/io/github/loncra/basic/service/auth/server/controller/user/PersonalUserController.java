@@ -94,7 +94,7 @@ public class PersonalUserController {
     @GetMapping("{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[auth_server_personal_user:get]')")
     @Plugin(name = "查看明细")
-    public PersonalUserEntity get(@RequestParam Integer id) {
+    public PersonalUserEntity get(@PathVariable Integer id) {
         return personalUserService.get(id);
     }
 

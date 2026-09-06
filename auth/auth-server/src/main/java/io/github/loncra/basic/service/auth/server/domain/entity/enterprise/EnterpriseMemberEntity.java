@@ -14,6 +14,7 @@ import io.github.loncra.basic.service.auth.server.enumerate.enterprise.Enterpris
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.enumerate.GenderEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -68,12 +69,14 @@ public class EnterpriseMemberEntity extends AbstractBasicSystemUser implements P
     /**
      * 企业内部角色 id
      */
+    @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Set<Long> roleIds = new LinkedHashSet<>();
 
     /**
      * 企业内部角色 id
      */
+    @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Set<Long> resourceIds = new LinkedHashSet<>();
 

@@ -2,8 +2,10 @@ package io.github.loncra.basic.service.auth.server.controller.enterprise;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
-import io.github.loncra.basic.service.auth.server.service.role.RoleService;
+import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseRoleEntity;
+import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseRoleService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -39,7 +41,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EnterpriseRoleController {
 
-    private final RoleService roleService;
+    private final EnterpriseRoleService enterpriseRoleService;
 
     /**
      * 获取所有用户组
@@ -59,7 +61,7 @@ public class EnterpriseRoleController {
             @RequestParam(required = false, defaultValue = "false")
             boolean idValueMetadata
     ) {
-        QueryWrapper<RoleEntity> query = roleService.getQueryGenerator()
+        QueryWrapper<EnterpriseRoleEntity> query = enterpriseRoleService.getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
         return findGroup(mergeTree, idValueMetadata, query);
     }
@@ -69,10 +71,10 @@ public class EnterpriseRoleController {
             boolean mergeTree,
             @RequestParam(required = false, defaultValue = "false")
             boolean idValueMetadata,
-            QueryWrapper<RoleEntity> query
+            QueryWrapper<EnterpriseRoleEntity> query
     ) {
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        List<RoleEntity> roleList = roleService.find(query);
+        List<EnterpriseRoleEntity> roleList = enterpriseRoleService.find(query);
 
         if (mergeTree) {
             return new LinkedList<>(TreeUtils.buildGenericTree(roleList));
@@ -99,11 +101,11 @@ public class EnterpriseRoleController {
     @GetMapping("{id:\\d+}")
     @Plugin(name = "查看明细")
     @PreAuthorize("hasAuthority('perms[auth_server_enterprise_role:get]')")
-    public RoleEntity get(
+    public EnterpriseRoleEntity get(
             @PathVariable
             Long id
     ) {
-        return roleService.get(id);
+        return enterpriseRoleService.get(id);
     }
 
     /**
@@ -120,9 +122,9 @@ public class EnterpriseRoleController {
     public RestResult<Long> save(
             @Valid
             @RequestBody
-            RoleEntity entity
+            EnterpriseRoleEntity entity
     ) {
-        roleService.save(entity);
+        enterpriseRoleService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());
     }
 
@@ -141,7 +143,7 @@ public class EnterpriseRoleController {
             @RequestParam
             List<Long> ids
     ) {
-        roleService.deleteById(ids);
+        enterpriseRoleService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 
@@ -158,8 +160,8 @@ public class EnterpriseRoleController {
             @PathVariable
             String authority
     ) {
-        return !roleService.lambdaQuery()
-                .eq(RoleEntity::getAuthority, authority)
+        return !enterpriseRoleService.lambdaQuery()
+                .eq(BasicSystemRole::getAuthority, authority)
                 .exists();
     }
 
@@ -176,8 +178,8 @@ public class EnterpriseRoleController {
             @PathVariable
             String name
     ) {
-        return !roleService.lambdaQuery()
-                .eq(RoleEntity::getName, name)
+        return !enterpriseRoleService.lambdaQuery()
+                .eq(BasicSystemRole::getName, name)
                 .exists();
     }
 }

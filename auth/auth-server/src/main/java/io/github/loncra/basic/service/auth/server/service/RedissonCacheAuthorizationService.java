@@ -104,12 +104,15 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
 
         tokens.stream()
                 .map(typeSecurityPrincipalService::getAuthenticationCache)
+                .filter(Objects::nonNull)
                 .map(CacheProperties::getName)
                 .forEach(keys::add);
         SecurityPrincipal principal = new SimpleSecurityPrincipal(entity.getId(), null, entity.getUsername());
-        String authorizationCacheKey = typeSecurityPrincipalService.getAuthorizationCache(tokens.getFirst(), principal)
-                .getName();
-        keys.add(authorizationCacheKey);
+        CacheProperties authorizationCache = typeSecurityPrincipalService.getAuthorizationCache(tokens.getFirst(), principal);
+        if (Objects.nonNull(authorizationCache)) {
+            String authorizationCacheKey = authorizationCache.getName();
+            keys.add(authorizationCacheKey);
+        }
 
         redissonClient.getKeys()
                 .delete(keys.toArray(new String[0]));
