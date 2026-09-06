@@ -118,7 +118,10 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
         List<ResourceEntity> resources = roles.stream()
                 .flatMap(s -> personalUserService.getRoleService().getGroupResource(s).stream())
                 .toList();
-        return AbstractSystemUserDetailsService.createGrantedAuthorities(roles, resources);
+        Collection<SimpleGrantedAuthority> authorities = AbstractSystemUserDetailsService.createGrantedAuthorities(roles, resources);
+        authorities.add(new SimpleGrantedAuthority(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + enterpriseMember.getRole()));
+
+        return authorities;
     }
 
     @Transactional(rollbackFor = Exception.class)

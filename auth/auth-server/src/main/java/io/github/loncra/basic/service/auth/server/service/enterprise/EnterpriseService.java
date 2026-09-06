@@ -29,6 +29,7 @@ import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.tenant.TenantContext;
 import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import io.github.loncra.framework.security.entity.RoleAuthority;
 import io.github.loncra.framework.security.entity.SecurityPrincipal;
 import io.github.loncra.framework.security.entity.support.SimpleSecurityPrincipal;
 import io.github.loncra.framework.spring.security.core.authentication.AccessTokenContextRepository;
@@ -48,9 +49,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * tb_enterprise 的业务逻辑
@@ -171,6 +171,13 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         result.setAuthenticated(token.isAuthenticated());
         result.setRememberMe(token.isRememberMe());
 
+        Map<String, Object> metadata = user.toPrincipalMetadata();
+        List<RoleAuthority> roles = user.getRoleIds()
+                .stream()
+                .map(id -> enterpriseMemberService.getPersonalUserService().getRoleService().get(id))
+                .map(s -> CastUtils.of(s, RoleAuthority.class))
+                .collect(Collectors.toCollection(LinkedList::new));
+
         Object currentDetails = token.getDetails();
         if (currentDetails instanceof AccessTokenAuditAuthenticationSuccessDetails details) {
             ExpiredToken expiredToken;
@@ -178,12 +185,16 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                 expiredToken = openPlatformMerchantService.createInternalAccessToken(result);
             } else if (user instanceof EnterpriseMemberEntity member){
                 expiredToken = openPlatformMerchantService.createAccessToken(member.getTenantId(), result);
+                RoleAuthority roleAuthority = new RoleAuthority(member.getRole().getName(), EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole());
+                roles.add(roleAuthority);
             } else {
                 throw new SystemException("不支持的用户类型为 [" + user.getType().getName() + "] 拷贝认证 token");
             }
+
+            metadata.put(SystemConstants.ROLE_FIELD_NAME, roles);
             AccessTokenAuditAuthenticationSuccessDetails newDetails = new AccessTokenAuditAuthenticationSuccessDetails(
                     details.getRequestDetails(),
-                    user.toPrincipalMetadata(),
+                    metadata,
                     expiredToken
             );
             result.setDetails(newDetails);
