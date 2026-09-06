@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.auth.server.resolver.user;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
@@ -72,7 +71,7 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
 
     @Override
     public Collection<PersonalUserEntity> findByRoleId(Set<Long> roleIds) {
-        return List.of();
+        return personalUserService.findByRoleIds(roleIds);
     }
 
     @Override
@@ -165,9 +164,7 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
 
     @Override
     public List<PersonalUserEntity> findByRoleAuthority(String roleAuthority) {
-        Wrapper<PersonalUserEntity> wrapper = personalUserService.getQueryGenerator()
-                .createQueryWrapperFromMap(Map.of("filter_[roles.*authority_jin]", roleAuthority));
-        return personalUserService.find(wrapper);
+        throw new UnsupportedOperationException("不支持通过角色权限查询用户");
     }
 
     @Override
@@ -190,7 +187,7 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
     ) {
         String json = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(roleIds));
         personalUserService.lambdaUpdate()
-                .set(AbstractPlatformUser::getResourceIds, json)
+                .set(AbstractPlatformUser::getRoleIds, json)
                 .eq(AbstractPlatformUser::getId, id)
                 .update();
     }
@@ -221,8 +218,7 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
 
     @Override
     public boolean isSupport(String type) {
-        return getSource().getValue()
-                .equals(type);
+        return getSource().getValue().equals(type);
     }
 
 

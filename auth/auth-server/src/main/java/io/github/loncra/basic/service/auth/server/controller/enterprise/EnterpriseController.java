@@ -5,23 +5,28 @@ import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.controller.user.UserExportSupport;
 import io.github.loncra.basic.service.auth.server.domain.body.PersonalEnterpriseResponseBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
-import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseInvitationEntity;
-import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseService;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ImportExportTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
@@ -44,7 +49,7 @@ import java.util.Objects;
         parent = "member",
         authority = "perms[auth_server_enterprise:page]",
         type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-        sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
+        sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 public class EnterpriseController {
 
@@ -116,106 +121,59 @@ public class EnterpriseController {
             @RequestBody
             EnterpriseEntity body
     ) {
-        EnterpriseEntity organization = enterpriseService.save(
+        IdValueMetadata<String, EnterpriseEntity> result = enterpriseService.save(
                 CastUtils.cast(securityContext.getAuthentication()),
                 body
         );
-        return RestResult.ofSuccess("创建企业成功", organization.getId());
+        RestResult<Long> returnValue = RestResult.ofSuccess("创建企业成功", result.getValue().getId());
+        returnValue.getMetadata().put(SystemConstants.ACCESS_TOKEN_FIELD_NAME, result.getId());
+        return returnValue;
     }
 
     @GetMapping("my")
     @PreAuthorize("isAuthenticated()")
+    @Plugin(name = "我的企业", sources = {ResourceSourceEnum.PERSONAL_SOURCE_VALUE, ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE})
     public List<PersonalEnterpriseResponseBody> my(
             @CurrentSecurityContext
             SecurityContext securityContext
     ) {
+        TenantContextHolder.get().setIgnore(true);
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return enterpriseService.findByPrincipal(token.getName());
+        if (ResourceSourceEnum.PERSONAL_SOURCE_VALUE.equals(token.getType())) {
+            return enterpriseService.findByPrincipal(token.getName());
+        } else if (ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE.equals(token.getType())){
+            AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+            String principal = Objects.toString(details.getMetadata().get(PrincipalDetailsConstants.PRINCIPAL_KEY), StringUtils.EMPTY);
+            if (StringUtils.isEmpty(principal)) {
+                return List.of();
+            }
+            return enterpriseService.findByPrincipal(principal);
+        } else {
+            throw new SystemException("不支持用户类型为 [" + token.getType() + "] 调用此接口");
+        }
     }
 
     @PutMapping("switch")
     @PreAuthorize("isFullyAuthenticated()")
-    public RestResult<Long> switchEnterprise(
+    @Plugin(name = "切换企业", sources = {ResourceSourceEnum.PERSONAL_SOURCE_VALUE, ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE})
+    public RestResult<Object> switchEnterprise(
             @CurrentSecurityContext
             SecurityContext securityContext,
             @RequestParam(required = false)
             Long enterpriseId
     ) {
+        TenantContextHolder.get().setIgnore(true);
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        String accessToken;
         if (Objects.isNull(enterpriseId)) {
-            enterpriseService.switchByEnterprise(token, null);
+            accessToken = enterpriseService.switchByEnterprise(token, null);
         } else{
-            enterpriseService.switchByEnterpriseId(token,enterpriseId);
+            accessToken = enterpriseService.switchByEnterpriseId(token,enterpriseId);
         }
-        return RestResult.ofSuccess("切换空间成功", enterpriseId);
+        return RestResult.ofSuccess("切换空间成功", (Object)accessToken);
     }
 
-    @PostMapping("invitations/{organizationId:\\d+}")
-    @PreAuthorize("isFullyAuthenticated()")
-    public RestResult<String> invite(
-            @CurrentSecurityContext
-            SecurityContext securityContext,
-            @PathVariable
-            Long organizationId,
-            @RequestParam
-            String phoneNumber
-    ) {
-        EnterpriseInvitationEntity invitation = enterpriseService.invite(
-                CastUtils.cast(securityContext.getAuthentication()),
-                organizationId,
-                phoneNumber
-        );
-        return RestResult.ofSuccess("邀请成员成功", invitation.getCode());
-    }
-
-    @PostMapping("invitations/accept/{code}")
-    @PreAuthorize("isFullyAuthenticated()")
-    public RestResult<Void> acceptInvitation(
-            @CurrentSecurityContext
-            SecurityContext securityContext,
-            @PathVariable
-            String code
-    ) {
-        enterpriseService.acceptInvitation(
-                CastUtils.cast(securityContext.getAuthentication()),
-                code
-        );
-        return RestResult.of("接受企业邀请成功");
-    }
-
-    @GetMapping("members/{organizationId:\\d+}")
-    @PreAuthorize("isFullyAuthenticated()")
-    public List<EnterpriseMemberEntity> members(
-            @CurrentSecurityContext
-            SecurityContext securityContext,
-            @PathVariable
-            Long organizationId
-    ) {
-        return enterpriseService.findMembers(
-                CastUtils.cast(securityContext.getAuthentication()),
-                organizationId
-        );
-    }
-
-    @DeleteMapping("members/{organizationId:\\d+}")
-    @PreAuthorize("isFullyAuthenticated()")
-    public RestResult<Void> removeMember(
-            @CurrentSecurityContext
-            SecurityContext securityContext,
-            @PathVariable
-            Long organizationId,
-            @RequestParam
-            String principal
-    ) {
-        enterpriseService.removeMember(
-                CastUtils.cast(securityContext.getAuthentication()),
-                organizationId,
-                principal
-        );
-        return RestResult.of("移除企业成员成功");
-    }
-
-    @DeleteMapping("members/leave/{organizationId:\\d+}")
+    @DeleteMapping("member/leave/{organizationId:\\d+}")
     @PreAuthorize("isFullyAuthenticated()")
     public RestResult<Void> leave(
             @CurrentSecurityContext

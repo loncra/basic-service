@@ -9,15 +9,9 @@ import io.github.loncra.basic.service.auth.server.domain.metdata.MerchantTokenSe
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.AuthorizationGrantTypeEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.ClientAuthenticationMethodEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.oauth.RegisteredClientScopeEnum;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
-import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
-import io.github.loncra.framework.commons.enumerate.NameEnum;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
-import io.github.loncra.framework.commons.id.IdEntity;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
-import io.github.loncra.framework.commons.id.number.NumberIdEntity;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import jakarta.validation.constraints.NotNull;
@@ -284,19 +278,22 @@ public class OpenPlatformMerchantClientEntity implements VersionEntity<Integer, 
         }
 
         if (StringUtils.isEmpty(entity.getId())) {
-            entity.setId(DigestUtils.md5DigestAsHex(client.getClientId()
-                                                            .getBytes()));
+            entity.setId(DigestUtils.md5DigestAsHex(client.getClientId().getBytes()));
             entity.setCreationTime(Instant.now());
         }
 
         return entity;
 
     }
-
-    public static OpenPlatformMerchantClientEntity ofResourceOpenPlatformMerchantMap(Map<String, Object> data) {
+    public static OpenPlatformMerchantClientEntity ofOpenPlatformMerchantEntity(OpenPlatformMerchantEntity merchant) {
         OpenPlatformMerchantClientEntity entity = new OpenPlatformMerchantClientEntity();
-
-        setBasicResourceOpenPlatformMerchantValue(entity, data);
+        entity.setId(merchant.getAppId());
+        entity.setMerchantId(merchant.getId());
+        entity.setClientId(merchant.getAppId());
+        entity.setClientName(merchant.getName());
+        entity.setCreationTime(merchant.getCreationTime());
+        entity.setClientSecret(merchant.getAppKey());
+        entity.setEnabled(merchant.getEnabled());
 
         Set<RegisteredClientScopeEnum> registeredClientScopes = Arrays
                 .stream(RegisteredClientScopeEnum.values())
@@ -317,27 +314,6 @@ public class OpenPlatformMerchantClientEntity implements VersionEntity<Integer, 
         entity.setClientAuthenticationMethods(clientAuthenticationMethods);
 
         return entity;
-    }
-
-    public static void setBasicResourceOpenPlatformMerchantValue(
-            OpenPlatformMerchantClientEntity entity,
-            Map<String, Object> data
-    ) {
-
-        entity.setMerchantId(CastUtils.castIfNotNull(data.get(IdEntity.ID_FIELD_NAME), Long.class));
-        entity.setClientName(Objects.toString(data.get(NameEnum.FIELD_NAME), StringUtils.EMPTY));
-        entity.setClientId(Objects.toString(data.get(SystemConstants.APP_ID_FIELD_NAME), StringUtils.EMPTY));
-
-        String creationTimeString = Objects.toString(data.get(NumberIdEntity.CREATION_TIME_FIELD_NAME), StringUtils.EMPTY);
-        if (StringUtils.isNotEmpty(creationTimeString)) {
-            entity.setCreationTime(Instant.now());
-        }
-
-        entity.setClientSecret(Objects.toString(data.get(SystemConstants.APP_KEY_FIELD_NAME), StringUtils.EMPTY));
-        Map<String, Object> enabledValue = CastUtils.castIfNotNull(data.get(SystemConstants.ENABLED_FIELD_NAME));
-        if (MapUtils.isNotEmpty(enabledValue)) {
-            entity.setEnabled(ValueEnum.ofEnum(YesOrNo.class, enabledValue.get(IdValueMetadata.VALUE_FIELD_NAME)));
-        }
     }
 
 }

@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.auth.server.service.user.personal;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
@@ -7,6 +8,7 @@ import io.github.loncra.basic.service.auth.server.dao.user.PersonalUserDao;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
+import io.github.loncra.basic.service.auth.server.security.AbstractSystemUserDetailsService;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
 import io.github.loncra.basic.service.commons.config.CommonsConfig;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -19,14 +21,18 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -102,5 +108,24 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
         Set<Long> resourceIds = roles.stream()
                 .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
         return roleService.getSystemUserResource(resourceIds, list, sourceContains);
+    }
+
+    public List<PersonalUserEntity> findByRoleIds(Set<Long> roleIds) {
+        Map<String, Object> filter = Map.of("filter_[role_ids_jin]", roleIds);
+        Wrapper<PersonalUserEntity> wrapper = getQueryGenerator().createQueryWrapperFromMap(filter);
+        return find(wrapper);
+    }
+
+    public Collection<SimpleGrantedAuthority> getAuthorities(PersonalUserEntity user) {
+        List<RoleEntity> roles = roleService
+                .get(user.getRoleIds());
+        if (CollectionUtils.isNotEmpty(user.getRoleIds())) {
+            return List.of();
+        }
+        Set<Long> resourceIds = roles.stream()
+                .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
+        List<ResourceEntity> resources = roleService
+                .getSystemUserResource(resourceIds, List.of(), List.of(ResourceSourceEnum.PERSONAL));
+        return AbstractSystemUserDetailsService.createGrantedAuthorities(roles, resources);
     }
 }

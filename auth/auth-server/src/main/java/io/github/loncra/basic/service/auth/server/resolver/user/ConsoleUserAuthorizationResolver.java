@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.auth.server.resolver.user;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
@@ -152,9 +151,7 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
 
     @Override
     public List<ConsoleUserEntity> findByRoleAuthority(String roleAuthority) {
-        Wrapper<ConsoleUserEntity> wrapper = consoleUserService.getQueryGenerator()
-                .createQueryWrapperFromMap(Map.of("filter_[roles.*authority_jin]", roleAuthority));
-        return consoleUserService.find(wrapper);
+        throw new UnsupportedOperationException("不支持通过角色权限查询用户");
     }
 
     @Override

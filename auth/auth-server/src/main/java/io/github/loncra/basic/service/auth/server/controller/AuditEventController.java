@@ -110,7 +110,7 @@ public class AuditEventController {
             parent = "log",
             remark = "数据库操作数据留痕",
             type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
+            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE, ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE}
     )
     public Object operationDataTracePage(
             PageRequest pageRequest,
@@ -123,7 +123,7 @@ public class AuditEventController {
             @CurrentSecurityContext SecurityContext securityContext
     ) {
         AuditAuthenticationToken auditAuthenticationToken = CastUtils.cast(securityContext.getAuthentication());
-        if (ResourceSourceEnum.PERSONAL_SOURCE_VALUE.equals(auditAuthenticationToken.getType())) {
+        if (ResourceSourceEnum.MEMBER_TYPES.contains(auditAuthenticationToken.getType())) {
             principal = auditAuthenticationToken.getName();
         }
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {

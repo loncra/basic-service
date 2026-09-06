@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
-import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.annotation.Description;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -60,15 +59,15 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
     /**
      * 主键 id
      */
-    @Description(value = "序号", sort = 0)
-    private Long id;
+    /*@Description(value = "序号", sort = 0)
+    private Long id;*/
 
     /**
      * 创建时间
      */
-    @EqualsAndHashCode.Exclude
+    /*@EqualsAndHashCode.Exclude
     @Description(value = "创建时间", sort = 1)
-    private Instant creationTime;
+    private Instant creationTime;*/
 
     /**
      * 乐观锁版本号
@@ -163,11 +162,6 @@ public abstract class AbstractPlatformUser extends AbstractBasicSystemUser imple
         }
 
         return result;
-    }
-
-    @Override
-    public String getSystemName() {
-        return getType().getValue() + CacheProperties.DEFAULT_SEPARATOR + getId();
     }
 
 }

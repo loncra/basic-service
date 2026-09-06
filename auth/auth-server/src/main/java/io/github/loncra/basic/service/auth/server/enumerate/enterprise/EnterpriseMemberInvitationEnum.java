@@ -12,14 +12,13 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum EnterpriseMemberStatusEnum implements NameValueEnum<Integer> {
+public enum EnterpriseMemberInvitationEnum implements NameValueEnum<Integer> {
 
     INVITED(10, "待加入"),
 
     ACTIVE(20, "已加入"),
 
-    DISABLED(30, "已禁用"),
-
+    CANCEL(30, "已取消")
     ;
 
     private final Integer value;

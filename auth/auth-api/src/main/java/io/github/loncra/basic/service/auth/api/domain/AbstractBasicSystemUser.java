@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.auth.api.domain;
 
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.annotation.Description;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.id.number.LongIdEntity;
@@ -8,6 +9,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -81,10 +83,14 @@ public abstract class AbstractBasicSystemUser extends LongIdEntity {
      */
     public abstract ResourceSourceEnum getType();
 
+    public abstract Instant getLastAuthenticationTime();
+
     /**
      * 获取系统名称
      *
      * @return 系统名称
      */
-    public abstract String getSystemName();
+    public String getSystemName() {
+        return getType() + CacheProperties.DEFAULT_SEPARATOR + getId();
+    }
 }

@@ -13,17 +13,13 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
-import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 
 /**
@@ -50,19 +46,6 @@ import java.util.List;
 public class PersonalUserController {
 
     private final PersonalUserService personalUserService;
-
-    /*@Auditable("用户注册")
-    @PostMapping("register/{type}")
-    public RestResult<Long> register(
-            @PathVariable
-            String type,
-            @RequestBody
-            Map<String, Object> body
-    ) {
-        LoginTypeEnum loginTypeEnum = NameEnum.ofEnum(LoginTypeEnum.class, type);
-        PersonalUserEntity user = personalUserService.register(loginTypeEnum, body);
-        return RestResult.ofSuccess("注册成功", user.getId());
-    }*/
 
     @PostMapping("export")
     @Plugin(name = "导出查询结果")
@@ -113,38 +96,6 @@ public class PersonalUserController {
     @Plugin(name = "查看明细")
     public PersonalUserEntity get(@RequestParam Integer id) {
         return personalUserService.get(id);
-    }
-
-    /**
-     * 保存数据
-     *
-     * @param entity 数据请求体
-     *
-     * @see PersonalUserEntity
-     */
-    @PutMapping
-    @OperationDataTrace
-    @PreAuthorize("hasAuthority('perms[auth_server_personal_user:save]')")
-    @Plugin(name = "保存或添加信息")
-    public RestResult<Long> save(@Valid @RequestBody PersonalUserEntity entity) {
-        personalUserService.save(entity);
-        return RestResult.ofSuccess("保存成功", entity.getId());
-    }
-
-    /**
-     * 删除数据
-     *
-     * @param ids 主键 ID 值集合
-     *
-     * @see PersonalUserEntity
-     */
-    @DeleteMapping
-    @OperationDataTrace
-    @Plugin(name = "删除信息")
-    @PreAuthorize("hasAuthority('perms[auth_server_personal_user:delete]')")
-    public RestResult<Void> delete(@RequestParam List<Long> ids) {
-        personalUserService.deleteById(ids);
-        return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 
 }

@@ -36,6 +36,8 @@ public class CommonsConfig {
      */
     private String dataCryptoKey = "MqnRT2o0hbNUT67Upcby7AUNWGuZnddl7GXQ2HwdwFs=";
 
+    private String host = "http://localhost:8080";
+
     /**
      * 操作数据审计存储分表数量
      */

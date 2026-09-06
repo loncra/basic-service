@@ -88,6 +88,13 @@ public abstract class AbstractRegistrationSystemUserDetailsService<T extends Abs
             result = new SimpleSecurityPrincipal(user.getId(), user.getPassword(), user.getUsername(), user.getStatus());
         }
 
+        return createSecurityPrincipal(token, result);
+    }
+
+    protected SimpleSecurityPrincipal createSecurityPrincipal(
+            RequestAuthenticationToken token,
+            SimpleSecurityPrincipal result
+    ) {
         String deviceIdentified = token.getHeaderMap()
                 .getFirst(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME);
         if (StringUtils.isEmpty(deviceIdentified)) {

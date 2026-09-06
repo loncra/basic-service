@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.auth.server.service.user.personal;
 
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
+import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
@@ -10,18 +11,28 @@ import io.github.loncra.basic.service.auth.server.enumerate.LoginTypeEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.security.AbstractRegistrationSystemUserDetailsService;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseService;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
+import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
+import io.github.loncra.framework.security.entity.RoleAuthority;
 import io.github.loncra.framework.security.entity.SecurityPrincipal;
 import io.github.loncra.framework.security.entity.support.SimpleSecurityPrincipal;
+import io.github.loncra.framework.spring.security.core.authentication.SpringSecurityTenantContext;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.RequestAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.TypeAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -29,10 +40,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 个人用户明细认证授权服务实现
@@ -67,7 +75,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
 
     @Override
     public List<String> getType() {
-        return List.of(ResourceSourceEnum.PERSONAL_SOURCE_VALUE);
+        return List.of(ResourceSourceEnum.PERSONAL_SOURCE_VALUE, ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE);
     }
 
     @Override
@@ -96,19 +104,148 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
     }
 
     @Override
+    public Collection<GrantedAuthority> getPrincipalGrantedAuthorities(
+            TypeAuthenticationToken token,
+            SecurityPrincipal principal
+    ) {
+        if (token instanceof RequestAuthenticationToken requestAuthenticationToken) {
+
+            Object enterprise = requestAuthenticationToken.getMetadata().get(PrincipalDetailsConstants.ENTERPRISE_KEY);
+            if (Objects.isNull(enterprise)) {
+                return super.getPrincipalGrantedAuthorities(token, principal);
+            }
+
+            EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
+                    .get(principal.getId().toString());
+            List<RoleEntity> roleAuthorityMetadataList = member.getRoleIds()
+                    .stream()
+                    .map(id -> getRoleService().get(id))
+                    .filter(r -> YesOrNo.Yes.equals(r.getEnabled()))
+                    .toList();
+            List<ResourceEntity> resourceMetadataList = getPluginResourceService().getResourcesStream(
+                    member.getResourceIds(),
+                    ResourceSourceEnum.ENTERPRISE
+            );
+
+            Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(roleAuthorityMetadataList, resourceMetadataList));
+            result.add(new SimpleGrantedAuthority(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole().toString()));
+
+            return result;
+        } else {
+            return super.getPrincipalGrantedAuthorities(token, principal);
+        }
+    }
+
+    @Override
     public AuditAuthenticationToken createSuccessAuthentication(
             SecurityPrincipal principal,
             TypeAuthenticationToken token,
             Collection<? extends GrantedAuthority> grantedAuthorities
     ) {
-        AuditAuthenticationToken result = super.createSuccessAuthentication(principal, token, grantedAuthorities);
-        PersonalUserEntity user = personalUserService.getByIdentity(Objects.toString(principal.getId()));
+        if (token instanceof RequestAuthenticationToken requestAuthenticationToken) {
+            Object enterprise = requestAuthenticationToken.getMetadata().get(PrincipalDetailsConstants.ENTERPRISE_KEY);
+            if (Objects.isNull(enterprise)) {
+                return super.createSuccessAuthentication(principal, token, grantedAuthorities);
+            }
+            AuditAuthenticationToken result = new AuditAuthenticationToken(
+                    principal,
+                    ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE,
+                    grantedAuthorities,
+                    Instant.now()
+            );
+            result.setAuthenticated(true);
+            result.setRememberMe(false);
+
+            enterpriseService.getEnterpriseMemberService()
+                    .lambdaUpdate()
+                    .set(EnterpriseMemberEntity::getLastAuthenticationTime, result.getLastAuthenticationTime())
+                    .eq(IdEntity::getId, principal.getId())
+                    .update();
+
+            AuditAuthenticationSuccessDetails successDetails = getPrincipalDetails(principal, token, result, grantedAuthorities);
+            successDetails.setRemember(result.isRememberMe());
+            successDetails.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, enterprise);
+
+            result.setDetails(successDetails);
+            return result;
+        }
+
+        return super.createSuccessAuthentication(principal, token, grantedAuthorities);
+    }
+
+    @Override
+    protected void preGetPrincipalDetails(
+            AuditAuthenticationSuccessDetails details,
+            SecurityPrincipal principal,
+            AuditAuthenticationToken successToken
+    ) {
+        if (ResourceSourceEnum.PERSONAL_SOURCE_VALUE.equals(successToken.getType())) {
+            super.preGetPrincipalDetails(details, principal, successToken);
+        } else {
+            EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
+                    .get(principal.getId().toString());
+            if (CollectionUtils.isNotEmpty(member.getRoleIds())) {
+                List<RoleAuthority> roles = member.getRoleIds()
+                        .stream()
+                        .map(id -> getRoleService().get(id))
+                        .map(s -> CastUtils.of(s, RoleAuthority.class))
+                        .toList();
+                details.getMetadata()
+                        .put(SystemConstants.ROLE_FIELD_NAME, roles);
+            }
+            enterpriseService.getEnterpriseMemberService()
+                    .setPersonalUser(member);
+            details.getMetadata()
+                    .putAll(member.toPrincipalMetadata());
+        }
+    }
+
+    @Override
+    public CacheProperties getAuthenticationCache(TypeAuthenticationToken token) {
+        return null;
+    }
+
+    @Override
+    public CacheProperties getAuthorizationCache(
+            TypeAuthenticationToken token,
+            SecurityPrincipal principal
+    ) {
+        return null;
+    }
+
+    @Override
+    protected SecurityPrincipal createSecurityPrincipal(
+            PersonalUserEntity user,
+            RequestAuthenticationToken token
+    ) {
+        if (Objects.isNull(user)) {
+            return super.createSecurityPrincipal(null, token);
+        }
         EnterpriseEntity enterprise = null;
         if (Objects.nonNull(user.getLastActiveEnterpriseId())) {
             enterprise = enterpriseService.get(user.getLastActiveEnterpriseId());
         }
-        enterpriseService.applyActiveMetadata(enterprise, result);
-        return result;
+        EnterpriseMemberEntity member = null;
+        if (Objects.nonNull(enterprise)) {
+            TenantContextHolder.set(new SpringSecurityTenantContext(enterprise.getTenantId(), token.getMetadata()));
+            member = enterpriseService.getEnterpriseMemberService()
+                    .getActiveMember(enterprise.getId(), user.getSystemName());
+        }
+
+        if (Objects.nonNull(member)) {
+            IdNameMetadata metadata = IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName());
+            token.getMetadata()
+                    .put(PrincipalDetailsConstants.ENTERPRISE_KEY, metadata);
+
+            SimpleSecurityPrincipal securityPrincipal = new SimpleSecurityPrincipal(
+                    member.getId(),
+                    user.getPassword(),
+                    member.getUsername(),
+                    member.getStatus()
+            );
+            return createSecurityPrincipal(token, securityPrincipal);
+        }
+        return super.createSecurityPrincipal(user, token);
     }
 
     @Override

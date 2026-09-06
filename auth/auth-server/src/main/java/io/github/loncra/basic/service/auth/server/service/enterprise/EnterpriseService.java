@@ -1,53 +1,56 @@
 package io.github.loncra.basic.service.auth.server.service.enterprise;
 
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
+import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.dao.enterprise.EnterpriseDao;
 import io.github.loncra.basic.service.auth.server.domain.body.PersonalEnterpriseResponseBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseInvitationEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
+import io.github.loncra.basic.service.auth.server.domain.entity.merchant.OpenPlatformMerchantEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberStatusEnum;
-import io.github.loncra.basic.service.auth.server.service.user.personal.PersonalUserService;
+import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
+import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.domain.ExpiredToken;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
-import io.github.loncra.framework.commons.tenant.TenantEntity;
+import io.github.loncra.framework.commons.tenant.TenantContext;
 import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import io.github.loncra.framework.security.entity.SecurityPrincipal;
+import io.github.loncra.framework.security.entity.support.SimpleSecurityPrincipal;
 import io.github.loncra.framework.spring.security.core.authentication.AccessTokenContextRepository;
 import io.github.loncra.framework.spring.security.core.authentication.SpringSecurityTenantContext;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
+import io.github.loncra.framework.spring.security.core.entity.support.AccessTokenAuditAuthenticationSuccessDetails;
+import io.github.loncra.framework.spring.security.core.entity.support.MobileSecurityPrincipal;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
-import org.jspecify.annotations.NonNull;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.Assert;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * tb_enterprise 的业务逻辑
@@ -66,9 +69,9 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
 
     private final EnterpriseInvitationService enterpriseInvitationService;
 
-    private final PersonalUserService personalUserService;
-
     private final AccessTokenContextRepository accessTokenContextRepository;
+
+    private final OpenPlatformMerchantService openPlatformMerchantService;
 
     @Getter
     private final RedissonClient redissonClient;
@@ -77,207 +80,208 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
 
     private final SnowflakeIdGenerator snowflakeIdGenerator;
 
-    private static final Duration INVITATION_VALIDITY = Duration.ofDays(7);
-
-    public EnterpriseEntity getAvailable(
-            Long enterpriseId,
-            String principal
-    ) {
-        if (Objects.isNull(enterpriseId)) {
-            return null;
-        }
-
-        EnterpriseEntity organization = get(enterpriseId);
-        if (Objects.isNull(organization) || !YesOrNo.Yes.equals(organization.getEnabled())) {
-            return null;
-        }
-
-        EnterpriseMemberEntity member = enterpriseMemberService.getActiveMember(enterpriseId, principal);
-        return Objects.nonNull(member) ? organization : null;
-    }
-
-    public void applyActiveMetadata(
-            EnterpriseEntity enterprise,
-            AuditAuthenticationToken token
-    ) {
-        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
-        if (Objects.isNull(details)) {
-            return ;
-        }
-
-        TypeIdNameMetadata typeIdNameMetadata = TypeIdNameMetadata.ofPrincipalString(token.getName());
-        PersonalUserEntity user = personalUserService.get(typeIdNameMetadata.getId());
-
-        SpringSecurityTenantContext tenantContext;
-        if (Objects.nonNull(enterprise)) {
-            details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, enterprise.getTenantId());
-            IdNameMetadata enterpriseMetadata = IdNameMetadata.of(enterprise.getId().toString(), enterprise.getName());
-            details.getMetadata().put(PrincipalDetailsConstants.ENTERPRISE_KEY, enterpriseMetadata);
-            personalUserService.lambdaUpdate()
-                    .set(PersonalUserEntity::getLastActiveEnterpriseId, enterprise.getId())
-                    .eq(PersonalUserEntity::getId, user.getId())
-                    .update();
-            tenantContext = new SpringSecurityTenantContext(enterprise.getTenantId(), details.getMetadata());
-            tenantContext.setLastAuthenticationTime(Instant.now());
-        } else {
-            details.getMetadata().put(TenantEntity.TENANT_ID_FIELD, user.getTenantId());
-            details.getMetadata().remove(PrincipalDetailsConstants.ENTERPRISE_KEY);
-            personalUserService.lambdaUpdate()
-                    .set(PersonalUserEntity::getLastActiveEnterpriseId, null)
-                    .eq(PersonalUserEntity::getId, user.getId())
-                    .update();
-            tenantContext = new SpringSecurityTenantContext(user.getTenantId(), details.getMetadata());
-            tenantContext.setLastAuthenticationTime(token.getLastAuthenticationTime());
-        }
-
-        tenantContext.setType(token.getType());
-        tenantContext.setPrincipal(token.getSecurityPrincipal());
-        TenantContextHolder.set(tenantContext);
-    }
-
-    /*public void applyActiveMetadata(
-            Long enterpriseId,
-            AuditAuthenticationToken token
-    ) {
-        if (Objects.nonNull(enterpriseId)) {
-            EnterpriseEntity enterprise = Objects.requireNonNull(
-                    getAvailable(enterpriseId, token.getName()),
-                    "找不到 ID 为 [" + enterpriseId + "] 的企业"
-            );
-            applyActiveMetadata(enterprise, token);
-        } else {
-            applyActiveMetadata((EnterpriseEntity) null, token);
-        }
-    }*/
-
-    public void switchByEnterpriseId(
+    @Transactional(rollbackFor = Exception.class)
+    public String switchByEnterpriseId(
             AuditAuthenticationToken token,
             Long enterpriseId
     ) {
         EnterpriseEntity enterprise = Objects.requireNonNull(get(enterpriseId), "找不到 ID 为 [" + enterpriseId + "] 企业");
-        switchByEnterprise(token, enterprise);
+        return switchByEnterprise(token, enterprise);
     }
 
-    public void switchByEnterprise(
+    @Transactional(rollbackFor = Exception.class)
+    public String switchByEnterprise(
             AuditAuthenticationToken token,
             EnterpriseEntity enterprise
     ) {
 
-        PersonalUserEntity user = Objects.requireNonNull(
-                personalUserService.getByIdentity(Objects.toString(token.getSecurityPrincipal().getId())),
-                "找不到当前个人用户"
-        );
+        PersonalUserEntity user;
+        if (ResourceSourceEnum.PERSONAL_SOURCE_VALUE.equals(token.getType())) {
+            String id = token.getSecurityPrincipal().getId().toString();
+            user = Objects.requireNonNull(
+                    enterpriseMemberService.getPersonalUserService().getByIdentity(id),
+                    "找不到 ID 为 [" + id + "] 个人用户"
+            );
+        } else if (ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE.equals(token.getType())) {
+            AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+            String principal = Objects.toString(details.getMetadata().get(PrincipalDetailsConstants.PRINCIPAL_KEY), StringUtils.EMPTY);
+            TypeIdNameMetadata metadata = TypeIdNameMetadata.ofPrincipalString(principal);
+            user = Objects.requireNonNull(
+                    enterpriseMemberService.getPersonalUserService().getByIdentity(metadata.getId()),
+                    "找不到 ID 为 [" + metadata.getId() + "] 个人用户"
+            );
+        } else {
+            throw new SystemException("不支持的认证类型为 [" + token.getType() + "] 切换企业");
+        }
 
         AuditAuthenticationToken newToken;
         if (Objects.nonNull(enterprise)) {
 
-            user.setLastActiveEnterpriseId(enterprise.getId());
-
-            EnterpriseMemberEntity memberEntity = Objects.requireNonNull(
-                    enterpriseMemberService.getActiveMember(enterprise.getId(),token.getName()),
+            EnterpriseMemberEntity enterpriseMember = Objects.requireNonNull(
+                    enterpriseMemberService.getActiveMember(enterprise.getId(),user.getSystemName()),
                     "当前用户不是该企业的有效成员，或企业已被禁用"
             );
-            memberEntity.setLastAuthenticationTime(Instant.now());
+            enterpriseMemberService.setPersonalUser(enterpriseMember);
+            user.setLastActiveEnterpriseId(enterprise.getId());
+            enterpriseMember.setLastAuthenticationTime(Instant.now());
             enterpriseMemberService.lambdaUpdate()
-                    .set(EnterpriseMemberEntity::getLastAuthenticationTime, memberEntity.getLastAuthenticationTime())
-                    .eq(IdEntity::getId, memberEntity.getId())
+                    .set(EnterpriseMemberEntity::getLastAuthenticationTime, enterpriseMember.getLastAuthenticationTime())
+                    .eq(IdEntity::getId, enterpriseMember.getId())
                     .update();
 
-            applyActiveMetadata(enterprise, token);
-            newToken = createAuditAuthenticationToken(
-                    token,
-                    memberEntity.getLastAuthenticationTime(),
-                    CastUtils.cast(token.getDetails()),
-                    authorities -> authorities.add(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + memberEntity.getRole().toString())
-            );
+            SecurityPrincipal principal = createSecurityPrincipal(enterpriseMember, enterprise.getTenantId(), token);
+            Collection<SimpleGrantedAuthority> grantedAuthorities = enterpriseMemberService.getAuthorities(enterpriseMember);
+            newToken = copyAuditAuthenticationTokenDetail(principal, token, enterpriseMember, grantedAuthorities);
         } else {
             user.setLastActiveEnterpriseId(null);
-            applyActiveMetadata(null, token);
-            newToken = createAuditAuthenticationToken(
-                    token,
-                    user.getLastAuthenticationTime(),
-                    CastUtils.cast(token.getDetails()),
-                    newPrincipalGrantedAuthorities -> {}
-            );
+            user.setLastAuthenticationTime(Instant.now());
+            enterpriseMemberService.getPersonalUserService()
+                    .lambdaUpdate()
+                    .set(PersonalUserEntity::getLastActiveEnterpriseId, null)
+                    .set(PersonalUserEntity::getLastAuthenticationTime, user.getLastAuthenticationTime())
+                    .eq(IdEntity::getId, user.getId())
+                    .update();
+            SecurityPrincipal principal = createSecurityPrincipal(user, user.getTenantId(), token);
+            Collection<SimpleGrantedAuthority> grantedAuthorities = enterpriseMemberService.getPersonalUserService()
+                    .getAuthorities(user);
+            newToken = copyAuditAuthenticationTokenDetail(principal, token, user,grantedAuthorities);
         }
-
+        accessTokenContextRepository.deleteSecurityContext(token.getType(), token.getSecurityPrincipal().getId());
         accessTokenContextRepository.saveAuthentication(newToken);
+
+        if (newToken.getDetails() instanceof AccessTokenAuditAuthenticationSuccessDetails details) {
+            return details.getToken().getValue();
+        }
+        return null;
     }
 
-    private @NonNull AuditAuthenticationToken createAuditAuthenticationToken(
+    private AuditAuthenticationToken copyAuditAuthenticationTokenDetail(
+            SecurityPrincipal principal,
             AuditAuthenticationToken token,
-            Instant lastAuthenticationTime,
-            AuditAuthenticationSuccessDetails details,
-            Consumer<Set<String>> grantedAuthorities
+            AbstractBasicSystemUser user,
+            Collection<SimpleGrantedAuthority> grantedAuthorities
     ) {
-        Set<String> principalGrantedAuthorities = token.getGrantedAuthorities()
-                .stream()
-                .filter(s -> !Strings.CS.startsWith(s, EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        grantedAuthorities.accept(principalGrantedAuthorities);
 
-        Collection<? extends GrantedAuthority> authorities = principalGrantedAuthorities.stream()
-                .map(SimpleGrantedAuthority::new)
-                .toList();
-        AuditAuthenticationToken auditAuthenticationToken = new AuditAuthenticationToken(
-                token.getSecurityPrincipal(),
-                token.getType(),
-                authorities,
-                lastAuthenticationTime
+        AuditAuthenticationToken result = new AuditAuthenticationToken(
+                principal,
+                user.getType().toString(),
+                grantedAuthorities,
+                user.getLastAuthenticationTime()
         );
-        auditAuthenticationToken.setAuthenticated(true);
-        auditAuthenticationToken.setRememberMe(token.isRememberMe());
-        auditAuthenticationToken.setDetails(details);
-        return auditAuthenticationToken;
+        result.setAuthenticated(token.isAuthenticated());
+        result.setRememberMe(token.isRememberMe());
+
+        Object currentDetails = token.getDetails();
+        if (currentDetails instanceof AccessTokenAuditAuthenticationSuccessDetails details) {
+            ExpiredToken expiredToken;
+            if (user instanceof PersonalUserEntity) {
+                expiredToken = openPlatformMerchantService.createInternalAccessToken(result);
+            } else if (user instanceof EnterpriseMemberEntity member){
+                expiredToken = openPlatformMerchantService.createAccessToken(member.getTenantId(), result);
+            } else {
+                throw new SystemException("不支持的用户类型为 [" + user.getType().getName() + "] 拷贝认证 token");
+            }
+            AccessTokenAuditAuthenticationSuccessDetails newDetails = new AccessTokenAuditAuthenticationSuccessDetails(
+                    details.getRequestDetails(),
+                    user.toPrincipalMetadata(),
+                    expiredToken
+            );
+            result.setDetails(newDetails);
+        } else if (currentDetails instanceof AuditAuthenticationSuccessDetails details) {
+            AuditAuthenticationSuccessDetails newDetails = new AuditAuthenticationSuccessDetails(
+                    details.getRequestDetails(),
+                    user.toPrincipalMetadata()
+            );
+            result.setDetails(newDetails);
+        } else {
+            result.setDetails(token.getDetails());
+        }
+        return result;
+    }
+
+    private SecurityPrincipal createSecurityPrincipal(
+            AbstractBasicSystemUser user,
+            String tenantId,
+            AuditAuthenticationToken token
+    ) {
+        TenantContext tenantContext = createSpringSecurityTenantContext(tenantId, token);
+        TenantContextHolder.set(tenantContext);
+        SecurityPrincipal principal = new SimpleSecurityPrincipal(
+                user.getId(),
+                user.getPassword(),
+                user.getUsername(),
+                user.getStatus()
+        );
+        if (token.getPrincipal() instanceof MobileSecurityPrincipal mobile) {
+            principal = new MobileSecurityPrincipal(principal, mobile.getDeviceIdentified());
+        }
+        return principal;
+    }
+
+    private SpringSecurityTenantContext createSpringSecurityTenantContext(
+            String tenantId,
+            AuditAuthenticationToken token
+    ) {
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        SpringSecurityTenantContext result = new SpringSecurityTenantContext(tenantId, details.getMetadata());
+        result.setPrincipal(token.getSecurityPrincipal());
+        result.setType(token.getType());
+        result.setLastAuthenticationTime(token.getLastAuthenticationTime());
+        return result;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public EnterpriseEntity save(
+    public IdValueMetadata<String, EnterpriseEntity> save(
             AuditAuthenticationToken token,
             EnterpriseEntity body
     ) {
-        EnterpriseEntity enterprise;
+
+        EnterpriseEntity value;
+        AuditAuthenticationToken currentToken;
         if (Objects.nonNull(body.getId())) {
-            enterprise = body;
+            value = body;
             updateById(body);
+            currentToken = token;
         } else {
-            enterprise = CastUtils.of(body, EnterpriseEntity.class);
-            enterprise.setOwnerPrincipal(token.getName());
-            enterprise.setEnabled(YesOrNo.Yes);
-            enterprise.setTenantId(snowflakeIdGenerator.generateId());
-            insert(enterprise);
+            value = CastUtils.of(body, EnterpriseEntity.class);
+            value.setOwnerPrincipal(token.getName());
+            value.setEnabled(YesOrNo.Yes);
+            value.setTenantId(snowflakeIdGenerator.generateId());
+            insert(value);
 
-            EnterpriseMemberEntity owner = new EnterpriseMemberEntity();
-            owner.setEnterpriseId(enterprise.getId());
-            owner.setPrincipal(token.getName());
-            owner.setRole(EnterpriseMemberRoleEnum.OWNER);
-            owner.setStatus(EnterpriseMemberStatusEnum.ACTIVE);
-            owner.setLastAuthenticationTime(Instant.now());
+            OpenPlatformMerchantEntity merchant = new OpenPlatformMerchantEntity();
+            merchant.setName(value.getName());
+            merchant.setAppId(value.getTenantId());
+            openPlatformMerchantService.save(merchant);
 
-            applyActiveMetadata(enterprise, token);
-            AuditAuthenticationToken newToken = createAuditAuthenticationToken(
-                    token,
-                    owner.getLastAuthenticationTime(),
-                    CastUtils.cast(token.getDetails()),
-                    authorities -> authorities.add(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + owner.getRole().toString())
-            );
-            accessTokenContextRepository.saveAuthentication(newToken);
-            enterpriseMemberService.insert(owner);
+            EnterpriseMemberEntity owner = enterpriseMemberService.createOwner(value, token.getName());
+
+            SecurityPrincipal principal = createSecurityPrincipal(owner, value.getTenantId(), token);
+            Collection<SimpleGrantedAuthority> grantedAuthorities = enterpriseMemberService.getAuthorities(owner);
+            currentToken = copyAuditAuthenticationTokenDetail(principal, token, owner, grantedAuthorities);
+
+            accessTokenContextRepository.deleteSecurityContext(token.getType(), token.getSecurityPrincipal().getId());
+            accessTokenContextRepository.saveAuthentication(currentToken);
         }
-        return enterprise;
+
+        if (currentToken.getDetails() instanceof AccessTokenAuditAuthenticationSuccessDetails details) {
+            return IdValueMetadata.of(details.getToken().getValue(), value);
+        }
+
+        return IdValueMetadata.of(value.getId().toString(), value);
     }
 
     public List<PersonalEnterpriseResponseBody> findByPrincipal(String principal) {
-        List<Long> organizationIds = enterpriseMemberService.findActiveByPrincipal(principal)
+        List<Long> enterpriseIds = enterpriseMemberService.findActiveByPrincipal(principal)
                 .stream()
                 .map(EnterpriseMemberEntity::getEnterpriseId)
                 .distinct()
                 .toList();
-        if (organizationIds.isEmpty()) {
+        if (enterpriseIds.isEmpty()) {
             return List.of();
         }
         List<EnterpriseEntity> result = lambdaQuery()
-                .in(EnterpriseEntity::getId, organizationIds)
+                .in(EnterpriseEntity::getId, enterpriseIds)
                 .list();
 
         return result.stream().map(r -> convertPersonalEnterpriseResponseBody(r, principal)).toList();
@@ -292,130 +296,9 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         EnterpriseMemberEntity member = enterpriseMemberService.getMember(enterpriseEntity.getId(),principal);
         if (Objects.nonNull(member)) {
             body.setRole(member.getRole());
-            body.setStatus(member.getStatus());
+            body.setStatus(member.getInvitation());
         }
         return body;
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public EnterpriseInvitationEntity invite(
-            AuditAuthenticationToken token,
-            Long organizationId,
-            String phoneNumber
-    ) {
-        requireEnabledEnterprise(organizationId);
-        enterpriseMemberService.requireManager(organizationId, token.getName());
-        Assert.isTrue(
-                Pattern.matches(SystemConstants.PHONE_NUMBER_REGULAR_EXPRESSION, phoneNumber),
-                "被邀请手机号格式不正确"
-        );
-
-        PersonalUserEntity invitedUser = personalUserService.lambdaQuery()
-                .eq(PersonalUserEntity::getPhoneNumber, phoneNumber)
-                .one();
-        if (Objects.nonNull(invitedUser)) {
-            EnterpriseMemberEntity member = enterpriseMemberService.getMember(
-                    organizationId,
-                    invitedUser.getSystemName()
-            );
-            Assert.isTrue(
-                    Objects.isNull(member) || EnterpriseMemberStatusEnum.DISABLED.equals(member.getStatus()),
-                    "该用户已在企业中或正在等待加入"
-            );
-        }
-
-        EnterpriseInvitationEntity pending = enterpriseInvitationService.getPendingInvitation(
-                organizationId,
-                phoneNumber
-        );
-        if (Objects.nonNull(pending) && pending.getExpirationTime().isAfter(Instant.now())) {
-            throw new IllegalArgumentException("该手机号已有待接受的企业邀请");
-        }
-        if (Objects.nonNull(pending)) {
-            pending.setStatus(EnterpriseInvitationStatusEnum.EXPIRED);
-            enterpriseInvitationService.save(pending);
-        }
-
-        EnterpriseInvitationEntity invitation = new EnterpriseInvitationEntity();
-        invitation.setEnterpriseId(organizationId);
-        invitation.setCode(StringUtils.remove(UUID.randomUUID().toString(), '-'));
-        invitation.setPhoneNumber(phoneNumber);
-        invitation.setInviterPrincipal(token.getName());
-        invitation.setExpirationTime(Instant.now().plus(INVITATION_VALIDITY));
-        enterpriseInvitationService.insert(invitation);
-        return invitation;
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void acceptInvitation(
-            AuditAuthenticationToken token,
-            String code
-    ) {
-        EnterpriseInvitationEntity invitation = enterpriseInvitationService.getByCode(code);
-        Assert.notNull(invitation, "找不到企业邀请");
-        Assert.isTrue(
-                EnterpriseInvitationStatusEnum.PENDING.equals(invitation.getStatus()),
-                "企业邀请已失效"
-        );
-        Assert.isTrue(invitation.getExpirationTime().isAfter(Instant.now()), "企业邀请已过期");
-        requireEnabledEnterprise(invitation.getEnterpriseId());
-
-        PersonalUserEntity user = personalUserService.getByIdentity(Objects.toString(token.getSecurityPrincipal().getId()));
-        Assert.notNull(user, "找不到当前个人用户");
-        Assert.isTrue(
-                Objects.equals(user.getPhoneNumber(), invitation.getPhoneNumber()),
-                "当前用户手机号与企业邀请不一致"
-        );
-
-        EnterpriseMemberEntity member = enterpriseMemberService.getMember(
-                invitation.getEnterpriseId(),
-                token.getName()
-        );
-        if (Objects.isNull(member)) {
-            member = new EnterpriseMemberEntity();
-            member.setEnterpriseId(invitation.getEnterpriseId());
-            member.setPrincipal(token.getName());
-            member.setRole(EnterpriseMemberRoleEnum.MEMBER);
-        }
-        member.setStatus(EnterpriseMemberStatusEnum.ACTIVE);
-        enterpriseMemberService.save(member);
-
-        invitation.setStatus(EnterpriseInvitationStatusEnum.ACCEPTED);
-        enterpriseInvitationService.save(invitation);
-    }
-
-    public List<EnterpriseMemberEntity> findMembers(
-            AuditAuthenticationToken token,
-            Long enterpriseId
-    ) {
-        Objects.requireNonNull(
-                enterpriseMemberService.getActiveMember(enterpriseId,token.getName()),
-                "当前用户不是该企业的有效成员，或企业已被禁用"
-        );
-        return enterpriseMemberService.findByEnterpriseId(enterpriseId);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void removeMember(
-            AuditAuthenticationToken token,
-            Long organizationId,
-            String principal
-    ) {
-        requireEnabledEnterprise(organizationId);
-        enterpriseMemberService.requireManager(organizationId, token.getName());
-        Assert.isTrue(!Objects.equals(token.getName(), principal), "不能通过移除成员退出企业");
-
-        EnterpriseMemberEntity member = Objects.requireNonNull(
-                enterpriseMemberService.getActiveMember(organizationId, principal),
-                "找不到有效的企业成员"
-        );
-        SystemException.isTrue(
-                !EnterpriseMemberRoleEnum.OWNER.equals(member.getRole()),
-                "不能移除企业主"
-        );
-        member.setStatus(EnterpriseMemberStatusEnum.DISABLED);
-        enterpriseMemberService.save(member);
-        clearRemovedMemberContext(member);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -435,31 +318,27 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
             SystemException.isTrue(execute, "解散 ID 为 [" + enterpriseId + "] 企业失败");
             List<EnterpriseMemberEntity> members = enterpriseMemberService.findByEnterpriseId(enterpriseId);
             members.stream()
-                    .peek(m -> m.setStatus(EnterpriseMemberStatusEnum.DISABLED))
-                    .forEach(enterpriseMemberService::updateById);
+                    .peek(m -> m.setStatus(UserStatus.Disabled))
+                    .forEach(this::clearRemovedMemberContext);
 
             List<EnterpriseInvitationEntity> invitations = enterpriseInvitationService.findPendingByEnterpriseId(enterpriseId);
             invitations.stream()
                     .peek(m -> m.setStatus(EnterpriseInvitationStatusEnum.CANCELLED))
                     .forEach(enterpriseInvitationService::updateById);
         } else {
-            member.setStatus(EnterpriseMemberStatusEnum.DISABLED);
-            enterpriseMemberService.save(member);
+            clearRemovedMemberContext(member);
         }
         switchByEnterprise(token, null);
     }
 
-    private EnterpriseEntity requireEnabledEnterprise(Long enterpriseId) {
-        EnterpriseEntity organization = Objects.requireNonNull(get(enterpriseId), "找不到 ID 为 [" + enterpriseId + "] 企业");
-        SystemException.isTrue(YesOrNo.Yes.equals(organization.getEnabled()), "企业已被禁用");
-        return organization;
-    }
-
     private void clearRemovedMemberContext(EnterpriseMemberEntity member) {
         TypeIdNameMetadata principal = IdNameMetadata.ofPrincipalString(member.getPrincipal());
-        PersonalUserEntity user = personalUserService.getByIdentity(principal.getId());
+        PersonalUserEntity user = enterpriseMemberService.getPersonalUserService()
+                .getByIdentity(principal.getId());
         if (Objects.nonNull(user) && Objects.equals(user.getLastActiveEnterpriseId(), member.getEnterpriseId())) {
-            personalUserService.lambdaUpdate()
+            enterpriseMemberService.getPersonalUserService()
+                    .lambdaUpdate()
+                    .set(AbstractBasicSystemUser::getStatus, member.getStatus())
                     .set(PersonalUserEntity::getLastActiveEnterpriseId, null)
                     .eq(PersonalUserEntity::getId, user.getId())
                     .update();

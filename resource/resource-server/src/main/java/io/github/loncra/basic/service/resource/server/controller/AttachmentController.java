@@ -134,7 +134,7 @@ public class AttachmentController {
             id = "my_resource",
             parent = "resource",
             type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
+            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE, ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE}
     )
     @PostMapping("/my/find")
     @PreAuthorize("isAuthenticated()")

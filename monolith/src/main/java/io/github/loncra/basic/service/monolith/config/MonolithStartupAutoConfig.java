@@ -251,19 +251,6 @@ public class MonolithStartupAutoConfig {
         return new Client(config);
     }
 
-    /*@Bean
-    public CaptchaVerificationInterceptor NopeCaptchaVerificationInterceptor() {
-        return new CaptchaVerificationInterceptor() {
-            @Override
-            public boolean preVerify(
-                    HttpServletRequest request,
-                    HttpServletResponse response
-            ) {
-                return CaptchaVerificationInterceptor.super.preVerify(request, response);
-            }
-        };
-    }*/
-
     @Bean
     public AgentStateStore agentStateStore(DataSource dataSource) throws SQLException {
         String catalog;

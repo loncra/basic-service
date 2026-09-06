@@ -25,13 +25,29 @@ public enum ResourceSourceEnum implements NameValueEnum<String> {
     /**
      * 管理后台用户
      */
-    CONSOLE("管理后台用户", ResourceSourceEnum.CONSOLE_SOURCE_VALUE, "^" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + "|" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + ":\\d+$", new IdNameValueMetadata<>("ADMIN", "超高级管理员", "admin")),
+    CONSOLE(
+            "管理后台用户",
+            ResourceSourceEnum.CONSOLE_SOURCE_VALUE,
+            "^" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + "|" + ResourceSourceEnum.CONSOLE_SOURCE_VALUE + ":\\d+$",
+            new IdNameValueMetadata<>("ADMIN", "超高级管理员", "admin")
+    ),
 
     /**
      * 个人用户
      */
-    PERSONAL("个人用户", ResourceSourceEnum.PERSONAL_SOURCE_VALUE, "^" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + "|" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + ":\\d+$", new IdNameValueMetadata<>("PERSONAL", "个人用户", "personal")),
+    PERSONAL(
+            "个人用户",
+            ResourceSourceEnum.PERSONAL_SOURCE_VALUE,
+            "^" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + "|" + ResourceSourceEnum.PERSONAL_SOURCE_VALUE + ":\\d+$",
+            new IdNameValueMetadata<>(ResourceSourceEnum.PERSONAL_SOURCE_VALUE, "个人用户", ResourceSourceEnum.PERSONAL_SOURCE_VALUE.toLowerCase())
+    ),
 
+    ENTERPRISE(
+            "企业用户",
+            ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE,
+            "^" + ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE + "|" + ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE + ":\\d+$",
+            new IdNameValueMetadata<>(ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE, "企业用户", ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE.toLowerCase())
+    ),
     ;
 
     /**
@@ -60,6 +76,8 @@ public enum ResourceSourceEnum implements NameValueEnum<String> {
     public static final String CONSOLE_SOURCE_VALUE = "CONSOLE";
 
     public static final String PERSONAL_SOURCE_VALUE = "PERSONAL";
+
+    public static final String ENTERPRISE_SOURCE_VALUE = "ENTERPRISE";
 
     public static ResourceSourceEnum parse(String value) {
         for (ResourceSourceEnum resourceSource : ResourceSourceEnum.values()) {
@@ -96,5 +114,7 @@ public enum ResourceSourceEnum implements NameValueEnum<String> {
         return sources.stream()
                 .anyMatch(s -> Pattern.matches(s.getRegex(), value));
     }
+
+    public static final List<String> MEMBER_TYPES = List.of(ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE);
 
 }

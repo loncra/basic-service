@@ -55,11 +55,15 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
                 .toList();
 
         for (TypeAuthenticationToken token : tokens) {
-            String key = typeSecurityPrincipalManager.getTypeSecurityPrincipalService(token.getType())
-                    .getAuthorizationCache(token, null)
-                    .getName();
-            redissonClient.getBucket(key)
-                    .deleteAsync();
+            CacheProperties cacheProperties = typeSecurityPrincipalManager.getTypeSecurityPrincipalService(token.getType())
+                    .getAuthorizationCache(token, null);
+
+            if (Objects.isNull(cacheProperties)) {
+                continue;
+            }
+
+            String key = cacheProperties.getName();
+            redissonClient.getBucket(key).deleteAsync();
         }
     }
 

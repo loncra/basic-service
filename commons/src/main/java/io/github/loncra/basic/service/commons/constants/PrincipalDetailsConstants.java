@@ -78,7 +78,6 @@ public interface PrincipalDetailsConstants {
 
     String PRINCIPAL_KEY = "principal";
 
-
     String SYSTEM_NAME_KEY = "systemName";
 
     String ENTERPRISE_KEY = "enterprise";

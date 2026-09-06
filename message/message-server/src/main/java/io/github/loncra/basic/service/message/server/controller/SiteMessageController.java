@@ -77,7 +77,7 @@ public class SiteMessageController {
             id = "my_site_message",
             parent = "my_message",
             type = ResourceTypeEnum.NAVIGATION_DATA_TYPE,
-            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE}
+            sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE, ResourceSourceEnum.PERSONAL_SOURCE_VALUE, ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE}
     )
     public Page<SiteMessageEntity> my(
             PageRequest pageRequest,

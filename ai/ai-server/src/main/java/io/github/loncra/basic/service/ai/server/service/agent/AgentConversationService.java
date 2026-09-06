@@ -63,7 +63,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
     }
 
     @Transactional(rollbackFor = Exception.class)
-    @Concurrent(value = "createDefaultIfNotExist:[#token.name]")
+    @Concurrent(value = "createDefaultIfNotExist:[#token.details.metadata.getOrDefault('tenantId', #token.name)]")
     public AgentConversationEntity createDefaultIfNotExist(AuditAuthenticationToken token) {
 
         AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());

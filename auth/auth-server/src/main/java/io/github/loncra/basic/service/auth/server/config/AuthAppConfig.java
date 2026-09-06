@@ -93,7 +93,7 @@ public class AuthAppConfig {
     /**
      * access token 开放平台商家 id
      */
-    private Integer accessTokenOpenPlatformMerchantClientId = 1;
+    private String accessTokenOpenPlatformMerchantClientId = "1";
 
     /**
      * 扫描插件路径

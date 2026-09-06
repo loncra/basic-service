@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.auth.server.security;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
-import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
@@ -11,7 +10,6 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
-import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.domain.AccessToken;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
@@ -39,12 +37,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.OAuth2Token;
-import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder;
-import org.springframework.security.oauth2.server.authorization.token.DefaultOAuth2TokenContext;
 import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 
 import java.time.Instant;
@@ -64,8 +56,6 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
 
     private RoleService roleService;
 
-    private AuthAppConfig authAppConfig;
-
     private OpenPlatformMerchantService openPlatformMerchantService;
 
     private JwtGenerator jwtGenerator;
@@ -76,7 +66,7 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
         super.setAuthenticationProperties(authenticationProperties);
     }
 
-    public Collection<SimpleGrantedAuthority> createGrantedAuthorities(
+    public static Collection<SimpleGrantedAuthority> createGrantedAuthorities(
             List<RoleEntity> roleAuthorities,
             List<ResourceEntity> resourceAuthorities
     ) {
@@ -138,21 +128,15 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
      * 通过主键 id 获取用户信息
      *
      * @param id 主键 id
-     *
      * @return 用户信息
      */
     protected abstract T getByIdentity(String id);
 
-    @Override
-    public AuditAuthenticationSuccessDetails getPrincipalDetails(
+    protected void preGetPrincipalDetails(
+            AuditAuthenticationSuccessDetails details,
             SecurityPrincipal principal,
-            TypeAuthenticationToken token,
-            AuditAuthenticationToken successToken,
-            Collection<? extends GrantedAuthority> grantedAuthorities
+            AuditAuthenticationToken successToken
     ) {
-
-        AuditAuthenticationSuccessDetails details = super.getPrincipalDetails(principal, token, successToken, grantedAuthorities);
-
         T user = getByIdentity(principal.getId().toString());
         if (CollectionUtils.isNotEmpty(user.getRoleIds())) {
             List<RoleAuthority> roles = user.getRoleIds()
@@ -165,35 +149,26 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
         }
         details.getMetadata()
                 .putAll(user.toPrincipalMetadata());
+    }
 
-        RegisteredClient registeredClient = openPlatformMerchantService.findById(authAppConfig.getAccessTokenOpenPlatformMerchantClientId().toString());
-        DefaultOAuth2TokenContext.Builder tokenContextBuilder = DefaultOAuth2TokenContext.builder()
-                .registeredClient(registeredClient)
-                .principal(successToken)
-                .authorizationServerContext(AuthorizationServerContextHolder.getContext())
-                .authorizationGrantType(AuthorizationGrantType.JWT_BEARER)
-                .tokenType(OAuth2TokenType.ACCESS_TOKEN);
+    @Override
+    public AuditAuthenticationSuccessDetails getPrincipalDetails(
+            SecurityPrincipal principal,
+            TypeAuthenticationToken token,
+            AuditAuthenticationToken successToken,
+            Collection<? extends GrantedAuthority> grantedAuthorities
+    ) {
 
-        OAuth2Token generatedAccessToken = jwtGenerator.generate(tokenContextBuilder.build());
-        if (Objects.isNull(generatedAccessToken)) {
+        AuditAuthenticationSuccessDetails details = super.getPrincipalDetails(principal, token, successToken, grantedAuthorities);
+
+        preGetPrincipalDetails(details, principal, successToken);
+
+        AccessToken accessToken = openPlatformMerchantService.createInternalAccessToken(successToken);
+        if (Objects.isNull(accessToken)) {
             return details;
         }
 
-        AccessToken accessTokenDetails = getAccessToken(generatedAccessToken);
-        return new AccessTokenAuditAuthenticationSuccessDetails(details, accessTokenDetails);
-    }
-
-    private AccessToken getAccessToken(OAuth2Token generatedAccessToken) {
-        AccessToken accessTokenDetails = new AccessToken();
-        accessTokenDetails.setValue(generatedAccessToken.getTokenValue());
-        if (Objects.nonNull(generatedAccessToken.getExpiresAt()) && Objects.nonNull(generatedAccessToken.getIssuedAt())) {
-            accessTokenDetails.setCreationTime(generatedAccessToken.getIssuedAt());
-            long expiresAt = generatedAccessToken.getExpiresAt()
-                    .minusMillis(generatedAccessToken.getIssuedAt().toEpochMilli())
-                    .toEpochMilli();
-            accessTokenDetails.setExpiresTime(TimeProperties.ofMilliseconds(expiresAt));
-        }
-        return accessTokenDetails;
+        return new AccessTokenAuditAuthenticationSuccessDetails(details, accessToken);
     }
 
     @Override
@@ -238,7 +213,7 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
     @Override
     public SecurityPrincipal getSecurityPrincipal(TypeAuthenticationToken token) throws AuthenticationException {
         T user = getByIdentity(token.getPrincipal()
-                                       .toString());
+                .toString());
 
         if (Objects.isNull(user)) {
             throw new UsernameNotFoundException("用户名或密码错误");

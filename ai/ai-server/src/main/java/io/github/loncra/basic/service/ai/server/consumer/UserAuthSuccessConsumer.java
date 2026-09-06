@@ -55,7 +55,6 @@ public class UserAuthSuccessConsumer {
         AuditAuthenticationToken token = CastUtils.cast(SecurityContextHolder.getContext().getAuthentication());
 
         agentConversationService.createDefaultIfNotExist(token);
-
         channel.basicAck(tag, false);
     }
 }
