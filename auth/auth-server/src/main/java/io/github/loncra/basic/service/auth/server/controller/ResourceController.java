@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.TreeSortMetadata;
 import io.github.loncra.basic.service.commons.enumerate.DefaultOperateCategoryEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.security.plugin.Plugin;
@@ -16,8 +17,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -57,6 +61,32 @@ public class ResourceController {
     ) {
         QueryWrapper<ResourceEntity> query = resourceService.getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
+        query.orderByAsc(SystemConstants.SORT_FIELD);
+        List<ResourceEntity> resourceList = resourceService.find(query);
+        if (mergeTree) {
+            return TreeUtils.buildGenericTree(resourceList);
+        }
+        else {
+            return resourceList;
+        }
+    }
+
+    @PostMapping("find/enterprise")
+    @PreAuthorize("hasAnyRole('ENTERPRISE_ADMIN','ENTERPRISE_OWNER')")
+    public List<ResourceEntity> findEnterprise(
+            @RequestParam(required = false, defaultValue = "true")
+            boolean mergeTree,
+            HttpServletRequest request
+    ) {
+        MultiValueMap<String, String> paramFilter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
+        MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
+        paramFilter.forEach((k,v) -> filter.put(k, new LinkedList<>(v)));
+
+        filter.add("filter_[enabled_eq]", "1");
+        filter.add("filter_[sources_jin]", ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE);
+
+        QueryWrapper<ResourceEntity> query = resourceService.getQueryGenerator()
+                .createQueryWrapperFromMap(filter);
         query.orderByAsc(SystemConstants.SORT_FIELD);
         List<ResourceEntity> resourceList = resourceService.find(query);
         if (mergeTree) {

@@ -2,7 +2,6 @@ package io.github.loncra.basic.service.auth.server.controller.enterprise;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
-import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseRoleEntity;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseRoleService;
@@ -11,6 +10,7 @@ import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.tree.TreeUtils;
+import io.github.loncra.framework.security.entity.RoleAuthority;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -161,7 +161,7 @@ public class EnterpriseRoleController {
             String authority
     ) {
         return !enterpriseRoleService.lambdaQuery()
-                .eq(BasicSystemRole::getAuthority, authority)
+                .eq(RoleAuthority::getAuthority, authority)
                 .exists();
     }
 
@@ -179,7 +179,7 @@ public class EnterpriseRoleController {
             String name
     ) {
         return !enterpriseRoleService.lambdaQuery()
-                .eq(BasicSystemRole::getName, name)
+                .eq(RoleAuthority::getName, name)
                 .exists();
     }
 }

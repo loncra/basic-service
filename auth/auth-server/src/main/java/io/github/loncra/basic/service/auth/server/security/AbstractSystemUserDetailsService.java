@@ -67,7 +67,7 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
     }
 
     public static Collection<SimpleGrantedAuthority> createGrantedAuthorities(
-            List<RoleEntity> roleAuthorities,
+            List<RoleAuthority> roleAuthorities,
             List<ResourceEntity> resourceAuthorities
     ) {
 
@@ -102,7 +102,7 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
 
         T user = getByIdentity(principal.getId().toString());
 
-        List<RoleEntity> roleAuthorityMetadataList = user
+        List<RoleEntity> roleAuthorities = user
                 .getRoleIds()
                 .stream()
                 .map(roleService::get)
@@ -110,7 +110,7 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
                 .toList();
         List<ResourceEntity> resourceMetadataList = pluginResourceService.getResourcesStream(user.getResourceIds(), ResourceSourceEnum.valueOf(token.getType()));
 
-        Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(roleAuthorityMetadataList, resourceMetadataList));
+        Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(new LinkedList<>(roleAuthorities), resourceMetadataList));
         postGetPrincipalGrantedAuthorities(user, token, principal, result);
         return result;
     }

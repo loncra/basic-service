@@ -25,6 +25,7 @@ import org.springframework.util.Assert;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * tb_role 的业务逻辑
@@ -93,13 +94,16 @@ public class RoleService extends BasicService<RoleDao, RoleEntity> {
             List<ResourceSourceEnum> sourceContains
 
     ) {
-        return pluginResourceService
+        Stream<ResourceEntity> stream = pluginResourceService
                 .getResources()
                 .stream()
                 .filter(r -> resourceIds.contains(r.getId()))
-                .filter(r -> r.getSources().stream().anyMatch(sourceContains::contains))
-                .filter(r -> types.contains(r.getType()))
-                .toList();
+                .filter(r -> r.getSources().stream().anyMatch(sourceContains::contains));
+        if (CollectionUtils.isNotEmpty(types)) {
+            stream = stream.filter(r -> types.contains(r.getType()));
+        }
+
+        return stream.toList();
     }
 
     @Override

@@ -9,6 +9,7 @@ import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.tree.TreeUtils;
+import io.github.loncra.framework.security.entity.RoleAuthority;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import jakarta.servlet.http.HttpServletRequest;
@@ -159,7 +160,7 @@ public class RoleController {
             String authority
     ) {
         return !roleService.lambdaQuery()
-                .eq(RoleEntity::getAuthority, authority)
+                .eq(RoleAuthority::getAuthority, authority)
                 .exists();
     }
 
@@ -177,7 +178,7 @@ public class RoleController {
             String name
     ) {
         return !roleService.lambdaQuery()
-                .eq(RoleEntity::getName, name)
+                .eq(RoleAuthority::getName, name)
                 .exists();
     }
 }

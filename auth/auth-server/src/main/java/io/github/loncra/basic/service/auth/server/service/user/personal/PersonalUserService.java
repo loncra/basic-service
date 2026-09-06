@@ -30,10 +30,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -126,6 +123,6 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
                 .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
         List<ResourceEntity> resources = roleService
                 .getSystemUserResource(resourceIds, List.of(), List.of(ResourceSourceEnum.PERSONAL));
-        return AbstractSystemUserDetailsService.createGrantedAuthorities(roles, resources);
+        return AbstractSystemUserDetailsService.createGrantedAuthorities(new LinkedList<>(roles), resources);
     }
 }

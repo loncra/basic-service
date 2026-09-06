@@ -117,7 +117,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
 
             EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
                     .get(principal.getId().toString());
-            List<RoleEntity> roleAuthorityMetadataList = member.getRoleIds()
+            List<RoleEntity> roleAuthority = member.getRoleIds()
                     .stream()
                     .map(id -> getRoleService().get(id))
                     .filter(r -> YesOrNo.Yes.equals(r.getEnabled()))
@@ -127,7 +127,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
                     ResourceSourceEnum.ENTERPRISE
             );
 
-            Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(roleAuthorityMetadataList, resourceMetadataList));
+            Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(new LinkedList<>(roleAuthority), resourceMetadataList));
             result.add(new SimpleGrantedAuthority(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole().toString()));
 
             return result;
