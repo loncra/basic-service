@@ -4,20 +4,30 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseInvitationEntity;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseInvitationService;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
+import io.github.loncra.framework.commons.page.TotalPage;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -62,7 +72,13 @@ public class EnterpriseInvitationController {
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return enterpriseInvitationService.findPage(pageRequest, query);
+
+        TotalPage<EnterpriseInvitationEntity> result = enterpriseInvitationService.findTotalPage(pageRequest, query);
+        List<EnterpriseInvitationEntity> elements = result.getElements()
+                .stream()
+                .map(enterpriseInvitationService::convertEnterpriseInvitationResponse)
+                .collect(Collectors.toCollection(LinkedList::new));
+        return new TotalPage<>(pageRequest, elements, result.getTotalCount());
     }
 
     /**
@@ -77,8 +93,19 @@ public class EnterpriseInvitationController {
     @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[auth_server_enterprise_invitation:get]')")
     @Plugin(name = "查看明细")
-    public EnterpriseInvitationEntity get(@PathVariable Integer id) {
-        return enterpriseInvitationService.get(id);
+    public EnterpriseInvitationEntity get(
+            @PathVariable
+            Integer id,
+            @RequestParam(required = false, defaultValue = "true")
+            boolean convertResponseBody
+    ) {
+        EnterpriseInvitationEntity result = enterpriseInvitationService.get(id);
+
+        if (convertResponseBody) {
+            return enterpriseInvitationService.convertEnterpriseInvitationResponse(result);
+        }
+
+        return result;
     }
 
     /**
@@ -92,7 +119,19 @@ public class EnterpriseInvitationController {
     @OperationDataTrace
     @Plugin(name = "保存或添加信息")
     @PreAuthorize("hasAuthority('perms[auth_server_enterprise_invitation:save]')")
-    public RestResult<Long> save(@Valid @RequestBody EnterpriseInvitationEntity entity) {
+    public RestResult<Long> save(
+            @Valid
+            @RequestBody
+            EnterpriseInvitationEntity entity,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        String enterpriseId = details.getMetadata()
+                .get(PrincipalDetailsConstants.ENTERPRISE_ID_KEY)
+                .toString();
+        entity.setEnterpriseId(NumberUtils.toLong(enterpriseId));
         enterpriseInvitationService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());
     }

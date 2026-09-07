@@ -4,9 +4,12 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
+import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import io.github.loncra.framework.security.entity.RoleAuthority;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -31,9 +34,9 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @Alias("enterpriseRole")
-@TableName("tb_enterprise_role")
 @EqualsAndHashCode(callSuper = true)
-public class EnterpriseRoleEntity extends RoleAuthority implements TenantEntity<String>, Tree<Long, EnterpriseRoleEntity> {
+@TableName(value = "tb_enterprise_role", autoResultMap = true)
+public class EnterpriseRoleEntity extends RoleAuthority implements VersionEntity<Integer, Long>, TenantEntity<String>, Tree<Long, EnterpriseRoleEntity> {
 
     public static final String DEFAULT_ROLE_PREFIX = "ROLE_ENTERPRISE";
 
@@ -83,6 +86,8 @@ public class EnterpriseRoleEntity extends RoleAuthority implements TenantEntity<
     /**
      * 资源 id 集合
      */
+    @JsonCollectionGenericType(Long.class)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private List<Long> resourceIds = new LinkedList<>();
 
     /**

@@ -6,19 +6,18 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 企业成员状态
+ * 企业邀请状态
  *
  * @author maurice.chen
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum EnterpriseMemberInvitationEnum implements NameValueEnum<Integer> {
+public enum EnterpriseInvitationAuditEnum implements NameValueEnum<Integer> {
 
-    INVITED(10, "待审核"),
+    MANUAL(10, "人工审核"),
 
-    ACTIVE(20, "已加入"),
+    AUTOMATIC(20, "自动通过"),
 
-    CANCEL(30, "已取消")
     ;
 
     private final Integer value;

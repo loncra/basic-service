@@ -16,6 +16,7 @@ import io.github.loncra.basic.service.commons.enumerate.GenderEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import jakarta.validation.constraints.NotBlank;
@@ -96,6 +97,8 @@ public class EnterpriseMemberEntity extends AbstractBasicSystemUser implements P
 
     private String tenantId;
 
+    private Long invitationId;
+
     @Getter(AccessLevel.NONE)
     @TableField(exist = false)
     private PersonalUserEntity personalUser;
@@ -107,6 +110,7 @@ public class EnterpriseMemberEntity extends AbstractBasicSystemUser implements P
             result.putAll(personalUser.toPrincipalMetadata());
         }
         result.put(PrincipalDetailsConstants.PRINCIPAL_KEY, principal);
+        result.put(PrincipalDetailsConstants.ENTERPRISE_ID_KEY, enterpriseId);
         result.put(TenantEntity.TENANT_ID_FIELD, getTenantId());
         return result;
     }
@@ -168,6 +172,13 @@ public class EnterpriseMemberEntity extends AbstractBasicSystemUser implements P
             return null;
         }
         return personalUser.getNickname();
+    }
+
+    public ObjectWriteResult getAvatar() {
+        if (Objects.isNull(personalUser)) {
+            return null;
+        }
+        return personalUser.getAvatar();
     }
 
 }

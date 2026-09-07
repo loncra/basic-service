@@ -14,9 +14,7 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum EnterpriseInvitationStatusEnum implements NameValueEnum<Integer> {
 
-    PENDING(10, "待接受"),
-
-    ACCEPTED(20, "已接受"),
+    EXECUTION(10, "生效中"),
 
     EXPIRED(30, "已过期"),
 

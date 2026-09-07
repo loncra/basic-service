@@ -82,6 +82,8 @@ public interface PrincipalDetailsConstants {
 
     String ENTERPRISE_KEY = "enterprise";
 
+    String ENTERPRISE_ID_KEY = "enterprise_id";
+
     static void equals(
             AuditPrincipal source,
             AuditAuthenticationToken target

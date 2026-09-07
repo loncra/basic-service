@@ -1,16 +1,15 @@
 package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationAuditEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
-import io.github.loncra.framework.mybatis.plus.CryptoProperties;
-import io.github.loncra.framework.mybatis.plus.annotation.Decryption;
-import io.github.loncra.framework.mybatis.plus.annotation.Encryption;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
-import jakarta.validation.constraints.NotBlank;
+import io.github.loncra.framework.security.audit.AuditPrincipal;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -18,6 +17,8 @@ import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * <p>Table: tb_enterprise_invitation - 企业邀请表</p>
@@ -28,8 +29,8 @@ import java.time.Instant;
 @NoArgsConstructor
 @Alias("enterpriseInvitation")
 @EqualsAndHashCode(callSuper = true)
-@TableName("tb_enterprise_invitation")
-public class EnterpriseInvitationEntity extends LongVersionEntity<Integer> implements TenantEntity<String> {
+@TableName(value = "tb_enterprise_invitation", autoResultMap = true)
+public class EnterpriseInvitationEntity extends LongVersionEntity<Integer> implements TenantEntity<String>, AuditPrincipal {
 
     @Serial
     private static final long serialVersionUID = -6319209699259121659L;
@@ -37,41 +38,43 @@ public class EnterpriseInvitationEntity extends LongVersionEntity<Integer> imple
     /**
      * 企业 id
      */
-    @NotNull
     private Long enterpriseId;
-
-    /**
-     * 邀请码
-     */
-    @NotBlank
-    private String code;
-
-    /**
-     * 被邀请手机号
-     */
-    @NotBlank
-    @Pattern(regexp = SystemConstants.PHONE_NUMBER_REGULAR_EXPRESSION)
-    @Decryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
-    @Encryption(beanName = CryptoProperties.MYBATIS_PLUS_DATA_AES_CRYPTO_SERVICE_NAME)
-    private String phoneNumber;
 
     /**
      * 邀请人
      */
-    @NotBlank
-    private String inviterPrincipal;
+    private String principal;
 
     /**
      * 邀请状态
      */
-    @NotNull
-    private EnterpriseInvitationStatusEnum status = EnterpriseInvitationStatusEnum.PENDING;
+    private EnterpriseInvitationStatusEnum status = EnterpriseInvitationStatusEnum.EXECUTION;
+
+    /**
+     * 审核类型
+     */
+    private EnterpriseInvitationAuditEnum auditType;
 
     /**
      * 过期时间
      */
-    @NotNull
     private Instant expirationTime;
 
+    /**
+     * 角色 id
+     */
+    @NotNull
+    @JsonCollectionGenericType(Long.class)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private Set<Long> roleIds = new LinkedHashSet<>();
+
+    /**
+     * 备注
+     */
+    private String remark;
+
+    /**
+     * 租户 id
+     */
     private String tenantId;
 }

@@ -38,11 +38,11 @@ import java.util.stream.Collectors;
  * @author maurice.chen
  * @see EnterpriseMemberEntity
  */
+@Getter
 @Service
 @RequiredArgsConstructor
 public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, EnterpriseMemberEntity> {
 
-    @Getter
     private final PersonalUserService personalUserService;
 
     private final EnterpriseRoleService enterpriseRoleService;
