@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
+import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tree.Tree;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,7 +17,9 @@ import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>用户角色实体类</p>
@@ -49,6 +54,13 @@ public class RoleEntity extends BasicSystemRole implements Tree<Long, RoleEntity
      */
     @NotNull
     private YesOrNo modifiable;
+
+    /**
+     * 角色来源
+     */
+    @JsonCollectionGenericType(ResourceSourceEnum.class)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private Set<ResourceSourceEnum> sources = new HashSet<>();
 
     /**
      * 备注

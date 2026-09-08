@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.service.enterprise;
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.dao.enterprise.EnterpriseDao;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.body.EnterpriseInvitationDetailResponse;
 import io.github.loncra.basic.service.auth.server.domain.body.EnterpriseInvitationResponse;
 import io.github.loncra.basic.service.auth.server.domain.body.PersonalEnterpriseResponseBody;
@@ -13,12 +14,12 @@ import io.github.loncra.basic.service.auth.server.domain.entity.merchant.OpenPla
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationAuditEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberInvitationEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
+import io.github.loncra.basic.service.commons.enumerate.AuditStatusEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.domain.ExpiredToken;
@@ -49,7 +50,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -128,6 +129,11 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
             );
             enterpriseMemberService.setPersonalUser(enterpriseMember);
             user.setLastActiveEnterpriseId(enterprise.getId());
+            enterpriseMemberService.getPersonalUserService()
+                    .lambdaUpdate()
+                    .set(PersonalUserEntity::getLastActiveEnterpriseId, enterprise.getId())
+                    .eq(IdEntity::getId, user.getId())
+                    .update();
             enterpriseMember.setLastAuthenticationTime(Instant.now());
             enterpriseMemberService.lambdaUpdate()
                     .set(EnterpriseMemberEntity::getLastAuthenticationTime, enterpriseMember.getLastAuthenticationTime())
@@ -135,8 +141,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                     .update();
 
             SecurityPrincipal principal = createSecurityPrincipal(enterpriseMember, enterprise.getTenantId(), token);
-            Collection<SimpleGrantedAuthority> grantedAuthorities = enterpriseMemberService.getAuthorities(enterpriseMember);
-            newToken = copyAuditAuthenticationTokenDetail(principal, token, enterpriseMember, grantedAuthorities);
+            newToken = copyAuditAuthenticationTokenDetail(principal, token, enterpriseMember);
         } else {
             user.setLastActiveEnterpriseId(null);
             user.setLastAuthenticationTime(Instant.now());
@@ -147,9 +152,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                     .eq(IdEntity::getId, user.getId())
                     .update();
             SecurityPrincipal principal = createSecurityPrincipal(user, user.getTenantId(), token);
-            Collection<SimpleGrantedAuthority> grantedAuthorities = enterpriseMemberService.getPersonalUserService()
-                    .getAuthorities(user);
-            newToken = copyAuditAuthenticationTokenDetail(principal, token, user,grantedAuthorities);
+            newToken = copyAuditAuthenticationTokenDetail(principal, token, user);
         }
         accessTokenContextRepository.deleteSecurityContext(token.getType(), token.getSecurityPrincipal().getId());
         accessTokenContextRepository.saveAuthentication(newToken);
@@ -163,10 +166,35 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
     private AuditAuthenticationToken copyAuditAuthenticationTokenDetail(
             SecurityPrincipal principal,
             AuditAuthenticationToken token,
-            AbstractBasicSystemUser user,
-            Collection<SimpleGrantedAuthority> grantedAuthorities
+            AbstractBasicSystemUser user
     ) {
 
+        List<BasicSystemRole> basicSystemRoles = new LinkedList<>();
+        Collection<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+
+        if (user instanceof PersonalUserEntity personalUser) {
+            basicSystemRoles.addAll(
+                    enterpriseMemberService.getPersonalUserService()
+                            .getRoleService()
+                            .get(personalUser.getRoleIds())
+            );
+            grantedAuthorities = enterpriseMemberService.getPersonalUserService().getGrantedAuthorities(basicSystemRoles);
+        } else if (user instanceof EnterpriseMemberEntity member){
+            basicSystemRoles.addAll(enterpriseMemberService.getRole(member));
+            grantedAuthorities = enterpriseMemberService.getAuthorities(basicSystemRoles, member.getRole());
+        }
+
+        return getAuditAuthenticationToken(principal, token, user, basicSystemRoles, grantedAuthorities);
+    }
+
+    // FIXME 这个链路写得有点迷
+    private AuditAuthenticationToken getAuditAuthenticationToken(
+            SecurityPrincipal principal,
+            AuditAuthenticationToken token,
+            AbstractBasicSystemUser user,
+            List<BasicSystemRole> basicSystemRoles,
+            Collection<GrantedAuthority> grantedAuthorities
+    ) {
         AuditAuthenticationToken result = new AuditAuthenticationToken(
                 principal,
                 user.getType().toString(),
@@ -177,11 +205,15 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         result.setRememberMe(token.isRememberMe());
 
         Map<String, Object> metadata = user.toPrincipalMetadata();
-        List<RoleAuthority> roles = user.getRoleIds()
-                .stream()
-                .map(id -> enterpriseMemberService.getPersonalUserService().getRoleService().get(id))
-                .map(s -> CastUtils.of(s, RoleAuthority.class))
-                .collect(Collectors.toCollection(LinkedList::new));
+
+        Set<RoleAuthority> roles = basicSystemRoles.stream()
+                .map(s -> new RoleAuthority(s.getName(), s.getAuthority()))
+                .collect(Collectors.toSet());
+        if (user instanceof EnterpriseMemberEntity member) {
+            RoleAuthority roleAuthority = new RoleAuthority(member.getRole().getName(), EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole());
+            roles.add(roleAuthority);
+        }
+        metadata.put(SystemConstants.ROLE_FIELD_NAME, roles);
 
         Object currentDetails = token.getDetails();
         if (currentDetails instanceof AccessTokenAuditAuthenticationSuccessDetails details) {
@@ -190,13 +222,9 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
                 expiredToken = openPlatformMerchantService.createInternalAccessToken(result);
             } else if (user instanceof EnterpriseMemberEntity member){
                 expiredToken = openPlatformMerchantService.createAccessToken(member.getTenantId(), result);
-                RoleAuthority roleAuthority = new RoleAuthority(member.getRole().getName(), EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole());
-                roles.add(roleAuthority);
             } else {
                 throw new SystemException("不支持的用户类型为 [" + user.getType().getName() + "] 拷贝认证 token");
             }
-
-            metadata.put(SystemConstants.ROLE_FIELD_NAME, roles);
             AccessTokenAuditAuthenticationSuccessDetails newDetails = new AccessTokenAuditAuthenticationSuccessDetails(
                     details.getRequestDetails(),
                     metadata,
@@ -271,10 +299,13 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
             openPlatformMerchantService.save(merchant);
 
             EnterpriseMemberEntity owner = enterpriseMemberService.createOwner(value, token.getName());
-
+            enterpriseMemberService.getPersonalUserService()
+                    .lambdaUpdate()
+                    .set(PersonalUserEntity::getLastActiveEnterpriseId, value.getId())
+                    .eq(IdEntity::getId, token.getSecurityPrincipal().getId())
+                    .update();
             SecurityPrincipal principal = createSecurityPrincipal(owner, value.getTenantId(), token);
-            Collection<SimpleGrantedAuthority> grantedAuthorities = enterpriseMemberService.getAuthorities(owner);
-            currentToken = copyAuditAuthenticationTokenDetail(principal, token, owner, grantedAuthorities);
+            currentToken = copyAuditAuthenticationTokenDetail(principal, token, owner);
 
             accessTokenContextRepository.deleteSecurityContext(token.getType(), token.getSecurityPrincipal().getId());
             accessTokenContextRepository.saveAuthentication(currentToken);
@@ -312,7 +343,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         EnterpriseMemberEntity member = enterpriseMemberService.getMember(enterpriseEntity.getId(),principal);
         if (Objects.nonNull(member)) {
             body.setRole(member.getRole());
-            body.setStatus(member.getInvitation());
+            body.setAuditStatus(member.getAuditStatus());
         }
         return body;
     }
@@ -436,22 +467,32 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         EnterpriseMemberEntity exist = enterpriseMemberService.getMember(invitation.getEnterpriseId(), principal);
 
         if (Objects.isNull(exist)) {
+
             exist = new EnterpriseMemberEntity();
+
             exist.setRoleIds(invitation.getRoleIds());
             exist.setPrincipal(principal);
             exist.setInvitationId(invitation.getId());
             exist.setEnterpriseId(enterprise.getId());
             exist.setTenantId(enterprise.getTenantId());
+
+            TypeIdNameMetadata metadata = TypeIdNameMetadata.ofPrincipalString(principal);
+            PersonalUserEntity personalUser = enterpriseMemberService.getPersonalUserService()
+                    .getByIdentity(metadata.getId());
+            exist.setUsername(personalUser.getUsername());
+            exist.setPassword(personalUser.getPassword());
+
+            exist.setPersonalUser(personalUser);
         }
         if (EnterpriseInvitationAuditEnum.MANUAL.equals(invitation.getAuditType())) {
             exist.setStatus(UserStatus.Lock);
-            exist.setInvitation(EnterpriseMemberInvitationEnum.INVITED);
+            exist.setAuditStatus(AuditStatusEnum.AUDITABLE);
         } else if (confirm) {
             exist.setStatus(UserStatus.Enabled);
-            exist.setInvitation(EnterpriseMemberInvitationEnum.ACTIVE);
+            exist.setAuditStatus(AuditStatusEnum.AGREED);
         } else {
             exist.setStatus(UserStatus.Lock);
-            exist.setInvitation(EnterpriseMemberInvitationEnum.REJECT);
+            exist.setAuditStatus(AuditStatusEnum.REJECTED);
         }
 
         enterpriseMemberService.save(exist);

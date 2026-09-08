@@ -5,6 +5,7 @@ import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstan
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.dao.user.PersonalUserDao;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
@@ -26,7 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -113,12 +114,15 @@ public class PersonalUserService extends BasicService<PersonalUserDao, PersonalU
         return find(wrapper);
     }
 
-    public Collection<SimpleGrantedAuthority> getAuthorities(PersonalUserEntity user) {
-        List<RoleEntity> roles = roleService
-                .get(user.getRoleIds());
-        if (CollectionUtils.isNotEmpty(user.getRoleIds())) {
+    public Collection<GrantedAuthority> getGrantedAuthorities(PersonalUserEntity user) {
+        List<BasicSystemRole> roles = new LinkedList<>(roleService.get(user.getRoleIds()));
+        if (CollectionUtils.isNotEmpty(roles)) {
             return List.of();
         }
+        return getGrantedAuthorities(roles);
+    }
+
+    public Collection<GrantedAuthority> getGrantedAuthorities(List<BasicSystemRole> roles) {
         Set<Long> resourceIds = roles.stream()
                 .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
         List<ResourceEntity> resources = roleService

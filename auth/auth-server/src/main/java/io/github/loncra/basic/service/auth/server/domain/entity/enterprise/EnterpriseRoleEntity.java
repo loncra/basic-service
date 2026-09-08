@@ -2,15 +2,13 @@ package io.github.loncra.basic.service.auth.server.domain.entity.enterprise;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
+import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
-import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
-import io.github.loncra.framework.security.entity.RoleAuthority;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,10 +16,9 @@ import lombok.NoArgsConstructor;
 import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -36,25 +33,12 @@ import java.util.List;
 @Alias("enterpriseRole")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_enterprise_role", autoResultMap = true)
-public class EnterpriseRoleEntity extends RoleAuthority implements VersionEntity<Integer, Long>, TenantEntity<String>, Tree<Long, EnterpriseRoleEntity> {
+public class EnterpriseRoleEntity extends BasicSystemRole implements VersionEntity<Integer, Long>, TenantEntity<String>, Tree<Long, EnterpriseRoleEntity> {
 
     public static final String DEFAULT_ROLE_PREFIX = "ROLE_ENTERPRISE";
 
     @Serial
     private static final long serialVersionUID = 5893845610542466933L;
-
-    private Long id;
-
-    @Version
-    private Integer version;
-
-    @EqualsAndHashCode.Exclude
-    private Instant creationTime;
-
-    /**
-     * 是否禁用
-     */
-    private YesOrNo enabled;
 
     /**
      * 父类 id
@@ -84,13 +68,6 @@ public class EnterpriseRoleEntity extends RoleAuthority implements VersionEntity
     private String tenantId;
 
     /**
-     * 资源 id 集合
-     */
-    @JsonCollectionGenericType(Long.class)
-    @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private List<Long> resourceIds = new LinkedList<>();
-
-    /**
      * 子节点
      */
     @TableField(exist = false)
@@ -102,4 +79,8 @@ public class EnterpriseRoleEntity extends RoleAuthority implements VersionEntity
         return parentId;
     }
 
+    @Override
+    public Set<ResourceSourceEnum> getSources() {
+        return Set.of(ResourceSourceEnum.ENTERPRISE);
+    }
 }

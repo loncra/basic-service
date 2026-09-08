@@ -25,7 +25,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class BasicSystemRole extends RoleAuthority implements VersionEntity<Integer, Long> {
+public abstract class BasicSystemRole extends RoleAuthority implements VersionEntity<Integer, Long> {
 
     @Serial
     private static final long serialVersionUID = -8658755200721315766L;
@@ -44,17 +44,12 @@ public class BasicSystemRole extends RoleAuthority implements VersionEntity<Inte
     private YesOrNo enabled;
 
     /**
-     * 角色来源
-     */
-    @JsonCollectionGenericType(ResourceSourceEnum.class)
-    @TableField(typeHandler = JacksonJsonTypeHandler.class)
-    private Set<ResourceSourceEnum> sources = new HashSet<>();
-
-    /**
      * 资源 id 集合
      */
     @JsonCollectionGenericType(Long.class)
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Set<Long> resourceIds = new HashSet<>();
+
+    public abstract Set<ResourceSourceEnum> getSources();
 
 }

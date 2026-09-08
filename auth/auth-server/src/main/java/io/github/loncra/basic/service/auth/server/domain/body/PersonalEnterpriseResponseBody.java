@@ -1,8 +1,9 @@
 package io.github.loncra.basic.service.auth.server.domain.body;
 
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberInvitationEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
+import io.github.loncra.basic.service.commons.enumerate.AuditStatusEnum;
+import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,12 @@ public class PersonalEnterpriseResponseBody extends EnterpriseEntity {
     private EnterpriseMemberRoleEnum role;
 
     /**
-     * 成员状态
+     * 审核状态
      */
-    private EnterpriseMemberInvitationEnum status;
+    private AuditStatusEnum auditStatus;
+
+    /**
+     * 用户状态
+     */
+    private UserStatus userStatus;
 }

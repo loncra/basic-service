@@ -9,9 +9,9 @@ import io.github.loncra.basic.service.auth.server.domain.PhoneNumberPrincipal;
 import io.github.loncra.basic.service.auth.server.domain.UserInitialization;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
 import io.github.loncra.basic.service.auth.server.domain.metdata.UserInitializationMetadata;
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberInvitationEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.enumerate.AuditStatusEnum;
 import io.github.loncra.basic.service.commons.enumerate.GenderEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
@@ -91,13 +91,15 @@ public class EnterpriseMemberEntity extends AbstractBasicSystemUser implements P
      * 成员加入状态
      */
     @NotNull
-    private EnterpriseMemberInvitationEnum invitation = EnterpriseMemberInvitationEnum.INVITED;
+    private AuditStatusEnum auditStatus = AuditStatusEnum.AUDITABLE;
 
     private Instant lastAuthenticationTime;
 
     private String tenantId;
 
     private Long invitationId;
+
+    private String remark;
 
     @Getter(AccessLevel.NONE)
     @TableField(exist = false)

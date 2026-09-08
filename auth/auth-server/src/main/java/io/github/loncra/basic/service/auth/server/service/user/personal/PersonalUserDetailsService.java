@@ -2,7 +2,7 @@ package io.github.loncra.basic.service.auth.server.service.user.personal;
 
 import io.github.loncra.basic.service.auth.server.config.AuthAppConfig;
 import io.github.loncra.basic.service.auth.server.domain.AbstractPlatformUser;
-import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
@@ -40,7 +40,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * 个人用户明细认证授权服务实现
@@ -117,20 +120,13 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
 
             EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
                     .get(principal.getId().toString());
-            List<RoleEntity> roleAuthority = member.getRoleIds()
-                    .stream()
-                    .map(id -> getRoleService().get(id))
-                    .filter(r -> YesOrNo.Yes.equals(r.getEnabled()))
-                    .toList();
-            List<ResourceEntity> resourceMetadataList = getPluginResourceService().getResourcesStream(
-                    member.getResourceIds(),
-                    ResourceSourceEnum.ENTERPRISE
-            );
+            if (Objects.isNull(member)) {
+                return super.getPrincipalGrantedAuthorities(token, principal);
+            }
+            List<BasicSystemRole> roles = enterpriseService.getEnterpriseMemberService().getRole(member);
 
-            Collection<GrantedAuthority> result = new HashSet<>(createGrantedAuthorities(new LinkedList<>(roleAuthority), resourceMetadataList));
-            result.add(new SimpleGrantedAuthority(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + member.getRole().toString()));
-
-            return result;
+            return enterpriseService.getEnterpriseMemberService()
+                    .getAuthorities(roles, member.getRole());
         } else {
             return super.getPrincipalGrantedAuthorities(token, principal);
         }
@@ -184,14 +180,14 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
         } else {
             EnterpriseMemberEntity member = enterpriseService.getEnterpriseMemberService()
                     .get(principal.getId().toString());
-            if (CollectionUtils.isNotEmpty(member.getRoleIds())) {
-                List<RoleAuthority> roles = member.getRoleIds()
+            List<BasicSystemRole> roles = enterpriseService.getEnterpriseMemberService().getRole(member);
+            if (CollectionUtils.isNotEmpty(roles)) {
+                List<RoleAuthority> rolesAuthorities = roles
                         .stream()
-                        .map(id -> getRoleService().get(id))
                         .map(s -> CastUtils.of(s, RoleAuthority.class))
                         .toList();
                 details.getMetadata()
-                        .put(SystemConstants.ROLE_FIELD_NAME, roles);
+                        .put(SystemConstants.ROLE_FIELD_NAME, rolesAuthorities);
             }
             enterpriseService.getEnterpriseMemberService()
                     .setPersonalUser(member);

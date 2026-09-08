@@ -4,17 +4,23 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseMemberService;
+import io.github.loncra.basic.service.commons.domain.metadata.AuditMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
+import io.github.loncra.framework.commons.page.TotalPage;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -61,9 +67,12 @@ public class EnterpriseMemberController {
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        Page<EnterpriseMemberEntity> result = enterpriseMemberService.findTotalPage(pageRequest, query);
-        result.getElements().forEach(enterpriseMemberService::setPersonalUser);
-        return result;
+        TotalPage<EnterpriseMemberEntity> result = enterpriseMemberService.findTotalPage(pageRequest, query);
+        List<EnterpriseMemberEntity> list = result.getElements()
+                .stream()
+                .peek(enterpriseMemberService::setPersonalUser).map(enterpriseMemberService::convertResponseBody)
+                .toList();
+        return new TotalPage<>(pageRequest, list, result.getTotalCount());
     }
 
     /**
@@ -117,5 +126,22 @@ public class EnterpriseMemberController {
     public RestResult<Void> delete(@RequestParam List<Long> ids) {
         enterpriseMemberService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
+    }
+
+    @OperationDataTrace
+    @PutMapping("audit")
+    @Plugin(name = "审核信息")
+    @PreAuthorize("hasAuthority('perms[auth_server_enterprise_member:audit]')")
+    public RestResult<Void> audit(
+            @RequestParam
+            List<Long> ids,
+            @RequestBody
+            AuditMetadata metadata,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        enterpriseMemberService.audit(ids, metadata, token);
+        return RestResult.of("审核" + ids.size() + "条记录成功");
     }
 }

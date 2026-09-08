@@ -66,12 +66,12 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
         super.setAuthenticationProperties(authenticationProperties);
     }
 
-    public static Collection<SimpleGrantedAuthority> createGrantedAuthorities(
+    public static Collection<GrantedAuthority> createGrantedAuthorities(
             List<RoleAuthority> roleAuthorities,
             List<ResourceEntity> resourceAuthorities
     ) {
 
-        List<SimpleGrantedAuthority> result = new ArrayList<>();
+        List<GrantedAuthority> result = new ArrayList<>();
 
         resourceAuthorities.stream()
                 .filter(x -> StringUtils.isNotBlank(x.getAuthority()))

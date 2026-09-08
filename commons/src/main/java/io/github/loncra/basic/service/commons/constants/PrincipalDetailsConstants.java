@@ -165,5 +165,4 @@ public interface PrincipalDetailsConstants {
                 Objects.toString(details.getMetadata().get(NICKNAME_KEY), token.getName())
         );
     }
-
 }

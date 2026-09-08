@@ -3,17 +3,21 @@ package io.github.loncra.basic.service.auth.server.service.enterprise;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.dao.enterprise.EnterpriseMemberDao;
+import io.github.loncra.basic.service.auth.server.domain.BasicSystemRole;
+import io.github.loncra.basic.service.auth.server.domain.body.EnterpriseMemberResponseBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseRoleEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberInvitationEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.security.AbstractSystemUserDetailsService;
 import io.github.loncra.basic.service.auth.server.service.user.personal.PersonalUserService;
+import io.github.loncra.basic.service.commons.domain.metadata.AuditMetadata;
+import io.github.loncra.basic.service.commons.enumerate.AuditStatusEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
@@ -22,6 +26,7 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +52,8 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
 
     private final EnterpriseRoleService enterpriseRoleService;
 
+    //private final MessageServiceClient messageServiceClient;
+
     public EnterpriseMemberEntity getActiveMember(
             Long enterpriseId,
             String principal
@@ -54,7 +61,7 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
         return lambdaQuery()
                 .eq(EnterpriseMemberEntity::getEnterpriseId, enterpriseId)
                 .eq(EnterpriseMemberEntity::getPrincipal, principal)
-                .eq(EnterpriseMemberEntity::getInvitation, EnterpriseMemberInvitationEnum.ACTIVE.getValue())
+                .eq(EnterpriseMemberEntity::getAuditStatus, AuditStatusEnum.AGREED.getValue())
                 .eq(EnterpriseMemberEntity::getStatus, UserStatus.Enabled.getValue())
                 .one();
     }
@@ -78,7 +85,7 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
     public List<EnterpriseMemberEntity> findActiveByPrincipal(String principal) {
         return lambdaQuery()
                 .eq(EnterpriseMemberEntity::getPrincipal, principal)
-                .eq(EnterpriseMemberEntity::getInvitation, EnterpriseMemberInvitationEnum.ACTIVE.getValue())
+                .eq(EnterpriseMemberEntity::getAuditStatus, AuditStatusEnum.AGREED.getValue())
                 .eq(EnterpriseMemberEntity::getStatus, UserStatus.Enabled.getValue())
                 .list();
     }
@@ -100,46 +107,42 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
             List<ResourceTypeEnum> list,
             List<ResourceSourceEnum> sourceContains
     ) {
-        EnterpriseMemberEntity user = get(token.getSecurityPrincipal().getId().toString());
-        List<ResourceEntity> result = new LinkedList<>();
-        if (EnterpriseMemberRoleEnum.MANAGER_ROLES.contains(user.getRole())) {
-            RoleEntity role = personalUserService.getRoleService()
-                    .getByAuthority(ResourceSourceEnum.ENTERPRISE.toString());
-            result.addAll(personalUserService.getRoleService().getGroupResource(role));
-        }
-        if (CollectionUtils.isNotEmpty(user.getRoleIds())) {
-            List<EnterpriseRoleEntity> enterpriseRoles = enterpriseRoleService.get(user.getRoleIds());
-            Set<Long> resourceIds = enterpriseRoles.stream()
-                    .flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet());
-            result.addAll(personalUserService.getRoleService()
-                    .getSystemUserResource(resourceIds, list, sourceContains));
-        }
 
-        return result;
+        EnterpriseMemberEntity user = get(token.getSecurityPrincipal().getId().toString());
+        List<BasicSystemRole> roles = getRole(user);
+        return personalUserService.getRoleService()
+                .getSystemUserResource(roles.stream().flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet()), list, sourceContains);
+
     }
 
-    public Collection<SimpleGrantedAuthority> getAuthorities(EnterpriseMemberEntity enterpriseMember) {
-        List<ResourceEntity> resourceAuthorities = new LinkedList<>();
-        List<RoleAuthority> roleAuthorities = new LinkedList<>();
-
+    public List<BasicSystemRole> getRole(EnterpriseMemberEntity enterpriseMember) {
+        List<BasicSystemRole> roleAuthorities = new LinkedList<>();
         if (EnterpriseMemberRoleEnum.MANAGER_ROLES.contains(enterpriseMember.getRole())) {
             RoleEntity role = personalUserService.getRoleService()
                     .getByAuthority(ResourceSourceEnum.ENTERPRISE.toString());
-            resourceAuthorities.addAll(personalUserService.getRoleService().getGroupResource(role));
-            roleAuthorities.add(new RoleAuthority(role.getName(), role.getAuthority()));
+            roleAuthorities.add(role);
         }
-
         if (CollectionUtils.isNotEmpty(enterpriseMember.getRoleIds())) {
             List<EnterpriseRoleEntity> enterpriseRoles = enterpriseRoleService.get(enterpriseMember.getRoleIds());
-            Set<Long> resourceIds = enterpriseRoles.stream()
-                    .flatMap(s -> s.getResourceIds().stream())
-                    .collect(Collectors.toSet());
-            resourceAuthorities.addAll(personalUserService.getRoleService()
-                    .getSystemUserResource(resourceIds, List.of(), List.of(ResourceSourceEnum.ENTERPRISE)));
+            roleAuthorities.addAll(enterpriseRoles);
         }
+        return roleAuthorities;
+    }
 
-        Collection<SimpleGrantedAuthority> authorities = AbstractSystemUserDetailsService.createGrantedAuthorities(roleAuthorities, resourceAuthorities);
-        authorities.add(new SimpleGrantedAuthority(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + enterpriseMember.getRole()));
+    public Collection<GrantedAuthority> getAuthorities(
+            List<BasicSystemRole> roles,
+            EnterpriseMemberRoleEnum role
+    ) {
+
+        List<ResourceEntity> resourceAuthorities = personalUserService.getRoleService()
+                .getSystemUserResource(roles.stream().flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet()), List.of(), List.of(ResourceSourceEnum.ENTERPRISE));
+
+        List<RoleAuthority> roleAuthorities = roles.stream()
+                .map(s -> new RoleAuthority(s.getName(), s.getAuthority()))
+                .toList();
+        Collection<GrantedAuthority> authorities = AbstractSystemUserDetailsService.createGrantedAuthorities(roleAuthorities, resourceAuthorities);
+
+        authorities.add(new SimpleGrantedAuthority(EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + role));
 
         return authorities;
     }
@@ -154,7 +157,7 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
         owner.setPrincipal(principal);
         owner.setRole(EnterpriseMemberRoleEnum.OWNER);
         owner.setStatus(UserStatus.Enabled);
-        owner.setInvitation(EnterpriseMemberInvitationEnum.ACTIVE);
+        owner.setAuditStatus(AuditStatusEnum.AGREED);
         owner.setLastAuthenticationTime(Instant.now());
         owner.setTenantId(enterprise.getTenantId());
 
@@ -175,5 +178,47 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
         insert(owner);
 
         return owner;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void audit(
+            List<Long> ids,
+            AuditMetadata metadata,
+            AuditAuthenticationToken token
+    ) {
+        List<EnterpriseMemberEntity> members = get(ids);
+        members.forEach(e -> audit(e, metadata, token));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void audit(
+            EnterpriseMemberEntity member,
+            AuditMetadata metadata,
+            AuditAuthenticationToken token
+    ) {
+        if (!AuditStatusEnum.AUDITABLE.equals(member.getAuditStatus())) {
+            return ;
+        }
+        member.setAuditStatus(metadata.getStatus());
+        member.setRemark(metadata.getRemark());
+
+        if (AuditStatusEnum.AGREED.equals(member.getAuditStatus())) {
+            member.setStatus(UserStatus.Enabled);
+        }
+
+        updateById(member);
+    }
+
+    public EnterpriseMemberEntity convertResponseBody(EnterpriseMemberEntity memberEntity) {
+        EnterpriseMemberResponseBody body = CastUtils.of(memberEntity, EnterpriseMemberResponseBody.class);
+        if (CollectionUtils.isNotEmpty(body.getRoleIds())) {
+            List<RoleAuthority> roles = enterpriseRoleService.get(memberEntity.getRoleIds())
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .map(s -> new RoleAuthority(s.getName(), s.getAuthority()))
+                    .toList();
+            body.setRoles(roles);
+        }
+        return body;
     }
 }
