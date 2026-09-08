@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.controller.enterprise;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseInvitationEntity;
+import io.github.loncra.basic.service.auth.server.domain.metdata.EnterpriseInvitationMetadata;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseInvitationService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -34,21 +35,19 @@ import java.util.stream.Collectors;
  *
  * tb_enterprise_invitation 的控制器
  *
- * @see EnterpriseInvitationEntity
- *
  * @author maurice.chen
- *
+ * @see EnterpriseInvitationEntity
  * @since 2026-09-04 10:16:19
  */
 @RestController
 @RequestMapping("enterprise/invitation")
 @Plugin(
-    name = "邀请管理",
-    id = "enterprise_invitation",
-    parent = "organization",
-    authority = "perms[auth_server_enterprise_invitation:page]",
-    type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-    sources = ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE
+        name = "邀请管理",
+        id = "enterprise_invitation",
+        parent = "organization",
+        authority = "perms[auth_server_enterprise_invitation:page]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+        sources = ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
 public class EnterpriseInvitationController {
@@ -59,24 +58,25 @@ public class EnterpriseInvitationController {
      * 获取分页
      *
      * @param pageRequest 分页信息
-     * @param request  http servlet request
-     *
+     * @param request     http servlet request
      * @return 分页实体
-     *
      * @see EnterpriseInvitationEntity
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[auth_server_enterprise_invitation:page]')")
-    public Page<EnterpriseInvitationEntity> page(PageRequest pageRequest, HttpServletRequest request) {
+    public Page<EnterpriseInvitationMetadata> page(
+            PageRequest pageRequest,
+            HttpServletRequest request
+    ) {
         QueryWrapper<EnterpriseInvitationEntity> query = enterpriseInvitationService
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
 
         TotalPage<EnterpriseInvitationEntity> result = enterpriseInvitationService.findTotalPage(pageRequest, query);
-        List<EnterpriseInvitationEntity> elements = result.getElements()
+        List<EnterpriseInvitationMetadata> elements = result.getElements()
                 .stream()
-                .map(enterpriseInvitationService::convertEnterpriseInvitationResponse)
+                .map(enterpriseInvitationService::convertResponseBody)
                 .collect(Collectors.toCollection(LinkedList::new));
         return new TotalPage<>(pageRequest, elements, result.getTotalCount());
     }
@@ -85,15 +85,13 @@ public class EnterpriseInvitationController {
      * 获取明细
      *
      * @param id 主键 ID
-     *
      * @return REST 响应结果
-     *
      * @see EnterpriseInvitationEntity
      */
     @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('perms[auth_server_enterprise_invitation:get]')")
     @Plugin(name = "查看明细")
-    public EnterpriseInvitationEntity get(
+    public EnterpriseInvitationMetadata get(
             @PathVariable
             Integer id,
             @RequestParam(required = false, defaultValue = "true")
@@ -102,7 +100,7 @@ public class EnterpriseInvitationController {
         EnterpriseInvitationEntity result = enterpriseInvitationService.get(id);
 
         if (convertResponseBody) {
-            return enterpriseInvitationService.convertEnterpriseInvitationResponse(result);
+            return enterpriseInvitationService.convertResponseBody(result);
         }
 
         return result;
@@ -112,7 +110,6 @@ public class EnterpriseInvitationController {
      * 保存数据
      *
      * @param entity 数据请求体
-     *
      * @see EnterpriseInvitationEntity
      */
     @PutMapping
@@ -140,7 +137,6 @@ public class EnterpriseInvitationController {
      * 删除数据
      *
      * @param ids 主键 ID 值集合
-     *
      * @see EnterpriseInvitationEntity
      */
     @DeleteMapping

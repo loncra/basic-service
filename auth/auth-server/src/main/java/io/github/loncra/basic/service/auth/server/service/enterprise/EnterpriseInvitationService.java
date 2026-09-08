@@ -37,7 +37,7 @@ public class EnterpriseInvitationService extends BasicService<EnterpriseInvitati
                 .list();
     }
 
-    public EnterpriseInvitationResponse convertEnterpriseInvitationResponse(EnterpriseInvitationEntity entity) {
+    public EnterpriseInvitationResponse convertResponseBody(EnterpriseInvitationEntity entity) {
         EnterpriseInvitationResponse result = CastUtils.of(entity, EnterpriseInvitationResponse.class);
 
         if (CollectionUtils.isNotEmpty(entity.getRoleIds())) {

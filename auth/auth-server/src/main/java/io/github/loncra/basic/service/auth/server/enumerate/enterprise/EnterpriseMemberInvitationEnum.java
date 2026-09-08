@@ -16,7 +16,11 @@ public enum EnterpriseMemberInvitationEnum implements NameValueEnum<Integer> {
 
     INVITED(10, "待审核"),
 
+    DISAPPROVED(15, "审核不通过"),
+
     ACTIVE(20, "已加入"),
+
+    REJECT(25, "已拒绝"),
 
     CANCEL(30, "已取消")
     ;

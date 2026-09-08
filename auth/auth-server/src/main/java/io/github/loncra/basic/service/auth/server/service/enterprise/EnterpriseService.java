@@ -3,13 +3,17 @@ package io.github.loncra.basic.service.auth.server.service.enterprise;
 import io.github.loncra.basic.service.auth.api.constants.AuthenticationMqConstants;
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
 import io.github.loncra.basic.service.auth.server.dao.enterprise.EnterpriseDao;
+import io.github.loncra.basic.service.auth.server.domain.body.EnterpriseInvitationDetailResponse;
+import io.github.loncra.basic.service.auth.server.domain.body.EnterpriseInvitationResponse;
 import io.github.loncra.basic.service.auth.server.domain.body.PersonalEnterpriseResponseBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseInvitationEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.merchant.OpenPlatformMerchantEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationAuditEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
+import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberInvitationEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
@@ -20,6 +24,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.domain.ExpiredToken;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.enumerate.security.UserStatus;
+import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.generator.twitter.SnowflakeIdGenerator;
 import io.github.loncra.framework.commons.id.IdEntity;
@@ -365,5 +370,92 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
         }
         bucket.set(dto, SystemConstants.USER_EXPORT_CACHE.getExpiresTime().toDuration());
         amqpTemplate.convertAndSend(SystemConstants.SYS_AUTH_RABBITMQ_EXCHANGE, AuthenticationMqConstants.ENTERPRISE_EXPORT_QUEUE_NAME, dto.toExportCacheName());
+    }
+
+    public EnterpriseInvitationDetailResponse invitationDetail(
+            Long id,
+            String principal
+    ) {
+        EnterpriseInvitationEntity invitation = enterpriseInvitationService.get(id);
+        return convertInvitationDetailResponse(invitation, principal);
+    }
+
+    public EnterpriseInvitationDetailResponse convertInvitationDetailResponse(
+            EnterpriseInvitationEntity invitation,
+            String principal
+    ) {
+        EnterpriseInvitationResponse response = enterpriseInvitationService.convertResponseBody(invitation);
+        EnterpriseInvitationDetailResponse detail = CastUtils.of(response, EnterpriseInvitationDetailResponse.class);
+        detail.setEnterprise(get(invitation.getEnterpriseId()));
+        if (Objects.isNull(detail.getEnterprise())) {
+            return detail;
+        }
+        EnterpriseMemberEntity exist;
+        TypeIdNameMetadata metadata = TypeIdNameMetadata.ofPrincipalString(principal);
+        if (ResourceSourceEnum.PERSONAL_SOURCE_VALUE.equals(metadata.getType())) {
+            exist = enterpriseMemberService.getMember(invitation.getEnterpriseId(), principal);
+        } else if (ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE.equals(metadata.getType())){
+            exist = enterpriseMemberService.get(metadata.getId());
+        } else {
+            throw new ServiceException("不支持 [" + metadata.getType() + "] 的用户获取邀请明细数据");
+        }
+        if (Objects.nonNull(exist)) {
+            detail.setInvitee(exist);
+        }
+        return detail;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public EnterpriseInvitationDetailResponse invitationConfirm(
+            Long id,
+            boolean confirm,
+            String principal
+    ) {
+
+        EnterpriseInvitationEntity invitation = Objects.requireNonNull(
+                enterpriseInvitationService.get(id),
+                "找不到 ID 为 [" + id + "] 企业邀请记录"
+        );
+        if (Objects.nonNull(invitation.getExpirationTime())) {
+            SystemException.isTrue(invitation.getExpirationTime().isAfter(Instant.now()), "该邀请已过期");
+        }
+
+        SystemException.isTrue(
+                EnterpriseInvitationStatusEnum.EXECUTION.equals(invitation.getStatus()),
+                "该邀请非 [" + EnterpriseInvitationStatusEnum.EXECUTION.getName() + "] 状态，无法确认。"
+        );
+        EnterpriseEntity enterprise = Objects.requireNonNull(
+                get(invitation.getEnterpriseId()),
+                "找不到 ID 为 [" + invitation.getEnterpriseId() + "] 的企业信息"
+        );
+        SystemException.isTrue(
+                enterprise.getEnabled().toBoolean(),
+                "该企业已解散，无法确认。"
+        );
+
+        EnterpriseMemberEntity exist = enterpriseMemberService.getMember(invitation.getEnterpriseId(), principal);
+
+        if (Objects.isNull(exist)) {
+            exist = new EnterpriseMemberEntity();
+            exist.setRoleIds(invitation.getRoleIds());
+            exist.setPrincipal(principal);
+            exist.setInvitationId(invitation.getId());
+            exist.setEnterpriseId(enterprise.getId());
+            exist.setTenantId(enterprise.getTenantId());
+        }
+        if (EnterpriseInvitationAuditEnum.MANUAL.equals(invitation.getAuditType())) {
+            exist.setStatus(UserStatus.Lock);
+            exist.setInvitation(EnterpriseMemberInvitationEnum.INVITED);
+        } else if (confirm) {
+            exist.setStatus(UserStatus.Enabled);
+            exist.setInvitation(EnterpriseMemberInvitationEnum.ACTIVE);
+        } else {
+            exist.setStatus(UserStatus.Lock);
+            exist.setInvitation(EnterpriseMemberInvitationEnum.REJECT);
+        }
+
+        enterpriseMemberService.save(exist);
+
+        return convertInvitationDetailResponse(invitation, principal);
     }
 }

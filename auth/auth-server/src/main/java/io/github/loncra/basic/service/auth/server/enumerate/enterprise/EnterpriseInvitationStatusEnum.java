@@ -16,9 +16,9 @@ public enum EnterpriseInvitationStatusEnum implements NameValueEnum<Integer> {
 
     EXECUTION(10, "生效中"),
 
-    EXPIRED(30, "已过期"),
+    EXPIRED(20, "已过期"),
 
-    CANCELLED(40, "已取消"),
+    CANCELLED(30, "已取消"),
 
     ;
 

@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.controller.enterprise;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.auth.server.controller.user.UserExportSupport;
+import io.github.loncra.basic.service.auth.server.domain.body.EnterpriseInvitationDetailResponse;
 import io.github.loncra.basic.service.auth.server.domain.body.PersonalEnterpriseResponseBody;
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseEntity;
 import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseService;
@@ -173,18 +174,47 @@ public class EnterpriseController {
         return RestResult.ofSuccess("切换空间成功", (Object)accessToken);
     }
 
-    @DeleteMapping("member/leave/{organizationId:\\d+}")
+    @DeleteMapping("member/leave/{enterpriseId:\\d+}")
     @PreAuthorize("isFullyAuthenticated()")
     public RestResult<Void> leave(
             @CurrentSecurityContext
             SecurityContext securityContext,
             @PathVariable
-            Long organizationId
+            Long enterpriseId
     ) {
         enterpriseService.leave(
                 CastUtils.cast(securityContext.getAuthentication()),
-                organizationId
+                enterpriseId
         );
         return RestResult.of("退出企业成功");
+    }
+
+    @PreAuthorize("isFullyAuthenticated()")
+    @GetMapping("invitation/detail/{id:\\d+}")
+    public RestResult<EnterpriseInvitationDetailResponse> invitationDetail(
+            @PathVariable
+            Long id,
+            @CurrentSecurityContext
+            SecurityContext securityContext
+    ) {
+        TenantContextHolder.get().setIgnore(true);
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        EnterpriseInvitationDetailResponse detail = enterpriseService.invitationDetail(id, token.getName());
+        return RestResult.ofSuccess(detail);
+    }
+
+    @PreAuthorize("isFullyAuthenticated()")
+    @PostMapping("invitation/confirm/{id:\\d+}")
+    public RestResult<EnterpriseInvitationDetailResponse> invitationConfirm(
+            @PathVariable
+            Long id,
+            @RequestParam
+            boolean confirm,
+            @CurrentSecurityContext SecurityContext securityContext
+    ) {
+        TenantContextHolder.get().setIgnore(true);
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        EnterpriseInvitationDetailResponse detail = enterpriseService.invitationConfirm(id, confirm, token.getName());
+        return RestResult.ofSuccess(detail);
     }
 }

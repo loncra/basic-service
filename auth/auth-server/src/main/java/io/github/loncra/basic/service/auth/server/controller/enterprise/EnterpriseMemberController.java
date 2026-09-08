@@ -51,7 +51,7 @@ public class EnterpriseMemberController {
      * @return 分页实体
      * @see EnterpriseMemberEntity
      */
-    @PostMapping
+    @PostMapping("page")
     @PreAuthorize("hasAuthority('perms[auth_server_enterprise_member:page]')")
     public Page<EnterpriseMemberEntity> page(
             PageRequest pageRequest,
