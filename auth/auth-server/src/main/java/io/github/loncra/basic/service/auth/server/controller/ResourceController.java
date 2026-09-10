@@ -72,7 +72,7 @@ public class ResourceController {
     }
 
     @PostMapping("find/enterprise")
-    @PreAuthorize("hasAnyRole('ENTERPRISE_ADMIN','ENTERPRISE_OWNER')")
+    @PreAuthorize("hasAnyRole('ENTERPRISE_MEMBER','ENTERPRISE_OWNER')")
     public List<ResourceEntity> findEnterprise(
             @RequestParam(required = false, defaultValue = "true")
             boolean mergeTree,

@@ -17,6 +17,7 @@ import io.github.loncra.framework.crypto.algorithm.ByteSource;
 import io.github.loncra.framework.crypto.algorithm.SimpleByteSource;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.stereotype.Component;
@@ -100,8 +101,26 @@ public class EnterpriseMemberUserAuthorizationResolver implements SystemUserAuth
     }
 
     @Override
-    public String adminRestPassword(String id) {
-        throw new UnsupportedOperationException("不支持管理员重置密码");
+    public String adminRestPassword(
+            String id,
+            AuditAuthenticationToken token
+    ) {
+        SystemException.isTrue(getSource().toString().equals(token.getType()), "非相同类型用户无法重置密码");
+        String password = RandomStringUtils.secure()
+                .next(
+                        commonsConfig.getAdminRestPasswordLength(),
+                        true,
+                        true
+                );
+        String encodePassword = enterpriseMemberService.getPersonalUserService().getPasswordEncoder()
+                .encode(password);
+
+        enterpriseMemberService.lambdaUpdate()
+                .set(EnterpriseMemberEntity::getPassword, encodePassword)
+                .eq(EnterpriseMemberEntity::getId, id)
+                .update();
+
+        return password;
     }
 
     @Override

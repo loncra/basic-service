@@ -240,13 +240,23 @@ public class AuthRootController {
     @ResponseBody
     @OperationDataTrace
     @PutMapping("user/password/admin/reset")
-    @Plugin(name = "管理员重置用户密码", parent = "authority")
+    @Plugin(
+            name = "管理员重置用户密码",
+            parent = "authority",
+            sources = {
+                    ResourceSourceEnum.CONSOLE_SOURCE_VALUE,
+                    ResourceSourceEnum.ENTERPRISE_SOURCE_VALUE
+            }
+    )
     @PreAuthorize("hasAuthority('perms[auth_server_system_user:admin_reset_password]')")
     public RestResult<Object> adminRestPassword(
             String type,
-            String id
+            String id,
+            @CurrentSecurityContext
+            SecurityContext securityContext
     ) {
-        String newPassword = authorizationService.adminRestPassword(type, id);
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        String newPassword = authorizationService.adminRestPassword(type, id, token);
         return RestResult.ofSuccess("重置密码成功", (Object) newPassword);
     }
 

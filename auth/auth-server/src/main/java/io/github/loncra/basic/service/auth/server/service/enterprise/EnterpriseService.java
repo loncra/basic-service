@@ -12,7 +12,6 @@ import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.Enter
 import io.github.loncra.basic.service.auth.server.domain.entity.enterprise.EnterpriseMemberEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.merchant.OpenPlatformMerchantEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.user.PersonalUserEntity;
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationAuditEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseMemberRoleEnum;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
@@ -20,6 +19,7 @@ import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstant
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata;
 import io.github.loncra.basic.service.commons.enumerate.AuditStatusEnum;
+import io.github.loncra.basic.service.commons.enumerate.AuditTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.domain.ExpiredToken;
@@ -181,7 +181,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
             grantedAuthorities = enterpriseMemberService.getPersonalUserService().getGrantedAuthorities(basicSystemRoles);
         } else if (user instanceof EnterpriseMemberEntity member){
             basicSystemRoles.addAll(enterpriseMemberService.getRole(member));
-            grantedAuthorities = enterpriseMemberService.getAuthorities(basicSystemRoles, member.getRole());
+            grantedAuthorities = enterpriseMemberService.getAuthorities(basicSystemRoles, member.getRole(), member.getResourceIds());
         }
 
         return getAuditAuthenticationToken(principal, token, user, basicSystemRoles, grantedAuthorities);
@@ -484,7 +484,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
 
             exist.setPersonalUser(personalUser);
         }
-        if (EnterpriseInvitationAuditEnum.MANUAL.equals(invitation.getAuditType())) {
+        if (AuditTypeEnum.MANUAL.equals(invitation.getAuditType())) {
             exist.setStatus(UserStatus.Lock);
             exist.setAuditStatus(AuditStatusEnum.AUDITABLE);
         } else if (confirm) {

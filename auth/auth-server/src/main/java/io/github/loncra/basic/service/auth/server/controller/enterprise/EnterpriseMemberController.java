@@ -70,7 +70,8 @@ public class EnterpriseMemberController {
         TotalPage<EnterpriseMemberEntity> result = enterpriseMemberService.findTotalPage(pageRequest, query);
         List<EnterpriseMemberEntity> list = result.getElements()
                 .stream()
-                .peek(enterpriseMemberService::setPersonalUser).map(enterpriseMemberService::convertResponseBody)
+                .map(enterpriseMemberService::convertResponseBody)
+                .peek(enterpriseMemberService::setPersonalUser)
                 .toList();
         return new TotalPage<>(pageRequest, list, result.getTotalCount());
     }
@@ -106,8 +107,8 @@ public class EnterpriseMemberController {
      */
     @PutMapping
     @OperationDataTrace
-    @PreAuthorize("hasAuthority('perms[auth_server_enterprise_member:save]')")
     @Plugin(name = "保存或添加信息")
+    @PreAuthorize("hasAuthority('perms[auth_server_enterprise_member:save]')")
     public RestResult<Long> save(@Valid @RequestBody EnterpriseMemberEntity entity) {
         enterpriseMemberService.save(entity);
         return RestResult.ofSuccess("保存成功", entity.getId());

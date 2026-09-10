@@ -182,9 +182,13 @@ public interface SystemUserAuthorizationResolver<T extends AbstractBasicSystemUs
      * 管理员重置密码
      *
      * @param id 用户 id
+     * @param token 当前用户信息
      * @return 新密码
      */
-    String adminRestPassword(String id);
+    String adminRestPassword(
+            String id,
+            AuditAuthenticationToken token
+    );
 
     /**
      * 根据手机号码创建用户信息

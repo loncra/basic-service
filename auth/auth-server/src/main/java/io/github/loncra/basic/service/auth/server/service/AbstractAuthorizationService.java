@@ -76,9 +76,10 @@ public abstract class AbstractAuthorizationService<T extends AbstractBasicSystem
 
     public String adminRestPassword(
             String type,
-            String id
+            String id,
+            AuditAuthenticationToken token
     ) {
-        return getSystemUserAuthorizationResolver(type, true).adminRestPassword(id);
+        return getSystemUserAuthorizationResolver(type, true).adminRestPassword(id,token);
     }
 
     public void restPassword(

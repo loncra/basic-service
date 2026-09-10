@@ -21,7 +21,6 @@ import io.github.loncra.framework.crypto.algorithm.SimpleByteSource;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -126,22 +125,11 @@ public class PersonalUserAuthorizationResolver implements SystemUserAuthorizatio
     }
 
     @Override
-    public String adminRestPassword(String id) {
-        String password = RandomStringUtils.secure()
-                .next(
-                        commonsConfig.getAdminRestPasswordLength(),
-                        true,
-                        true
-                );
-        String encodePassword = personalUserService.getPasswordEncoder()
-                .encode(password);
-
-        personalUserService.lambdaUpdate()
-                .set(AbstractPlatformUser::getPassword, encodePassword)
-                .eq(PersonalUserEntity::getId, id)
-                .update();
-
-        return password;
+    public String adminRestPassword(
+            String id,
+            AuditAuthenticationToken token
+    ) {
+        throw new UnsupportedOperationException("不支持管理员重置密码");
     }
 
     @Override

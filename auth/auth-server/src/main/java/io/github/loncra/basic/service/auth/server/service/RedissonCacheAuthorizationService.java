@@ -123,9 +123,10 @@ public class RedissonCacheAuthorizationService<T extends AbstractBasicSystemUser
     @Override
     public String adminRestPassword(
             String type,
-            String id
+            String id,
+            AuditAuthenticationToken token
     ) {
-        String result = super.adminRestPassword(type, id);
+        String result = super.adminRestPassword(type, id, token);
         deleteSystemUserAllCache(type + CacheProperties.DEFAULT_SEPARATOR + id);
         return result;
     }

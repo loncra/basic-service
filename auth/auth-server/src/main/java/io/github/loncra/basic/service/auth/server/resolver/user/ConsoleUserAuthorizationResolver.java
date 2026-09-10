@@ -113,7 +113,11 @@ public class ConsoleUserAuthorizationResolver implements SystemUserAuthorization
     }
 
     @Override
-    public String adminRestPassword(String id) {
+    public String adminRestPassword(
+            String id,
+            AuditAuthenticationToken token
+    ) {
+        SystemException.isTrue(getSource().toString().equals(token.getType()), "非相同类型用户无法重置密码");
         String password = RandomStringUtils.secure()
                 .next(
                         commonsConfig.getAdminRestPasswordLength(),

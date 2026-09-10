@@ -1,14 +1,20 @@
 package io.github.loncra.basic.service.auth.server.domain.metdata;
 
-import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationAuditEnum;
+import com.baomidou.mybatisplus.annotation.TableField;
 import io.github.loncra.basic.service.auth.server.enumerate.enterprise.EnterpriseInvitationStatusEnum;
+import io.github.loncra.basic.service.commons.enumerate.AuditTypeEnum;
+import io.github.loncra.framework.commons.annotation.JsonCollectionGenericType;
+import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -26,7 +32,7 @@ public class EnterpriseInvitationMetadata extends LongVersionEntity<Integer> {
     /**
      * 审核类型
      */
-    private EnterpriseInvitationAuditEnum auditType;
+    private AuditTypeEnum auditType;
 
     /**
      * 过期时间
@@ -37,6 +43,14 @@ public class EnterpriseInvitationMetadata extends LongVersionEntity<Integer> {
      * 副标题
      */
     private String subTitle;
+
+    /**
+     * 角色 id
+     */
+    @NotNull
+    @JsonCollectionGenericType(Long.class)
+    @TableField(typeHandler = JacksonJsonTypeHandler.class)
+    private Set<Long> roleIds = new LinkedHashSet<>();
 
     /**
      * 备注

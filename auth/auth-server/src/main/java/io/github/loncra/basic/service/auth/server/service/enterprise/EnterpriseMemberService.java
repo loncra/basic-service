@@ -80,6 +80,18 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
         TypeIdNameMetadata metadata = TypeIdNameMetadata.ofPrincipalString(entity.getPrincipal());
         PersonalUserEntity user = personalUserService.get(metadata.getId());
         entity.setPersonalUser(user);
+        List<BasicSystemRole> roles = getRole(entity);
+        if (CollectionUtils.isNotEmpty(roles) && CollectionUtils.isEmpty(entity.getResourceIds())) {
+            List<ResourceEntity> resourceAuthorities = personalUserService.getRoleService()
+                    .getSystemUserResource(roles.stream()
+                                    .flatMap(s -> s.getResourceIds()
+                                            .stream()
+                                    ).collect(Collectors.toSet()),
+                            List.of(),
+                            List.of(ResourceSourceEnum.ENTERPRISE)
+                    );
+            entity.setResourceIds(resourceAuthorities.stream().map(ResourceEntity::getId).collect(Collectors.toSet()));
+        }
     }
 
     public List<EnterpriseMemberEntity> findActiveByPrincipal(String principal) {
@@ -109,15 +121,22 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
     ) {
 
         EnterpriseMemberEntity user = get(token.getSecurityPrincipal().getId().toString());
-        List<BasicSystemRole> roles = getRole(user);
+        Set<Long> resourceIds = user.getResourceIds();
+        if (CollectionUtils.isEmpty(resourceIds)) {
+            List<BasicSystemRole> roles = getRole(user);
+            resourceIds = roles.stream()
+                    .flatMap(s -> s.getResourceIds().stream())
+                    .collect(Collectors.toSet());
+        }
+
         return personalUserService.getRoleService()
-                .getSystemUserResource(roles.stream().flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet()), list, sourceContains);
+                .getSystemUserResource(resourceIds, list, sourceContains);
 
     }
 
     public List<BasicSystemRole> getRole(EnterpriseMemberEntity enterpriseMember) {
         List<BasicSystemRole> roleAuthorities = new LinkedList<>();
-        if (EnterpriseMemberRoleEnum.MANAGER_ROLES.contains(enterpriseMember.getRole())) {
+        if (EnterpriseMemberRoleEnum.OWNER.equals(enterpriseMember.getRole())) {
             RoleEntity role = personalUserService.getRoleService()
                     .getByAuthority(ResourceSourceEnum.ENTERPRISE.toString());
             roleAuthorities.add(role);
@@ -131,11 +150,22 @@ public class EnterpriseMemberService extends BasicService<EnterpriseMemberDao, E
 
     public Collection<GrantedAuthority> getAuthorities(
             List<BasicSystemRole> roles,
-            EnterpriseMemberRoleEnum role
+            EnterpriseMemberRoleEnum role,
+            Set<Long> resourceIds
     ) {
+        Set<Long> roleResourceIds = roles.stream()
+                .flatMap(s -> s.getResourceIds().stream())
+                .collect(Collectors.toSet());
+        if (CollectionUtils.isNotEmpty(resourceIds)) {
+            roleResourceIds.addAll(resourceIds);
+        }
 
         List<ResourceEntity> resourceAuthorities = personalUserService.getRoleService()
-                .getSystemUserResource(roles.stream().flatMap(s -> s.getResourceIds().stream()).collect(Collectors.toSet()), List.of(), List.of(ResourceSourceEnum.ENTERPRISE));
+                .getSystemUserResource(
+                        roleResourceIds,
+                        List.of(),
+                        List.of(ResourceSourceEnum.ENTERPRISE)
+                );
 
         List<RoleAuthority> roleAuthorities = roles.stream()
                 .map(s -> new RoleAuthority(s.getName(), s.getAuthority()))

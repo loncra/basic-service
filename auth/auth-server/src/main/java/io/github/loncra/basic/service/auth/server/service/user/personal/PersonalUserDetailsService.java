@@ -126,7 +126,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
             List<BasicSystemRole> roles = enterpriseService.getEnterpriseMemberService().getRole(member);
 
             return enterpriseService.getEnterpriseMemberService()
-                    .getAuthorities(roles, member.getRole());
+                    .getAuthorities(roles, member.getRole(), member.getResourceIds());
         } else {
             return super.getPrincipalGrantedAuthorities(token, principal);
         }

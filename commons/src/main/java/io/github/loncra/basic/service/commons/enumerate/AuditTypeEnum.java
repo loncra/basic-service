@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.auth.server.enumerate.enterprise;
+package io.github.loncra.basic.service.commons.enumerate;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -6,13 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * 企业邀请状态
+ * 审核类型请状态
  *
  * @author maurice.chen
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum EnterpriseInvitationAuditEnum implements NameValueEnum<Integer> {
+public enum AuditTypeEnum implements NameValueEnum<Integer> {
 
     MANUAL(10, "人工审核"),
 
