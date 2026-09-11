@@ -2,12 +2,16 @@ package io.github.loncra.basic.service.ai.server.controller.hub;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.loncra.basic.service.ai.api.constants.AiConstants;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
@@ -65,6 +69,21 @@ public class AiMcpPackageController {
                 .getQueryWrapperByHttpRequest(request);
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
         return aiMcpPackageService.findTotalPage(pageRequest, query);
+    }
+
+    @PostMapping("enabled")
+    public Page<AiMcpPackageEntity> pageByEnabled(
+            PageRequest pageRequest,
+            HttpServletRequest request
+    ) {
+        QueryWrapper<AiMcpPackageEntity> query = aiMcpPackageService
+                .getQueryGenerator()
+                .getQueryWrapperByHttpRequest(request);
+        query.eq(TypeIdNameMetadata.TYPE_FIELD_NAME, PackageTypeEnum.HUB.getValue());
+        query.eq(SystemConstants.STATUS_TABLE_FIELD_NAME, DataStatusEnum.RELEASE.getValue());
+
+        query.orderByDesc(IdEntity.ID_FIELD_NAME);
+        return aiMcpPackageService.findPage(pageRequest, query);
     }
 
     /**

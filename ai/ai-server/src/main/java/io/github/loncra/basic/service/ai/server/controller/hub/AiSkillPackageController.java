@@ -1,15 +1,19 @@
 package io.github.loncra.basic.service.ai.server.controller.hub;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.body.SkillPackageSnapshotRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillReleaseService;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.IdEntity;
+import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
@@ -27,21 +31,19 @@ import java.util.List;
  *
  * tb_ai_skill_package 的控制器
  *
- * @see AiSkillPackageEntity
- *
  * @author maurice.chen
- *
+ * @see AiSkillPackageEntity
  * @since 2026-08-04 09:21:08
  */
 @RestController
 @RequestMapping("ai/skill/package")
 @Plugin(
-    name = "技能广场配置",
-    id = "ai_skill_package",
-    parent = "config",
-    authority = "perms[ai_skill_package:page]",
-    type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
-    sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+        name = "技能广场配置",
+        id = "ai_skill_package",
+        parent = "config",
+        authority = "perms[ai_skill_package:page]",
+        type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+        sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
 )
 @RequiredArgsConstructor
 public class AiSkillPackageController {
@@ -54,18 +56,34 @@ public class AiSkillPackageController {
      * 获取分页
      *
      * @param pageRequest 分页信息
-     * @param request  http servlet request
-     *
+     * @param request     http servlet request
      * @return 分页实体
-     *
      * @see AiSkillPackageEntity
      */
     @PostMapping
     @PreAuthorize("hasAuthority('perms[ai_skill_package:page]')")
-    public Page<AiSkillPackageEntity> page(PageRequest pageRequest, HttpServletRequest request) {
+    public Page<AiSkillPackageEntity> page(
+            PageRequest pageRequest,
+            HttpServletRequest request
+    ) {
         QueryWrapper<AiSkillPackageEntity> query = aiSkillPackageService
                 .getQueryGenerator()
                 .getQueryWrapperByHttpRequest(request);
+        query.orderByDesc(IdEntity.ID_FIELD_NAME);
+        return aiSkillPackageService.findPage(pageRequest, query);
+    }
+
+    @PostMapping("enabled")
+    public Page<AiSkillPackageEntity> pageByEnabled(
+            PageRequest pageRequest,
+            HttpServletRequest request
+    ) {
+        QueryWrapper<AiSkillPackageEntity> query = aiSkillPackageService
+                .getQueryGenerator()
+                .getQueryWrapperByHttpRequest(request);
+        query.eq(TypeIdNameMetadata.TYPE_FIELD_NAME, PackageTypeEnum.HUB.getValue());
+        query.eq(SystemConstants.STATUS_TABLE_FIELD_NAME, DataStatusEnum.RELEASE.getValue());
+
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
         return aiSkillPackageService.findPage(pageRequest, query);
     }
@@ -74,9 +92,7 @@ public class AiSkillPackageController {
      * 获取明细
      *
      * @param id 主键 ID
-     *
      * @return REST 响应结果
-     *
      * @see AiSkillPackageEntity
      */
     @Plugin(name = "查看明细")
@@ -90,7 +106,6 @@ public class AiSkillPackageController {
      * 保存数据
      *
      * @param entity 数据请求体
-     *
      * @see AiSkillPackageEntity
      */
     @PutMapping
@@ -106,7 +121,6 @@ public class AiSkillPackageController {
      * 删除数据
      *
      * @param ids 主键 ID 值集合
-     *
      * @see AiSkillPackageEntity
      */
     @DeleteMapping
@@ -117,11 +131,11 @@ public class AiSkillPackageController {
         aiSkillPackageService.deleteById(ids);
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
+
     /**
      * 发布数据
      *
      * @param ids 主键 ID 集合
-     *
      * @return REST 响应结果
      */
     @OperationDataTrace
@@ -151,7 +165,6 @@ public class AiSkillPackageController {
      * 下架数据
      *
      * @param ids 主键 ID 集合
-     *
      * @return REST 响应结果
      */
     @OperationDataTrace
@@ -171,7 +184,6 @@ public class AiSkillPackageController {
      *
      * @param id   目录主键
      * @param body 版本号与变更说明
-     *
      * @return 新 Release 主键
      */
     @OperationDataTrace
