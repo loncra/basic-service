@@ -23,8 +23,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.AntPathMatcher;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.*;
@@ -151,6 +154,72 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
         int result = super.deleteByEntity(entity);
         deleteObjectPrefix(SKILL_RELEASE_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR);
         return result;
+    }
+
+    /**
+     * 将指定 release 的整棵对象树落到 {@code targetDir}。相对路径非法则跳过该文件。
+     * 写完后必须存在 {@link SkillConfig#getFilename()}。
+     */
+    public void materialize(AiSkillReleaseEntity release, Path targetDir) {
+        if (release == null || release.getId() == null) {
+            throw new IllegalArgumentException("Skill release 为空");
+        }
+        if (targetDir == null) {
+            throw new IllegalArgumentException("Skill 缓存目录为空");
+        }
+        String releasePrefix = SKILL_RELEASE_OBJECT_PREFIX + release.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
+        List<ObjectWriteResult> files = listWorkspaceFiles(releasePrefix);
+        if (CollectionUtils.isEmpty(files)) {
+            throw new IllegalStateException("Skill release [" + release.getId() + "] 对象为空");
+        }
+        Path absoluteTarget = targetDir.toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(absoluteTarget);
+        } catch (IOException e) {
+            throw new IllegalStateException("创建 Skill 缓存目录失败: " + absoluteTarget, e);
+        }
+        String bucket = AttachmentTypeEnum.SYSTEM_FILE.getValue();
+        for (ObjectWriteResult file : files) {
+            String relative = relativeObjectName(releasePrefix, file.getObjectName());
+            if (!isSafeRelative(relative)) {
+                continue;
+            }
+            Path resolved = absoluteTarget.resolve(relative).normalize();
+            if (!resolved.startsWith(absoluteTarget)) {
+                continue;
+            }
+            byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, file.getObjectName());
+            if (bytes == null) {
+                continue;
+            }
+            try {
+                Path parent = resolved.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+                Files.write(resolved, bytes);
+            } catch (IOException e) {
+                throw new IllegalStateException("写入 Skill 缓存失败: " + resolved, e);
+            }
+        }
+        Path skillFile = absoluteTarget.resolve(skillConfig.getFilename());
+        if (!Files.isRegularFile(skillFile)) {
+            throw new IllegalStateException("Skill 缓存缺少 " + skillConfig.getFilename() + ": " + absoluteTarget);
+        }
+    }
+
+    private boolean isSafeRelative(String relative) {
+        if (StringUtils.isBlank(relative)) {
+            return false;
+        }
+        if (relative.contains("..")) {
+            return false;
+        }
+        Path relativePath = Path.of(relative);
+        if (relativePath.isAbsolute()) {
+            return false;
+        }
+        return !relative.startsWith("/") && !relative.startsWith("\\");
     }
 
     private List<ObjectWriteResult> listWorkspaceFiles(String workPrefix) {

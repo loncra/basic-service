@@ -28,6 +28,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
@@ -35,12 +36,14 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResol
 import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
+import io.github.loncra.basic.service.ai.server.resolver.AgentPluginMessageContentResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
+import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
@@ -106,6 +109,12 @@ public class AgentManager {
     private final StreamConfig streamConfig;
 
     private final List<MiddlewareBase> middlewares;
+
+    private final List<AgentPluginMessageContentResolver> pluginMessageContentResolvers;
+
+    private final AgentUserPluginToolkitService agentUserPluginToolkitService;
+
+    private final AgentHubSkillService agentHubSkillService;
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.agentConversationId]",
@@ -274,14 +283,13 @@ public class AgentManager {
                     HarnessAgent::close
             );
         } else {
-            AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
-            String prompt = TextMessageMetadata.ofString(userMessage.getContent());
-            Msg userMsg = Msg.builder().
-                    role(MsgRole.USER)
-                    .textContent(prompt)
-                    .build();
-
-            List<AgentMessageEntity> assistantMessages = messageService.findRequestStopAssistantMessage(assistant.getAgentConversationId());
+            AgentMessageEntity userMessage = Objects.requireNonNull(
+                    messageService.get(assistant.getParentId()),
+                    "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
+            );
+            List<AgentMessageEntity> assistantMessages = messageService.findRequestStopAssistantMessage(
+                    assistant.getAgentConversationId()
+            );
             if (CollectionUtils.isNotEmpty(assistantMessages)) {
                 flux = Flux.empty();
                 for (AgentMessageEntity rejectAssistantMessage : assistantMessages) {
@@ -289,25 +297,39 @@ public class AgentManager {
                     if (CollectionUtils.isEmpty(confirmResults)) {
                         continue;
                     }
-                    Msg confirmMsg = Msg.builder().role(MsgRole.USER).metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, confirmResults)).build();
+                    Msg confirmMsg = Msg.builder()
+                            .role(MsgRole.USER)
+                            .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, confirmResults))
+                            .build();
                     Flux<AbstractAssistantMessageContentMetadata> thenMany = Flux.using(
                             () -> createHarnessAgent(rejectAssistantMessage),
                             agent -> executeAgentStreamEvents(agent, List.of(confirmMsg), rejectAssistantMessage),
                             HarnessAgent::close
                     );
-                    flux = flux.thenMany(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> thenMany)));
+                    flux = flux.thenMany(Flux.deferContextual(
+                            ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> thenMany)
+                    ));
                 }
-
                 Flux<AbstractAssistantMessageContentMetadata> thenMany = Flux.using(
                         () -> createHarnessAgent(assistant),
-                        agent -> executeAgentStreamEvents(agent, List.of(userMsg), assistant),
+                        agent -> executeAgentStreamEvents(
+                                agent,
+                                List.of(createUserMentionMsg(agent, assistant, userMessage)),
+                                assistant
+                        ),
                         HarnessAgent::close
                 );
-                flux = flux.thenMany(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> thenMany)));
+                flux = flux.thenMany(Flux.deferContextual(
+                        ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> thenMany)
+                ));
             } else {
                 flux = Flux.using(
                         () -> createHarnessAgent(assistant),
-                        agent -> executeAgentStreamEvents(agent, List.of(userMsg), assistant),
+                        agent -> executeAgentStreamEvents(
+                                agent,
+                                List.of(createUserMentionMsg(agent, assistant, userMessage)),
+                                assistant
+                        ),
                         HarnessAgent::close
                 );
             }
@@ -379,16 +401,80 @@ public class AgentManager {
 
     }
 
+    private Msg createUserMentionMsg(
+            HarnessAgent agent,
+            AgentMessageEntity assistant,
+            AgentMessageEntity userMessage
+    ) {
+        AgentPluginInstructionContext context = new AgentPluginInstructionContext();
+        context.setToolkit(agent.getToolkit());
+        context.setAgent(agent);
+        context.setUserMessage(userMessage);
+        context.setWorkspaceId(resolveWorkspaceId(conversationService.get(assistant.getAgentConversationId())));
+        applyPluginInstructions(context);
+        String prompt = TextMessageMetadata.ofString(userMessage.getContent());
+        if (CollectionUtils.isNotEmpty(context.getMentionSummaries())) {
+            prompt = prompt + "\n\n" + String.join("\n", context.getMentionSummaries());
+        }
+        return Msg.builder()
+                .role(MsgRole.USER)
+                .textContent(prompt)
+                .build();
+    }
+
+    private void applyPluginInstructions(AgentPluginInstructionContext context) {
+        for (AgentPluginMessageContentResolver resolver : pluginMessageContentResolvers) {
+            List<InstructionMessageMetadata> hits = resolver.getHits(context.getUserMessage());
+            if (CollectionUtils.isNotEmpty(hits)) {
+                resolver.apply(context, hits);
+            }
+        }
+    }
+
+    private Long resolveWorkspaceId(AgentConversationEntity conversation) {
+        if (conversation == null) {
+            return null;
+        }
+        if (AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(conversation.getType())) {
+            return conversation.getParentId();
+        }
+        return conversation.getId();
+    }
+
     private HarnessAgent createHarnessAgent(AgentMessageEntity assistant) {
         AgentConversationEntity conversation = conversationService.get(assistant.getAgentConversationId());
-        SystemException.isTrue(AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(conversation.getType()), "当前会话类型不支持执行 agent");
+        SystemException.isTrue(
+                AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(conversation.getType()),
+                "当前会话类型不支持执行 agent"
+        );
 
-        AgentConversationEntity workspace = Objects.requireNonNull(conversationService.get(conversation.getParentId()), "找不到 ID 为 [" + conversation.getParentId() + "] 的工作空间");
-        SystemException.isTrue(!AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(workspace.getType()), "当前会话类型不支持执行 agent");
+        AgentConversationEntity workspace = Objects.requireNonNull(
+                conversationService.get(conversation.getParentId()),
+                "找不到 ID 为 [" + conversation.getParentId() + "] 的工作空间"
+        );
+        SystemException.isTrue(
+                !AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(workspace.getType()),
+                "当前会话类型不支持执行 agent"
+        );
 
-        AgentMessageEntity userMessage = Objects.requireNonNull(messageService.get(assistant.getParentId()), "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录");
+        AgentMessageEntity userMessage = Objects.requireNonNull(
+                messageService.get(assistant.getParentId()),
+                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
+        );
 
-        ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(assistant.getModel(), userMessage.getMetadata());
+        ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(
+                assistant.getModel(),
+                userMessage.getMetadata()
+        );
+        Path userSkillDir = agentUserPluginToolkitService.registerUserMcp(
+                modelResolverMetadata.getToolkit(),
+                assistant.getPrincipal(),
+                workspace.getId()
+        );
+        HubSkillRepository hubSkillRepository = agentHubSkillService.ensureCached(
+                assistant.getPrincipal(),
+                workspace.getId()
+        );
 
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(assistant.getType().toString())
@@ -399,6 +485,8 @@ public class AgentManager {
                 .enableMetaTool(true)
                 .stateStore(agentStateStore)
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
+                .skillRepository(new FileSystemSkillRepository(userSkillDir))
+                .skillRepository(hubSkillRepository)
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
                 // 中断信号中间件实现

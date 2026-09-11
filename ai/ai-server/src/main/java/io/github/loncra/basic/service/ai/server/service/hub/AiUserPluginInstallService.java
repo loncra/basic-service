@@ -99,17 +99,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                 .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
                 .orderByDesc(AiUserPluginInstallEntity::getId)
                 .list();
-        List<Long> installIds = installs.stream()
-                .map(AiUserPluginInstallEntity::getId)
-                .filter(Objects::nonNull)
-                .toList();
-        Map<Long, List<Long>> workspaceIdsByInstall = aiUserPluginInstallSpecificService.findByInstallIds(installIds)
-                .stream()
-                .collect(Collectors.groupingBy(
-                        AiUserPluginInstallSpecificEntity::getAiUserPluginInstallId,
-                        LinkedHashMap::new,
-                        Collectors.mapping(AiUserPluginInstallSpecificEntity::getAgentConversationId, Collectors.toCollection(LinkedList::new))
-                ));
+        Map<Long, List<Long>> workspaceIdsByInstall = groupingBySpecific(installs);
         Map<Long, AiSkillPackageEntity> skillPackages = findSkillPackages(installs);
         Map<Long, AiMcpPackageEntity> mcpPackages = findMcpPackages(installs);
         return installs.stream()
@@ -373,5 +363,63 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         result.setWorkspaces(new LinkedList<>(workspaces));
         result.setPluginPackage(pluginPackage);
         return result;
+    }
+
+    /**
+     * 当前用户在指定工作空间下已激活的 Hub 安装记录。
+     * {@code workspaceId == null} 时只计「所有工作空间」范围的安装。
+     */
+    public List<AiUserPluginInstallEntity> findActivatedInstalls(String principal, Long workspaceId) {
+        if (StringUtils.isBlank(principal)) {
+            return List.of();
+        }
+        List<AiUserPluginInstallEntity> installs = lambdaQuery()
+                .eq(AiUserPluginInstallEntity::getPrincipal, principal)
+                .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
+                .eq(AiUserPluginInstallEntity::getStatus, PluginInstallStatusEnum.ACTIVATED)
+                .list();
+        if (CollectionUtils.isEmpty(installs)) {
+            return List.of();
+        }
+        Map<Long, List<Long>> workspaceIdsByInstall = groupingBySpecific(installs);
+        return installs.stream()
+                .filter(install -> isActivatedInWorkspace(install, workspaceId, workspaceIdsByInstall))
+                .filter(install -> Objects.nonNull(install.getPackageId()))
+                .toList();
+    }
+
+    private Map<Long, List<Long>> groupingBySpecific(List<AiUserPluginInstallEntity> installs) {
+        List<Long> installIds = installs.stream()
+                .map(AiUserPluginInstallEntity::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        return aiUserPluginInstallSpecificService.findByInstallIds(installIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        AiUserPluginInstallSpecificEntity::getAiUserPluginInstallId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                AiUserPluginInstallSpecificEntity::getAgentConversationId,
+                                Collectors.toCollection(LinkedList::new)
+                        )
+                ));
+    }
+
+    private boolean isActivatedInWorkspace(
+            AiUserPluginInstallEntity install,
+            Long workspaceId,
+            Map<Long, List<Long>> workspaceIdsByInstall
+    ) {
+        if (PluginInstallWorkspaceScopeEnum.USER.equals(install.getWorkspaceScope())) {
+            return true;
+        }
+        if (!PluginInstallWorkspaceScopeEnum.ORG.equals(install.getWorkspaceScope())) {
+            return false;
+        }
+        if (workspaceId == null) {
+            return false;
+        }
+        List<Long> bound = workspaceIdsByInstall.getOrDefault(install.getId(), List.of());
+        return bound.contains(workspaceId);
     }
 }
