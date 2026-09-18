@@ -56,14 +56,14 @@ import java.util.zip.ZipOutputStream;
  */
 @Slf4j
 @RestController
-@Plugin(
+/*@Plugin(
         name = "文件管理",
         id = "attachment_manager",
         parent = "resource",
-        authority = "resource_server_attachment:find",
+        authority = "perms[resource_server_attachment:find]",
         type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
         sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
-)
+)*/
 @RequestMapping("attachment")
 @RequiredArgsConstructor
 public class AttachmentController {
@@ -76,6 +76,13 @@ public class AttachmentController {
         return attachmentService.buckets();
     }
 
+    @Plugin(
+            name = "文件管理",
+            id = "attachment_manager",
+            parent = "resource",
+            type = ResourceTypeEnum.RESOURCE_MENU_TYPE,
+            sources = ResourceSourceEnum.CONSOLE_SOURCE_VALUE
+    )
     @PostMapping("/find")
     @PreAuthorize("hasAuthority('perms[resource_server_attachment:find]') or hasAnyRole('ROLE_FEIGN','ROLE_ENTERPRISE','ROLE_PERSONAL')")
     public Object find(
