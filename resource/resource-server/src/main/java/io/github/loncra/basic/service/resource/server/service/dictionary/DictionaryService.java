@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DictionaryService {
 
+
     public final static String CONCURRENT_PREFIX = "loncra:basic-service:resource:app:data-dictionary:concurrent:";
 
     @Getter
@@ -376,8 +377,7 @@ public class DictionaryService {
     public Map<String, List<DataDictionaryMetadata>> findGroupDataDictionariesByCodes(List<String> codes) {
         Map<String, List<DataDictionaryMetadata>> group = new LinkedHashMap<>();
         for (String code : codes) {
-            DictionaryTypeEntity type = dictionaryTypeService.getByCode(code);
-            List<DataDictionaryMetadata> result = concurrentInterceptor.invoke(CONCURRENT_PREFIX + type.getId(), () -> findDataDictionaries(type.getId()));
+            List<DataDictionaryMetadata> result = dataDictionaryService.findDataDictionaryMetas(code);
             TreeUtils.buildGenericTree(result);
             group.put(code, result);
         }

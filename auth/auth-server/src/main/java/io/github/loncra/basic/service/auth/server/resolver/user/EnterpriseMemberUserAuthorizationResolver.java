@@ -23,10 +23,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -134,7 +131,7 @@ public class EnterpriseMemberUserAuthorizationResolver implements SystemUserAuth
             PageRequest pageRequest,
             MultiValueMap<String, Object> filter
     ) {
-        return enterpriseMemberService.findPage(pageRequest, filter);
+        return new ScrollPage<>(pageRequest, new LinkedList<>());
     }
 
     @Override

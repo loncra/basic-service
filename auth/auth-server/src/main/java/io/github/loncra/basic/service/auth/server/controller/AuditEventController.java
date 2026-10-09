@@ -56,9 +56,8 @@ public class AuditEventController {
             PageRequest pageRequest,
             @RequestParam(required = false)
             String principal,
-            @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Date after
+            Instant after
     ) {
         Map<String, Object> query = new LinkedHashMap<>();
         if (StringUtils.isNotBlank(principal)) {
@@ -67,9 +66,9 @@ public class AuditEventController {
 
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
             query.put("filter_[type_eq]", SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
-            return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
+            return extendAuditEventRepository.findPage(pageRequest, after, query);
         } else {
-            return auditEventRepository.find(principal, after.toInstant(), SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
+            return auditEventRepository.find(principal, after, SystemConstants.AUDIT_EVENT_AUTHENTICATION_TYPE_NAME);
         }
     }
 
@@ -87,18 +86,17 @@ public class AuditEventController {
             PageRequest pageRequest,
             @RequestParam(required = false)
             String principal,
-            @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Date after,
+            Instant after,
             HttpServletRequest request
     ) {
         if (auditEventRepository instanceof ExtendAuditEventRepository extendAuditEventRepository) {
             Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
             Map<String, Object> query = new LinkedHashMap<>(filter);
             query.put("filter_[type_eq]", controllerAuditProperties.getControllerAuditName());
-            return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
+            return extendAuditEventRepository.findPage(pageRequest, after, query);
         } else {
-            return auditEventRepository.find(principal, after.toInstant(), controllerAuditProperties.getOperationDataTraceAuditName());
+            return auditEventRepository.find(principal, after, controllerAuditProperties.getOperationDataTraceAuditName());
         }
     }
 
@@ -116,9 +114,8 @@ public class AuditEventController {
             PageRequest pageRequest,
             @RequestParam(required = false)
             String principal,
-            @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Date after,
+            Instant after,
             HttpServletRequest request,
             @CurrentSecurityContext SecurityContext securityContext
     ) {
@@ -130,9 +127,9 @@ public class AuditEventController {
             Map<String, Object> filter = HttpRequestParameterMapUtils.castArrayValueMapToObjectValueMap(request.getParameterMap());
             Map<String, Object> query = new LinkedHashMap<>(filter);
             query.put("filter_[type_eq]", controllerAuditProperties.getOperationDataTraceAuditName());
-            return extendAuditEventRepository.findPage(pageRequest, after.toInstant(), query);
+            return extendAuditEventRepository.findPage(pageRequest, after, query);
         } else {
-            return auditEventRepository.find(principal, after.toInstant(), controllerAuditProperties.getOperationDataTraceAuditName());
+            return auditEventRepository.find(principal, after, controllerAuditProperties.getOperationDataTraceAuditName());
         }
     }
 
@@ -150,9 +147,8 @@ public class AuditEventController {
     public AuditEvent get(
             @PathVariable(required = false)
             String id,
-            @DateTimeFormat(pattern = DateUtils.DEFAULT_DATE_TIME_FORMATTER_PATTERN)
             @RequestParam
-            Date after
+            Instant after
     ) {
         SystemException.isTrue(ExtendAuditEventRepository.class.isAssignableFrom(auditEventRepository.getClass()), "auditEventRepository 非 ExtendAuditEventRepository 实现，不支持调用此接口");
 
@@ -160,7 +156,7 @@ public class AuditEventController {
 
         StringIdEntity stringIdEntity = new StringIdEntity();
         stringIdEntity.setId(id);
-        stringIdEntity.setCreationTime(after.toInstant());
+        stringIdEntity.setCreationTime(after);
         return extendAuditEventRepository.get(stringIdEntity);
     }
 
