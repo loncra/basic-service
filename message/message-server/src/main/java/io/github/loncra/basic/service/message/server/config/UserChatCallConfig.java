@@ -33,7 +33,7 @@ public class UserChatCallConfig {
         @Serial
         private static final long serialVersionUID = 8419668383270093700L;
 
-        private String host = "http://10.20.5.152:7880";
+        private String host = "http://localhost:7880";
 
         private CloudSecretMetadata secret = new CloudSecretMetadata();
     }

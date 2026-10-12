@@ -55,6 +55,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
             String principal,
             String tenantId
     ) {
+
         return lambdaQuery()
                 .eq(AgentConversationEntity::getTenantId, tenantId)
                 .eq(AgentConversationEntity::getPrincipal, principal)

@@ -83,7 +83,7 @@ public class AiMcpPackageController {
         query.eq(SystemConstants.STATUS_TABLE_FIELD_NAME, DataStatusEnum.RELEASE.getValue());
 
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return aiMcpPackageService.findPage(pageRequest, query);
+        return aiMcpPackageService.findTotalPage(pageRequest, query);
     }
 
     /**

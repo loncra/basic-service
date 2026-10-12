@@ -622,6 +622,7 @@ public class UserChatManager {
         SystemException.isTrue(Objects.nonNull(room), "找不到 ID 为 [" +  chatRoomId + "] 的聊天会话信息");
 
         List<UserChatParticipantEntity> participants = new LinkedList<>();
+        List<UserChatParticipantEntity> joinParticipants = new LinkedList<>();
         for (String principal : principals) {
             UserChatParticipantEntity participant = userChatParticipantService.getByChatRoomIdAndPrincipal(room.getId(), principal);
             if (Objects.nonNull(participant)) {
@@ -630,6 +631,7 @@ public class UserChatManager {
 
             participant = createUserChatParticipantEntity(principal);
             participants.add(participant);
+            joinParticipants.add(participant);
         }
 
         participants.addAll(userChatParticipantService.findByRoomId(room.getId()));
@@ -661,7 +663,7 @@ public class UserChatManager {
 
         ReturnValueSocketResult<UserChatConversationEntity> result = new ReturnValueSocketResult<>();
         if (UserChatRoomTypeEnum.GROUP_CHAT.equals(room.getType())) {
-            String names = getParticipantNames(participants);
+            String names = getParticipantNames(joinParticipants);
             String content = MessageFormat.format(userChatConfig.getJoinRoomText(), PrincipalDetailsConstants.getPrincipalName(token),names);
             UserChatMessageEntity message = insertSystemMessage(room.getId(), content);
 
@@ -679,14 +681,10 @@ public class UserChatManager {
             if (optional.isPresent()) {
                 result.setReturnValue(convertUserChatConversationByRoom(room, optional.get()));
             }
+            result.getMessages().add(BroadcastMessageMetadata.of(chatRoomId.toString(), PARTICIPANT_REFRESH_BY_ROOM_ID_EVENT_NAME, chatRoomId));
         }
 
-        BroadcastMessageMetadata<Object> conversationRefreshMetadata = BroadcastMessageMetadata.of(
-                room.getId().toString(),
-                CONVERSATION_REFRESH_EVENT_NAME,
-                new LinkedList<>()
-        );
-        result.getMessages().add(conversationRefreshMetadata);
+        result.getMessages().add(BroadcastMessageMetadata.of(room.getId().toString(),CONVERSATION_REFRESH_EVENT_NAME,new LinkedList<>()));
 
         return result;
     }
@@ -757,7 +755,10 @@ public class UserChatManager {
         UserChatMessageEntity entity = insertSystemMessage(room.getId(), text);
         result.add(BroadcastMessageMetadata.of(chatRoomId.toString(), CHAT_MESSAGE_EVENT_NAME, entity));
         updateUserChatConversationByRoom(room, new LinkedList<>());
+
         result.add(BroadcastMessageMetadata.of(room.getId().toString(), CONVERSATION_REFRESH_BY_ROOM_ID_EVENT_NAME, room.getId()));
+        result.add(BroadcastMessageMetadata.of(room.getId().toString(), PARTICIPANT_REFRESH_BY_ROOM_ID_EVENT_NAME, room.getId()));
+
         return result;
     }
 
@@ -797,9 +798,10 @@ public class UserChatManager {
         UserChatMessageEntity entity = insertSystemMessage(room.getId(), text);
 
         result.add(BroadcastMessageMetadata.of(chatRoomId.toString(), CHAT_MESSAGE_EVENT_NAME, entity));
-        updateRecords.stream()
+        result.add(BroadcastMessageMetadata.of(chatRoomId.toString(), PARTICIPANT_REFRESH_BY_ROOM_ID_EVENT_NAME, chatRoomId));
+        /*updateRecords.stream()
                 .flatMap(s -> createUnicastMessageMetadata(s.getPrincipal(), PARTICIPANT_REFRESH_BY_ROOM_ID_EVENT_NAME, room.getId()).stream())
-                .forEach(result::add);
+                .forEach(result::add);*/
 
         return result;
     }

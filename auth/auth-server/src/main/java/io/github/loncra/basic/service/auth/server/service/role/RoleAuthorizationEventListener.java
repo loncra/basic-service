@@ -12,6 +12,7 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -103,6 +104,8 @@ public class RoleAuthorizationEventListener {
 
     @EventListener
     public void onSyncPlugin(AbstractPluginResourceService.SyncPluginResourceEvent event) {
+
+        TenantContextHolder.get().setIgnore(true);
         Set<ResourceSourceEnum> resourceSources = Arrays.stream(ResourceSourceEnum.values())
                 .filter(s -> Objects.nonNull(s.getAdminAuthority()))
                 .collect(Collectors.toSet());
@@ -157,7 +160,6 @@ public class RoleAuthorizationEventListener {
                         event.dto().getDeleteIds().size()
                 );
             }
-
             syncAdminUser(source, after);
 
             onUpdated(new UpdatedEvent(before, after));

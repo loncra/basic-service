@@ -11,7 +11,10 @@ import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import io.github.loncra.framework.spring.web.mvc.SpringMvcUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.aopalliance.intercept.MethodInterceptor;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.config.ContainerCustomizer;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
@@ -55,15 +58,8 @@ public class SpringSecurityRabbitTemplateCustomizer implements RabbitTemplateCus
 
             return message;
         });
-        rabbitTemplate.addAfterReceivePostProcessors(message -> {
-            String accessToken = message.getMessageProperties().getHeader(accessTokenContextRepository.getAuthenticationProperties().getAccessToken().getHeaderName());
+        rabbitTemplate.addAfterReceivePostProcessors(this::setContext);
 
-            SecurityContext securityContext = accessTokenContextRepository.getSecurityContext(accessToken);
-            if (Objects.nonNull(securityContext)) {
-                SecurityContextHolder.setContext(securityContext);
-            }
-            return message;
-        });
     }
 
     private String getFromSecurityContext(SecurityContext securityContext) {
@@ -85,18 +81,38 @@ public class SpringSecurityRabbitTemplateCustomizer implements RabbitTemplateCus
 
     @Override
     public void configure(SimpleMessageListenerContainer container) {
-        container.addAfterReceivePostProcessors(message -> {
-            Object accessToken = message.getMessageProperties().getHeader(accessTokenContextRepository.getAuthenticationProperties().getAccessToken().getHeaderName());
-            if (Objects.isNull(accessToken)) {
-                return message;
+
+        container.setAdviceChain((MethodInterceptor) invocation -> {
+            try {
+                for (Object arg : invocation.getArguments()) {
+                    if (arg instanceof Message message) {
+                        setContext(message);
+                        break;
+                    }
+                }
+                return invocation.proceed();
+            } finally {
+                SecurityContextHolder.clearContext();
+                TenantContextHolder.clear();
             }
-            SecurityContext securityContext = accessTokenContextRepository.getSecurityContext(Objects.toString(accessToken));
-            if (Objects.nonNull(securityContext) && Optional.ofNullable(securityContext.getAuthentication()).isPresent()) {
-                SecurityContextHolder.setContext(securityContext);
-            }
-            SimpleTenantContext tenantContext = TenantContextSecurityFilter.resolveTenantContext(securityContext);
-            TenantContextHolder.set(tenantContext);
-            return message;
         });
+    }
+
+    private @NonNull Message setContext(Message message) {
+        // 先清残留：无论本条消息能否解析出上下文，都不能留下上一条消息的状态
+        SecurityContextHolder.clearContext();
+        TenantContextHolder.clear();
+
+        Object accessToken = message.getMessageProperties().getHeader(accessTokenContextRepository.getAuthenticationProperties().getAccessToken().getHeaderName());
+        if (Objects.isNull(accessToken)) {
+            return message;
+        }
+        SecurityContext securityContext = accessTokenContextRepository.getSecurityContext(Objects.toString(accessToken));
+        if (Objects.nonNull(securityContext) && Optional.ofNullable(securityContext.getAuthentication()).isPresent()) {
+            SecurityContextHolder.setContext(securityContext);
+        }
+        SimpleTenantContext tenantContext = TenantContextSecurityFilter.resolveTenantContext(securityContext);
+        TenantContextHolder.set(tenantContext);
+        return message;
     }
 }

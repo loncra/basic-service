@@ -33,7 +33,9 @@ public class UserChatConversationService extends BasicService<UserChatConversati
             String principal,
             Long roomId
     ) {
-        return lambdaQuery().eq(UserChatConversationEntity::getPrincipal, principal).eq(UserChatConversationEntity::getUserChatRoomId,  roomId).one();
+        return lambdaQuery().eq(UserChatConversationEntity::getPrincipal, principal)
+                .eq(UserChatConversationEntity::getUserChatRoomId,  roomId)
+                .one();
     }
 
     public List<UserChatConversationEntity> findByPrincipal(String principal) {

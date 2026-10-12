@@ -85,7 +85,7 @@ public class AiSkillPackageController {
         query.eq(SystemConstants.STATUS_TABLE_FIELD_NAME, DataStatusEnum.RELEASE.getValue());
 
         query.orderByDesc(IdEntity.ID_FIELD_NAME);
-        return aiSkillPackageService.findPage(pageRequest, query);
+        return aiSkillPackageService.findTotalPage(pageRequest, query);
     }
 
     /**
