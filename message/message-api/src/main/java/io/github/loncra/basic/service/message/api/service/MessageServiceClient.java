@@ -28,7 +28,7 @@ public interface MessageServiceClient {
      * @param request 请求参数
      * @return rest 结果集
      */
-    RestResult<Object> send(@RequestBody Map<String, Object> request);
+    RestResult<Object> send(Map<String, Object> request);
 
     static Map<String, Object> createNoticeSiteMessage(List<AuditPrincipal> toUsers,
                                                        String title,

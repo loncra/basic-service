@@ -9,6 +9,7 @@ import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
+import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.entity.AnonymousUser;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
@@ -65,6 +66,7 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
         if (Objects.nonNull(authentication) && authentication instanceof AuditAuthenticationToken token) {
+            TenantContextHolder.get().setIgnore(true);
             redissonCacheAuthorizationService.deleteSystemUserAllCache(token.getName());
         }
 
