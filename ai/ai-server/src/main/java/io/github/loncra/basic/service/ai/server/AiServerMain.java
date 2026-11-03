@@ -23,7 +23,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @EnableConfigurationProperties(CommonsConfig.class)
 @EnableFeignClients({
         "io.github.loncra.basic.service.ai.api.service",
-        "io.github.loncra.basic.service.resource.api.service"
+        "io.github.loncra.basic.service.resource.api.service",
+        "io.github.loncra.basic.service.message.api.service.feign"
 })
 @SpringBootApplication(
         scanBasePackages = {

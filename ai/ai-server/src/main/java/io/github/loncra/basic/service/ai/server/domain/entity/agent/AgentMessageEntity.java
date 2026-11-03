@@ -72,6 +72,8 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
 
     private String tenantId;
 
+    private String deviceId;
+
     private Long parentId;
 
     @TableField(exist = false)

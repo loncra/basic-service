@@ -114,7 +114,7 @@ public interface SocketServiceFeignClient extends SocketServiceClient {
      * @return 客户端连接时的 user-agent 信息
      */
     @Override
-    @PostMapping("getClientOperatingSystem/{deviceIdentified}")
+    @PostMapping("clientOperatingSystem/{deviceIdentified}")
     Map<String, Object> getClientOperatingSystem(
             @PathVariable
             String deviceIdentified,

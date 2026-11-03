@@ -56,6 +56,8 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
 
     private String tenantId;
 
+    private String deviceId;
+
     private AgentConversationTypeEnum type;
 
     private ExecuteStatus generateNameStatus;

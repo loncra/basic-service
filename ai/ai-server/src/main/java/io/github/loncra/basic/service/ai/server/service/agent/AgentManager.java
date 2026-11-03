@@ -13,6 +13,8 @@ import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
 import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
@@ -39,6 +41,9 @@ import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentPluginMessageContentResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.RemoteRpcFilesystem;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemInvoker;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcOverlayFilesystem;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
@@ -59,6 +64,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
@@ -73,6 +79,7 @@ import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -84,6 +91,10 @@ public class AgentManager {
 
 
     public final static String CONCURRENT_PREFIX = "loncra:basic-service:ai:app:agent:chat:concurrent:";
+
+    private static final String OPERATING_SYSTEM_CLASS = "operatingSystemClass";
+
+    private static final String OPERATING_SYSTEM_NAME = "operatingSystemName";
 
     private final AmqpTemplate amqpTemplate;
 
@@ -101,6 +112,8 @@ public class AgentManager {
     private final List<AgentStreamEventInterceptor> agentStreamEventInterceptors;
 
     private final AiAppConfig aiAppConfig;
+
+    private final RpcFilesystemInvoker rpcFilesystemInvoker;
 
     private final SkillConfig skillConfig;
 
@@ -123,7 +136,8 @@ public class AgentManager {
     @Transactional(rollbackFor = Exception.class)
     public AgentChatResponseBody chat(
             AgentChatRequestBody body,
-            AuditAuthenticationToken token
+            AuditAuthenticationToken token,
+            String deviceIdentified
     ) {
 
         AgentConversationEntity conversation;
@@ -147,6 +161,7 @@ public class AgentManager {
             conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
             conversation.setParentId(parentId);
             conversation.setPrincipal(token.getName());
+            conversation.setDeviceId(deviceIdentified);
         } else {
             assertNoRunningAssistant(conversation.getId());
         }
@@ -161,6 +176,7 @@ public class AgentManager {
         userMessage.setModel(modelMetadata);
         userMessage.setRole(AgentMessageRoleEnum.USER);
         userMessage.setPrincipal(token.getName());
+        userMessage.setDeviceId(deviceIdentified);
         userMessage.setStatus(AgentChatStatusEnum.READY);
         userMessage.setAgentConversationId(conversation.getId());
         messageService.insert(userMessage);
@@ -489,13 +505,57 @@ public class AgentManager {
                 .skillRepository(hubSkillRepository)
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
+                .abstractFilesystem(createFilesystem(assistant, workspace))
                 // 中断信号中间件实现
                 .middlewares(middlewares);
+
+        String environmentMemory = createEnvironmentMemory(assistant);
+
+        if (Objects.nonNull(environmentMemory)) {
+            builder.environmentMemory(environmentMemory);
+        }
+
         if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
             builder.enablePlanMode()
                     .planFileDirectory(assistant.getType().toString());
         }
         return builder.build();
+    }
+
+    private AbstractFilesystem createFilesystem(
+            AgentMessageEntity assistant,
+            AgentConversationEntity workspace
+    ) {
+        String workspacePath = aiAppConfig.getWorkspacePath() + File.separator + workspace.getId();
+
+        return new RpcOverlayFilesystem(
+                new RemoteRpcFilesystem(rpcFilesystemInvoker, assistant.getDeviceId()),
+                new LocalFilesystem(workspacePath)
+        );
+    }
+
+    private String createEnvironmentMemory(AgentMessageEntity assistant) {
+
+        Map<String, Object> environment = rpcFilesystemInvoker.getClientEnvironment(
+                assistant.getPrincipal(),
+                assistant.getDeviceId()
+        );
+
+        String operatingSystemName = Objects.toString(environment.get(OPERATING_SYSTEM_NAME), StringUtils.EMPTY);
+
+        if (StringUtils.isBlank(operatingSystemName)) {
+            return null;
+        }
+
+        String operatingSystemClass = Objects.toString(environment.get(OPERATING_SYSTEM_CLASS), StringUtils.EMPTY);
+        String shell = Strings.CS.contains(operatingSystemName, "Windows") ? "powershell" : "bash";
+
+        return MessageFormat.format(
+                "客户端环境：操作系统 {0}（{1}），默认 shell 为 {2}，文件系统根路径为 /workspace，所有文件路径以 /workspace 为根，执行命令时请使用与 {2} 匹配的语法。",
+                operatingSystemName,
+                operatingSystemClass,
+                shell
+        );
     }
 
     private void publishStreamEvent(

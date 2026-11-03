@@ -109,7 +109,7 @@ public interface SocketServiceWebClient extends SocketServiceClient {
      * @return 客户端连接时的 user-agent 信息
      */
     @Override
-    @PostExchange("getClientOperatingSystem/{deviceIdentified}")
+    @PostExchange("clientOperatingSystem/{deviceIdentified}")
     Map<String, Object> getClientOperatingSystem(
             @PathVariable
             String deviceIdentified,

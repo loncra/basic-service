@@ -16,6 +16,7 @@ import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -47,10 +48,15 @@ public class AgentController {
     public AgentChatResponseBody chat(
             @RequestBody
             AgentChatRequestBody body,
-            @CurrentSecurityContext SecurityContext securityContext
+            @CurrentSecurityContext SecurityContext securityContext,
+            HttpServletRequest request
     ){
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentManager.chat(body, token);
+        return agentManager.chat(
+                body,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
     }
 
     @PutMapping
