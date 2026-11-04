@@ -18,6 +18,8 @@ public class AgentExecutionMetadata implements Serializable {
 
     private String workspaceKey;
 
+    private String clientConversationId;
+
     private String deviceIdentified;
 
     private ExecutionChannelEnum channel;

@@ -5,11 +5,14 @@ import io.agentscope.core.agent.Agent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.server.domain.AssistantMessageStopEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
@@ -25,8 +28,11 @@ import org.redisson.api.RedissonClient;
 import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.api.stream.StreamMessageId;
 import org.redisson.api.stream.StreamRangeArgs;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
 
@@ -48,6 +54,8 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
 
     private final RedissonClient redissonClient;
 
+    private final AmqpTemplate amqpTemplate;
+
     @Override
     public void publish(
             String conversationId,
@@ -61,6 +69,23 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
 
         StreamMessageId id = stream.add(StreamAddArgs.entries(entry));
         content.setSseEventId(id.toString());
+    }
+
+    @Override
+    public void sendExecuteMessage(AgentExecuteMessageMetadata metadata) {
+        String payload = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                amqpTemplate.convertAndSend(SystemConstants.SYS_AI_RABBITMQ_EXCHANGE, AiConstants.MQ_AGENT_EXECUTE_QUEUE, payload);
+            }
+        });
+    }
+
+    @Override
+    public void sendExecuteMessageNow(AgentExecuteMessageMetadata metadata) {
+        String payload = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
+        amqpTemplate.convertAndSend(SystemConstants.SYS_AI_RABBITMQ_EXCHANGE, AiConstants.MQ_AGENT_EXECUTE_QUEUE, payload);
     }
 
     @Override

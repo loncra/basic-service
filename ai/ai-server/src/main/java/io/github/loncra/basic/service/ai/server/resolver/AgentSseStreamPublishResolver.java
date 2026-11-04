@@ -5,6 +5,9 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
@@ -52,4 +55,15 @@ public interface AgentSseStreamPublishResolver {
     );
 
     boolean isStreamBeforeInterrupt(RuntimeContext ctx);
+
+    default void publishStreamStart(String channelKey, String assistantMessageKey) {
+        CustomizeMetadata metadata = new CustomizeMetadata();
+        metadata.setId(assistantMessageKey);
+        metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
+        publish(channelKey, metadata);
+    }
+
+    void sendExecuteMessage(AgentExecuteMessageMetadata metadata);
+
+    void sendExecuteMessageNow(AgentExecuteMessageMetadata metadata);
 }

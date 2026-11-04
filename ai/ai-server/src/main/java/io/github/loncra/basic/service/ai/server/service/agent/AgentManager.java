@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
@@ -10,26 +9,16 @@ import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.middleware.MiddlewareBase;
-import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
-import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
-import io.github.loncra.basic.service.ai.api.constants.AiConstants;
-import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
-import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
-import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
-import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
@@ -37,17 +26,13 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPlugi
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
+import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentPluginMessageContentResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.RemoteRpcFilesystem;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemInvoker;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcOverlayFilesystem;
-import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -62,29 +47,20 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
-import io.github.loncra.framework.spring.web.device.DeviceUtils;
-import nl.basjes.parse.useragent.UserAgent;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Flux;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -97,14 +73,10 @@ public class AgentManager {
 
     public final static String CONCURRENT_PREFIX = "loncra:basic-service:ai:app:agent:chat:concurrent:";
 
-    private final AmqpTemplate amqpTemplate;
-
     private final AgentConversationService conversationService;
 
     @Getter
     private final AgentMessageService messageService;
-
-    private final ModelSettingService modelSettingService;
 
     private final AgentSseStreamPublishResolver agentSseStreamPublishResolver;
 
@@ -112,31 +84,16 @@ public class AgentManager {
 
     private final List<AgentStreamEventInterceptor> agentStreamEventInterceptors;
 
-    private final AiAppConfig aiAppConfig;
-
-    private final RpcFilesystemInvoker rpcFilesystemInvoker;
-
-    private final SkillConfig skillConfig;
-
     private final AgentStateStore agentStateStore;
-
-    private final AgentSocketSessionResolver agentSocketSessionResolver;
-
-    private final AgentExecutionStore agentExecutionStore;
 
     private final StreamConfig streamConfig;
 
-    private final List<MiddlewareBase> middlewares;
-
     private final List<AgentPluginMessageContentResolver> pluginMessageContentResolvers;
 
-    private final AgentUserPluginToolkitService agentUserPluginToolkitService;
-
-    private final AgentHubSkillService agentHubSkillService;
+    private final List<AgentChannelResolver> channelResolvers;
 
     @Concurrent(
-            value = CONCURRENT_PREFIX + "[#body.agentConversationId]",
-            condition = "[#body.agentConversationId != null]"
+            value = CONCURRENT_PREFIX + "[#body.agentConversationId != null ? #body.agentConversationId : #body.localSource.workspaceKey + ':' + #body.localSource.conversationId]"
     )
     @Transactional(rollbackFor = Exception.class)
     public AgentChatResponseBody chat(
@@ -144,96 +101,16 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-
-        AgentConversationEntity conversation;
-
-        if (Objects.isNull(body.getAgentConversationId())) {
-            conversation = conversationService.getDefaultWorkspace(token.getName());
-        } else {
-            conversation = Objects.requireNonNull(
-                    conversationService.get(body.getAgentConversationId()),
-                    "找不到 ID 为 [" + body.getAgentConversationId() + "] 的会话内容"
-            );
-        }
-
-        ModelSettingEntity model = Objects.requireNonNull(modelSettingService.get(body.getModelId()), "找不到 ID 为 [" + body.getModelId() + "] 的模型数据");
-        ModelSettingMetadata modelMetadata = CastUtils.of(model, ModelSettingMetadata.class);
-
-        if (conversation.getType() != AgentConversationTypeEnum.WORKSPACE_CONVERSATION) {
-            Long parentId = conversation.getId();
-
-            conversation = new AgentConversationEntity();
-            conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
-            conversation.setParentId(parentId);
-            conversation.setPrincipal(token.getName());
-            conversation.setMetadata(conversationService.get(parentId).getMetadata());
-        } else {
-            assertNoRunningAssistant(conversation.getId());
-        }
-
-        conversation.setStatus(AgentChatStatusEnum.READY);
-        conversation.setLastModel(modelMetadata);
-        conversation.setLastChatType(body.getType());
-
-        conversationService.save(conversation);
-
-        AgentMessageEntity userMessage = CastUtils.of(body, AgentMessageEntity.class);
-        userMessage.setModel(modelMetadata);
-        userMessage.setRole(AgentMessageRoleEnum.USER);
-        userMessage.setPrincipal(token.getName());
-        userMessage.setStatus(AgentChatStatusEnum.READY);
-        userMessage.setAgentConversationId(conversation.getId());
-        messageService.insert(userMessage);
-
-        AgentMessageEntity assistantMessage = CastUtils.of(userMessage, AgentMessageEntity.class, IdEntity.ID_FIELD_NAME);
-        assistantMessage.setRole(AgentMessageRoleEnum.ASSISTANT);
-        assistantMessage.setParentId(userMessage.getId());
-        assistantMessage.setContent(new LinkedList<>());
-        messageService.insert(assistantMessage);
-
-        sendExecuteMessage(assistantMessage, deviceIdentified);
-
-        AgentChatResponseBody responseBody = new AgentChatResponseBody();
-        responseBody.setConversation(conversation);
-        responseBody.setUserMessageId(userMessage.getId());
-        responseBody.setAssistantMessageId(assistantMessage.getId());
-
-        publishStreamStartSse(assistantMessage);
-
-        return responseBody;
+        return channelResolver(Objects.nonNull(body.getLocalSource()) ? ExecutionChannelEnum.REDIS : ExecutionChannelEnum.MYSQL)
+                .chat(body, token, deviceIdentified);
     }
 
-    private void publishStreamStartSse(
-            AgentMessageEntity assistantMessage
-    ) {
-        CustomizeMetadata metadata = new CustomizeMetadata();
-        metadata.setId(assistantMessage.getId().toString());
-        metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
-
-        agentSseStreamPublishResolver.publish(assistantMessage.getAgentConversationId().toString(), metadata);
-    }
-
-    private void sendExecuteMessage(AgentMessageEntity assistantMessage, String deviceIdentified) {
-        String executeMessagePayload;
-        try {
-            executeMessagePayload = CastUtils.getObjectMapper().writeValueAsString(
-                    AgentExecuteMessageMetadata.of(ExecutionChannelEnum.MYSQL, assistantMessage.getId().toString(), deviceIdentified)
-            );
-        }
-        catch (JsonProcessingException e) {
-            throw new SystemException("序列化执行消息失败", e);
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                amqpTemplate.convertAndSend(
-                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                        AiConstants.MQ_AGENT_EXECUTE_QUEUE,
-                        executeMessagePayload
-                );
-            }
-        });
+    private AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
+        ExecutionChannelEnum effective = Objects.requireNonNullElse(channel, ExecutionChannelEnum.MYSQL);
+        return channelResolvers.stream()
+                .filter(s -> s.channel() == effective)
+                .findFirst()
+                .orElseThrow(() -> new SystemException("找不到通道 [" + effective + "] 的解析器"));
     }
 
     public Flux<ServerSentEvent<String>> stream(
@@ -288,15 +165,6 @@ public class AgentManager {
         return messageService.positioningPageNumber(conversationId, messageId, pageSize);
     }
 
-    private void assertNoRunningAssistant(Long conversationId) {
-        Long count = messageService.lambdaQuery()
-                .eq(AgentMessageEntity::getAgentConversationId, conversationId)
-                .eq(AgentMessageEntity::getRole, AgentMessageRoleEnum.ASSISTANT)
-                .eq(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING)
-                .count();
-        SystemException.isTrue(Objects.isNull(count) || count <= 0, "当前会话仍有进行中的助手回复，请稍后再试");
-    }
-
     @Transactional(rollbackFor = Exception.class)
     public void execute(AgentMessageEntity assistant) {
         Flux<AbstractAssistantMessageContentMetadata> flux;
@@ -312,7 +180,7 @@ public class AgentManager {
                     .eq(AgentMessageEntity::getId, assistant.getId())
                     .update();
             flux = Flux.using(
-                    () -> createHarnessAgent(assistant),
+                    () -> channelResolver(assistant.getExecutionChannel()).createHarnessAgent(assistant),
                     agent -> executeAgentStreamEvents(agent, List.of(msg), assistant),
                     HarnessAgent::close
             );
@@ -336,7 +204,7 @@ public class AgentManager {
                             .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, confirmResults))
                             .build();
                     Flux<AbstractAssistantMessageContentMetadata> thenMany = Flux.using(
-                            () -> createHarnessAgent(rejectAssistantMessage),
+                            () -> channelResolver(rejectAssistantMessage.getExecutionChannel()).createHarnessAgent(rejectAssistantMessage),
                             agent -> executeAgentStreamEvents(agent, List.of(confirmMsg), rejectAssistantMessage),
                             HarnessAgent::close
                     );
@@ -345,7 +213,7 @@ public class AgentManager {
                     ));
                 }
                 Flux<AbstractAssistantMessageContentMetadata> thenMany = Flux.using(
-                        () -> createHarnessAgent(assistant),
+                        () -> channelResolver(assistant.getExecutionChannel()).createHarnessAgent(assistant),
                         agent -> executeAgentStreamEvents(
                                 agent,
                                 List.of(createUserMentionMsg(agent, assistant, userMessage)),
@@ -358,7 +226,7 @@ public class AgentManager {
                 ));
             } else {
                 flux = Flux.using(
-                        () -> createHarnessAgent(assistant),
+                        () -> channelResolver(assistant.getExecutionChannel()).createHarnessAgent(assistant),
                         agent -> executeAgentStreamEvents(
                                 agent,
                                 List.of(createUserMentionMsg(agent, assistant, userMessage)),
@@ -469,120 +337,6 @@ public class AgentManager {
             return conversation.getParentId();
         }
         return conversation.getId();
-    }
-
-    private HarnessAgent createHarnessAgent(AgentMessageEntity assistant) {
-        AgentConversationEntity conversation = conversationService.get(assistant.getAgentConversationId());
-        SystemException.isTrue(
-                AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(conversation.getType()),
-                "当前会话类型不支持执行 agent"
-        );
-
-        AgentConversationEntity workspace = Objects.requireNonNull(
-                conversationService.get(conversation.getParentId()),
-                "找不到 ID 为 [" + conversation.getParentId() + "] 的工作空间"
-        );
-        SystemException.isTrue(
-                !AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(workspace.getType()),
-                "当前会话类型不支持执行 agent"
-        );
-
-        String deviceIdentified = assistant.getDeviceIdentified();
-
-        AgentMessageEntity userMessage = Objects.requireNonNull(
-                messageService.get(assistant.getParentId()),
-                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
-        );
-
-        ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(
-                assistant.getModel(),
-                userMessage.getMetadata()
-        );
-        Path userSkillDir = agentUserPluginToolkitService.registerUserMcp(
-                modelResolverMetadata.getToolkit(),
-                assistant.getPrincipal(),
-                workspace.getId()
-        );
-        HubSkillRepository hubSkillRepository = agentHubSkillService.ensureCached(
-                assistant.getPrincipal(),
-                workspace.getId()
-        );
-
-        HarnessAgent.Builder builder = HarnessAgent.builder()
-                .name(assistant.getType().toString())
-                .sysPrompt(aiAppConfig.getSystemPrompt())
-                .model(modelResolverMetadata.getModel())
-                .toolkit(modelResolverMetadata.getToolkit())
-                // 激活元工具，用于处理元工具调用，让 skill 动态加载工具
-                .enableMetaTool(true)
-                .stateStore(resolveStateStore(workspace))
-                .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
-                .skillRepository(new FileSystemSkillRepository(userSkillDir))
-                .skillRepository(hubSkillRepository)
-                .compaction(aiAppConfig.toCompactionConfig())
-                .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
-                .abstractFilesystem(createFilesystem(deviceIdentified, workspace))
-                .middlewares(middlewares);
-
-        String environmentMemory = createEnvironmentMemory(deviceIdentified, assistant.getPrincipal());
-
-        if (Objects.nonNull(environmentMemory)) {
-            builder.environmentMemory(environmentMemory);
-        }
-
-        if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
-            builder.enablePlanMode()
-                    .planFileDirectory(assistant.getType().toString());
-        }
-        return builder.build();
-    }
-
-    private AbstractFilesystem createFilesystem(String deviceIdentified, AgentConversationEntity workspace) {
-        String workspacePath = aiAppConfig.getWorkspacePath() + File.separator + workspace.getId();
-
-        return new RpcOverlayFilesystem(
-                new RemoteRpcFilesystem(rpcFilesystemInvoker, deviceIdentified),
-                new LocalFilesystem(workspacePath)
-        );
-    }
-
-    private AgentStateStore resolveStateStore(AgentConversationEntity workspace) {
-        return agentStateStore;
-    }
-
-    private String createEnvironmentMemory(String deviceIdentified, String principal) {
-
-        SocketSessionMetadata session = agentSocketSessionResolver.getSession(principal, deviceIdentified);
-
-        if (Objects.isNull(session)) {
-            return null;
-        }
-
-        String userAgentValue = Objects.toString(session.getMetadata().get(DeviceUtils.USER_AGENT_HEADER_NAME.toLowerCase()), null);
-        if (StringUtils.isBlank(userAgentValue)) {
-            return null;
-        }
-
-        UserAgent userAgent = DeviceUtils.getDevice(userAgentValue);
-        String operatingSystemName = userAgent.get(UserAgent.OPERATING_SYSTEM_NAME).getValue();
-        String operatingSystemClass = userAgent.get(UserAgent.OPERATING_SYSTEM_CLASS).getValue();
-
-        if (StringUtils.isBlank(operatingSystemName)) {
-            return null;
-        }
-
-        String executeShell = Objects.toString(session.getMetadata().get(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME), null);
-        SystemException.isTrue(
-                StringUtils.isNotBlank(executeShell),
-                "客户端 [" + deviceIdentified + "] 未上报 executeShell，无法构建执行环境"
-        );
-
-        return MessageFormat.format(
-                "客户端环境：操作系统 {0}（{1}），默认 shell 为 {2}，文件系统根路径为 /workspace，所有文件路径以 /workspace 为根，执行命令时请使用与 {2} 匹配的语法。",
-                operatingSystemName,
-                operatingSystemClass,
-                executeShell
-        );
     }
 
     private void publishStreamEvent(
@@ -740,8 +494,10 @@ public class AgentManager {
                 .eq(AgentMessageEntity::getId, assistantMessage.getId())
                 .update();
 
-        publishStreamStartSse(assistantMessage);
-        sendExecuteMessage(assistantMessage, null);
+        agentSseStreamPublishResolver.publishStreamStart(assistantMessage.getAgentConversationId().toString(), assistantMessage.getId().toString());
+        agentSseStreamPublishResolver.sendExecuteMessage(
+                AgentExecuteMessageMetadata.of(ExecutionChannelEnum.MYSQL, assistantMessage.getId().toString(), null)
+        );
 
         AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
         result.setAssistantMessageId(assistantMessage.getId());
