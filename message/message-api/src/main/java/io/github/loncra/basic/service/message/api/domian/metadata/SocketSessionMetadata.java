@@ -1,12 +1,16 @@
 package io.github.loncra.basic.service.message.api.domian.metadata;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Map;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor(staticName = "of")
 public class SocketSessionMetadata implements Serializable {
 
     @Serial
@@ -19,12 +23,4 @@ public class SocketSessionMetadata implements Serializable {
     private String principal;
 
     private Map<String, Object> metadata;
-
-    public static SocketSessionMetadata of(boolean online, String principal, Map<String, Object> metadata) {
-        SocketSessionMetadata metadataBody = new SocketSessionMetadata();
-        metadataBody.setOnline(online);
-        metadataBody.setPrincipal(principal);
-        metadataBody.setMetadata(metadata);
-        return metadataBody;
-    }
 }

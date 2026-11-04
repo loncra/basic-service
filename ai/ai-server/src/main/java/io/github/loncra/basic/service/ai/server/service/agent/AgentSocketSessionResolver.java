@@ -16,6 +16,10 @@ public class AgentSocketSessionResolver {
 
     private final SocketServiceClient socketServiceClient;
 
+    public boolean isOnline(String principal, String deviceIdentified) {
+        return Objects.nonNull(getSession(principal, deviceIdentified));
+    }
+
     public SocketSessionMetadata getSession(String principal, String deviceIdentified) {
         if (StringUtils.isBlank(principal) || StringUtils.isBlank(deviceIdentified)) {
             return null;

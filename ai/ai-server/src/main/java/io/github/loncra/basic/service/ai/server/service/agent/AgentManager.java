@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
@@ -31,6 +32,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessage
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
@@ -118,9 +120,9 @@ public class AgentManager {
 
     private final AgentStateStore agentStateStore;
 
-    private final AgentWorkspaceRouteResolver workspaceRouteResolver;
-
     private final AgentSocketSessionResolver agentSocketSessionResolver;
+
+    private final AgentExecutionStore agentExecutionStore;
 
     private final StreamConfig streamConfig;
 
@@ -175,8 +177,6 @@ public class AgentManager {
 
         conversationService.save(conversation);
 
-        workspaceRouteResolver.bind(resolveWorkspaceId(conversation), deviceIdentified);
-
         AgentMessageEntity userMessage = CastUtils.of(body, AgentMessageEntity.class);
         userMessage.setModel(modelMetadata);
         userMessage.setRole(AgentMessageRoleEnum.USER);
@@ -191,16 +191,7 @@ public class AgentManager {
         assistantMessage.setContent(new LinkedList<>());
         messageService.insert(assistantMessage);
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                amqpTemplate.convertAndSend(
-                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                        AiConstants.MQ_AGENT_EXECUTE_QUEUE,
-                        assistantMessage.getId()
-                );
-            }
-        });
+        sendExecuteMessage(assistantMessage, deviceIdentified);
 
         AgentChatResponseBody responseBody = new AgentChatResponseBody();
         responseBody.setConversation(conversation);
@@ -220,6 +211,29 @@ public class AgentManager {
         metadata.setEventType(AgentMessageContentTypeEnum.STREAM_START);
 
         agentSseStreamPublishResolver.publish(assistantMessage.getAgentConversationId().toString(), metadata);
+    }
+
+    private void sendExecuteMessage(AgentMessageEntity assistantMessage, String deviceIdentified) {
+        String executeMessagePayload;
+        try {
+            executeMessagePayload = CastUtils.getObjectMapper().writeValueAsString(
+                    AgentExecuteMessageMetadata.of(ExecutionChannelEnum.MYSQL, assistantMessage.getId().toString(), deviceIdentified)
+            );
+        }
+        catch (JsonProcessingException e) {
+            throw new SystemException("序列化执行消息失败", e);
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                amqpTemplate.convertAndSend(
+                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
+                        AiConstants.MQ_AGENT_EXECUTE_QUEUE,
+                        executeMessagePayload
+                );
+            }
+        });
     }
 
     public Flux<ServerSentEvent<String>> stream(
@@ -473,7 +487,7 @@ public class AgentManager {
                 "当前会话类型不支持执行 agent"
         );
 
-        String deviceIdentified = workspaceRouteResolver.resolve(workspace.getId()).orElse(null);
+        String deviceIdentified = assistant.getDeviceIdentified();
 
         AgentMessageEntity userMessage = Objects.requireNonNull(
                 messageService.get(assistant.getParentId()),
@@ -727,16 +741,7 @@ public class AgentManager {
                 .update();
 
         publishStreamStartSse(assistantMessage);
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                amqpTemplate.convertAndSend(
-                        SystemConstants.SYS_AI_RABBITMQ_EXCHANGE,
-                        AiConstants.MQ_AGENT_EXECUTE_QUEUE,
-                        assistantMessage.getId()
-                );
-            }
-        });
+        sendExecuteMessage(assistantMessage, null);
 
         AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
         result.setAssistantMessageId(assistantMessage.getId());
