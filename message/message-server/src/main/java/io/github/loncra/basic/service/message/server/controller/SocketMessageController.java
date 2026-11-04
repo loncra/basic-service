@@ -1,10 +1,9 @@
 package io.github.loncra.basic.service.message.server.controller;
 
+import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
-import io.github.loncra.framework.socketio.api.SocketPrincipal;
 import io.github.loncra.framework.socketio.api.metadata.BroadcastMessageMetadata;
 import io.github.loncra.framework.socketio.api.metadata.MultipleUnicastMessageMetadata;
 import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
@@ -14,11 +13,8 @@ import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticatio
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import nl.basjes.parse.useragent.UserAgent;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -174,53 +170,26 @@ public class SocketMessageController {
     }
 
     /**
-     * 获取客户端操作系统
+     * 查询 socket 会话在线状态与连接元数据
      *
-     * @param deviceIdentified 设备唯一是被
-     * @param typeIdNameMetadata 用户信息
-     *
+     * @param deviceIdentified 设备唯一识别
      * @return REST 响应结果
      */
-    @PostMapping("clientOperatingSystem/{deviceIdentified}")
-    public RestResult<Map<String, Object>> getClientOperatingSystem(
+    @GetMapping("socket/session/{deviceIdentified}")
+    public SocketSessionMetadata getSocketSession(
             @PathVariable
-            String deviceIdentified,
-            @RequestBody
-            TypeIdNameMetadata typeIdNameMetadata
+            String deviceIdentified
     ) {
-
-        SecurityContext securityContext = socketServerManager.getAccessTokenContextRepository()
-                .getSecurityContext(typeIdNameMetadata.getType(), typeIdNameMetadata.getId());
-
-        SystemException.isTrue(Objects.nonNull(securityContext), "找不到租户为 [" + typeIdNameMetadata.toPrincipalName() + "] 的认证信息");
-        SystemException.isTrue(Objects.nonNull(securityContext.getAuthentication()), "找不到租户为 [" + typeIdNameMetadata.toPrincipalName() + "] 的认证信息");
-
-        AuditAuthenticationToken auditAuthenticationToken = CastUtils.cast(securityContext.getAuthentication());
-        AuditAuthenticationSuccessDetails details = CastUtils.cast(auditAuthenticationToken.getDetails());
-
-        Object clientIdsObject = details.getMetadata().get(SocketPrincipal.DEFAULT_SOCKET_CLIENT_ID_NAME);
-        SystemException.isTrue(Objects.nonNull(clientIdsObject), "找不到租户为 [" + typeIdNameMetadata.toPrincipalName() + "] 的认证客户端设备");
-
-        Set<String> clientIds = CastUtils.cast(clientIdsObject);
-
-        SystemException.isTrue(clientIds.contains(deviceIdentified), "设备 [" + deviceIdentified + "] 不在当前用户认证信息里，可能已经关闭了应用");
-
         AuditAuthenticationToken socketToken = socketServerManager.getSocketAuditAuthenticationToken(deviceIdentified);
-        AuditAuthenticationSuccessDetails socketSuccessDetails = CastUtils.cast(socketToken.getDetails());
-        String userAgent = Objects.toString(socketSuccessDetails.getMetadata().get(DeviceUtils.USER_AGENT_HEADER_NAME.toLowerCase()));
+        if (Objects.isNull(socketToken)) {
+            return SocketSessionMetadata.of(false, null, Map.of());
+        }
 
-        SystemException.isTrue(StringUtils.isNotEmpty(userAgent), "找不到连接后的" + DeviceUtils.USER_AGENT_HEADER_NAME + "信息");
+        Map<String, Object> metadata = Map.of();
+        if (socketToken.getDetails() instanceof AuditAuthenticationSuccessDetails details) {
+            metadata = details.getMetadata();
+        }
 
-        UserAgent userAgentDevice = DeviceUtils.getDevice(userAgent);
-
-        return RestResult.ofSuccess(Map.of(
-                UserAgent.OPERATING_SYSTEM_CLASS, userAgentDevice.get(UserAgent.OPERATING_SYSTEM_CLASS),
-                UserAgent.OPERATING_SYSTEM_NAME, userAgentDevice.get(UserAgent.OPERATING_SYSTEM_NAME),
-                UserAgent.DEVICE_CPU, userAgentDevice.get(UserAgent.DEVICE_CPU),
-                UserAgent.DEVICE_CPU_BITS, userAgentDevice.get(UserAgent.DEVICE_CPU_BITS),
-                UserAgent.AGENT_CLASS, userAgentDevice.get(UserAgent.AGENT_CLASS),
-                UserAgent.AGENT_NAME, userAgentDevice.get(UserAgent.AGENT_NAME),
-                UserAgent.AGENT_VERSION, userAgentDevice.get(UserAgent.AGENT_NAME)
-        ));
+        return SocketSessionMetadata.of(true, socketToken.getName(), metadata);
     }
 }

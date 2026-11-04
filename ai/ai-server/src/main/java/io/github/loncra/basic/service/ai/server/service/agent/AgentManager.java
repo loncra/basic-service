@@ -28,6 +28,7 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBo
 import io.github.loncra.basic.service.ai.server.domain.entity.ModelSettingEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
@@ -59,6 +60,8 @@ import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
+import io.github.loncra.framework.spring.web.device.DeviceUtils;
+import nl.basjes.parse.useragent.UserAgent;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -92,10 +95,6 @@ public class AgentManager {
 
     public final static String CONCURRENT_PREFIX = "loncra:basic-service:ai:app:agent:chat:concurrent:";
 
-    private static final String OPERATING_SYSTEM_CLASS = "operatingSystemClass";
-
-    private static final String OPERATING_SYSTEM_NAME = "operatingSystemName";
-
     private final AmqpTemplate amqpTemplate;
 
     private final AgentConversationService conversationService;
@@ -118,6 +117,10 @@ public class AgentManager {
     private final SkillConfig skillConfig;
 
     private final AgentStateStore agentStateStore;
+
+    private final AgentWorkspaceRouteResolver workspaceRouteResolver;
+
+    private final AgentSocketSessionResolver agentSocketSessionResolver;
 
     private final StreamConfig streamConfig;
 
@@ -161,7 +164,7 @@ public class AgentManager {
             conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
             conversation.setParentId(parentId);
             conversation.setPrincipal(token.getName());
-            conversation.setDeviceId(deviceIdentified);
+            conversation.setMetadata(conversationService.get(parentId).getMetadata());
         } else {
             assertNoRunningAssistant(conversation.getId());
         }
@@ -172,11 +175,12 @@ public class AgentManager {
 
         conversationService.save(conversation);
 
+        workspaceRouteResolver.bind(resolveWorkspaceId(conversation), deviceIdentified);
+
         AgentMessageEntity userMessage = CastUtils.of(body, AgentMessageEntity.class);
         userMessage.setModel(modelMetadata);
         userMessage.setRole(AgentMessageRoleEnum.USER);
         userMessage.setPrincipal(token.getName());
-        userMessage.setDeviceId(deviceIdentified);
         userMessage.setStatus(AgentChatStatusEnum.READY);
         userMessage.setAgentConversationId(conversation.getId());
         messageService.insert(userMessage);
@@ -366,9 +370,6 @@ public class AgentManager {
                 .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
                 .map(ToolCallBlockContentMetadata.class::cast)
                 .filter(s -> ToolCallState.PENDING.equals(s.getHitlStatus()))
-                /*.peek(s -> s.setUserConfirmed(false))
-                .peek(s -> s.setStatus(AgentBlockStatusEnum.DONE))
-                .peek(assistantMessage::updateContent)*/
                 .map(ToolCallBlockContentMetadata::toToolUseBlock)
                 .map(s -> new ConfirmResult(false, s))
                 .toList();
@@ -377,7 +378,6 @@ public class AgentManager {
 
         messageService.lambdaUpdate()
                 .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.REJECT_ALL.getValue())
-                //.set(AgentChatMetadata::getContent, assistantMessage.obtainContentJsonString())
                 .eq(AgentMessageEntity::getId, assistantMessage.getId())
                 .update();
 
@@ -473,6 +473,8 @@ public class AgentManager {
                 "当前会话类型不支持执行 agent"
         );
 
+        String deviceIdentified = workspaceRouteResolver.resolve(workspace.getId()).orElse(null);
+
         AgentMessageEntity userMessage = Objects.requireNonNull(
                 messageService.get(assistant.getParentId()),
                 "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
@@ -499,17 +501,16 @@ public class AgentManager {
                 .toolkit(modelResolverMetadata.getToolkit())
                 // 激活元工具，用于处理元工具调用，让 skill 动态加载工具
                 .enableMetaTool(true)
-                .stateStore(agentStateStore)
+                .stateStore(resolveStateStore(workspace))
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .skillRepository(new FileSystemSkillRepository(userSkillDir))
                 .skillRepository(hubSkillRepository)
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(aiAppConfig.getWorkspacePath() + File.separator + workspace.getId())
-                .abstractFilesystem(createFilesystem(assistant, workspace))
-                // 中断信号中间件实现
+                .abstractFilesystem(createFilesystem(deviceIdentified, workspace))
                 .middlewares(middlewares);
 
-        String environmentMemory = createEnvironmentMemory(assistant);
+        String environmentMemory = createEnvironmentMemory(deviceIdentified, assistant.getPrincipal());
 
         if (Objects.nonNull(environmentMemory)) {
             builder.environmentMemory(environmentMemory);
@@ -522,39 +523,51 @@ public class AgentManager {
         return builder.build();
     }
 
-    private AbstractFilesystem createFilesystem(
-            AgentMessageEntity assistant,
-            AgentConversationEntity workspace
-    ) {
+    private AbstractFilesystem createFilesystem(String deviceIdentified, AgentConversationEntity workspace) {
         String workspacePath = aiAppConfig.getWorkspacePath() + File.separator + workspace.getId();
 
         return new RpcOverlayFilesystem(
-                new RemoteRpcFilesystem(rpcFilesystemInvoker, assistant.getDeviceId()),
+                new RemoteRpcFilesystem(rpcFilesystemInvoker, deviceIdentified),
                 new LocalFilesystem(workspacePath)
         );
     }
 
-    private String createEnvironmentMemory(AgentMessageEntity assistant) {
+    private AgentStateStore resolveStateStore(AgentConversationEntity workspace) {
+        return agentStateStore;
+    }
 
-        Map<String, Object> environment = rpcFilesystemInvoker.getClientEnvironment(
-                assistant.getPrincipal(),
-                assistant.getDeviceId()
-        );
+    private String createEnvironmentMemory(String deviceIdentified, String principal) {
 
-        String operatingSystemName = Objects.toString(environment.get(OPERATING_SYSTEM_NAME), StringUtils.EMPTY);
+        SocketSessionMetadata session = agentSocketSessionResolver.getSession(principal, deviceIdentified);
+
+        if (Objects.isNull(session)) {
+            return null;
+        }
+
+        String userAgentValue = Objects.toString(session.getMetadata().get(DeviceUtils.USER_AGENT_HEADER_NAME.toLowerCase()), null);
+        if (StringUtils.isBlank(userAgentValue)) {
+            return null;
+        }
+
+        UserAgent userAgent = DeviceUtils.getDevice(userAgentValue);
+        String operatingSystemName = userAgent.get(UserAgent.OPERATING_SYSTEM_NAME).getValue();
+        String operatingSystemClass = userAgent.get(UserAgent.OPERATING_SYSTEM_CLASS).getValue();
 
         if (StringUtils.isBlank(operatingSystemName)) {
             return null;
         }
 
-        String operatingSystemClass = Objects.toString(environment.get(OPERATING_SYSTEM_CLASS), StringUtils.EMPTY);
-        String shell = Strings.CS.contains(operatingSystemName, "Windows") ? "powershell" : "bash";
+        String executeShell = Objects.toString(session.getMetadata().get(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME), null);
+        SystemException.isTrue(
+                StringUtils.isNotBlank(executeShell),
+                "客户端 [" + deviceIdentified + "] 未上报 executeShell，无法构建执行环境"
+        );
 
         return MessageFormat.format(
                 "客户端环境：操作系统 {0}（{1}），默认 shell 为 {2}，文件系统根路径为 /workspace，所有文件路径以 /workspace 为根，执行命令时请使用与 {2} 匹配的语法。",
                 operatingSystemName,
                 operatingSystemClass,
-                shell
+                executeShell
         );
     }
 

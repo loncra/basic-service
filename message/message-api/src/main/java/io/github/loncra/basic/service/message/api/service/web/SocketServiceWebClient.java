@@ -1,18 +1,18 @@
 package io.github.loncra.basic.service.message.api.service.web;
 
+import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.RestResult;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.socketio.api.metadata.BroadcastMessageMetadata;
 import io.github.loncra.framework.socketio.api.metadata.MultipleUnicastMessageMetadata;
 import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 消息发送服务的 Feign 到用接口
@@ -101,19 +101,15 @@ public interface SocketServiceWebClient extends SocketServiceClient {
     );
 
     /**
-     * 获取客户端操作系统
+     * 查询 socket 会话在线状态与客户端系统信息
      *
-     * @param deviceIdentified 设备唯一是被
-     * @param typeIdNameMetadata 用户信息
-     *
-     * @return 客户端连接时的 user-agent 信息
+     * @param deviceIdentified 设备唯一识别
+     * @return 会话元数据，离线时 online 为 false
      */
     @Override
-    @PostExchange("clientOperatingSystem/{deviceIdentified}")
-    Map<String, Object> getClientOperatingSystem(
+    @GetExchange("socket/session/{deviceIdentified}")
+    SocketSessionMetadata getSocketSession(
             @PathVariable
-            String deviceIdentified,
-            @RequestBody
-            TypeIdNameMetadata typeIdNameMetadata
+            String deviceIdentified
     );
 }

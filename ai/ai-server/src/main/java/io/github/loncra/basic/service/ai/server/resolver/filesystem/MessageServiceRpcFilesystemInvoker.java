@@ -6,8 +6,6 @@ import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
-import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
-import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +85,7 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
 
             RestResult<Object> response = CastUtils.convertValue(
                     value,
-                    new TypeReference<RestResult<Object>>() {}
+                    new TypeReference<>() {}
             );
 
             return Objects.isNull(response)
@@ -97,32 +95,6 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
         catch (Exception e) {
             log.warn("客户端文件系统请求失败, deviceIdentified={}, operation={}", deviceIdentified, operation, e);
             return RestResult.of("客户端文件系统请求失败: " + e.getMessage(), FAIL_STATUS);
-        }
-
-    }
-
-    @Override
-    public Map<String, Object> getClientEnvironment(
-            String principal,
-            String deviceIdentified
-    ) {
-
-        if (StringUtils.isEmpty(principal) || StringUtils.isEmpty(deviceIdentified)) {
-            return Map.of();
-        }
-
-        try {
-            TypeIdNameMetadata typeIdNameMetadata = IdNameMetadata.ofPrincipalString(principal);
-            Map<String, Object> environment = socketServiceClient.getClientOperatingSystem(
-                    deviceIdentified,
-                    typeIdNameMetadata
-            );
-
-            return Objects.isNull(environment) ? Map.of() : environment;
-        }
-        catch (Exception e) {
-            log.warn("获取客户端 [{}] 的设备信息失败", deviceIdentified, e);
-            return Map.of();
         }
 
     }

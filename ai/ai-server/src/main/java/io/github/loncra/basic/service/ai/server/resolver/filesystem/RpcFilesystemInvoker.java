@@ -13,9 +13,4 @@ public interface RpcFilesystemInvoker {
             Map<String, Object> params
     );
 
-    Map<String, Object> getClientEnvironment(
-            String principal,
-            String deviceIdentified
-    );
-
 }
