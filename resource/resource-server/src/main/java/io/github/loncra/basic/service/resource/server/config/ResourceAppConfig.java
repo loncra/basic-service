@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.resource.server.config;
 
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CacheProperties;
+import io.github.loncra.framework.commons.generator.twitter.BasicSnowflakeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.Map;
 @ConfigurationProperties("loncra.basic-service.resource.app")
 public class ResourceAppConfig {
 
+    private BasicSnowflakeProperties snowflake = new BasicSnowflakeProperties("002");
     /**
      * 数据字典缓存
      */

@@ -1,5 +1,9 @@
 package io.github.loncra.basic.service.message.server.config;
 
+import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
+import com.alibaba.cloud.nacos.NacosServiceManager;
+import io.github.loncra.basic.service.commons.service.NacosSnowflakeIdGenerateService;
+import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
 import io.github.loncra.basic.service.resource.api.service.ResourceCaptchaVerificationService;
 import io.github.loncra.framework.captcha.CaptchaProperties;
@@ -8,6 +12,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 /**
  * 服务配置
@@ -29,5 +34,20 @@ public class MessageAppStartupAutoConfig {
             CaptchaProperties captchaProperties
     ) {
         return new RedissonCaptchaStorageManager(redissonClient, captchaProperties);
+    }
+
+    @Bean
+    public SnowflakeIdGenerateService snowflakeIdGenerateService(
+            MessageAppConfig appConfig,
+            NacosDiscoveryProperties discoveryProperties,
+            NacosServiceManager nacosServiceManager,
+            Environment env
+    ) {
+        return new NacosSnowflakeIdGenerateService(
+                appConfig.getSnowflake(),
+                discoveryProperties,
+                nacosServiceManager,
+                env
+        );
     }
 }

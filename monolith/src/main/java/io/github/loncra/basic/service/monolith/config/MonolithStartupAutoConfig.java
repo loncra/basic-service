@@ -8,6 +8,8 @@ import io.github.loncra.basic.service.auth.api.service.SystemUserServiceClient;
 import io.github.loncra.basic.service.auth.api.service.web.SystemUserServiceWebClient;
 import io.github.loncra.basic.service.commons.config.AlibabaCloudConfig;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.basic.service.commons.service.SimpleSnowflakeIdGenerateService;
+import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.basic.service.message.api.service.MessageServiceClient;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.basic.service.message.api.service.web.MessageServiceWebClient;
@@ -111,8 +113,8 @@ public class MonolithStartupAutoConfig {
     }
 
     @Bean
-    public SnowflakeIdGenerator snowflakeIdGenerator(MonolithAppConfig monolithAppConfig){
-        return new SnowflakeIdGenerator(monolithAppConfig.getSnowflake());
+    public SnowflakeIdGenerateService snowflakeIdGenerator(MonolithAppConfig monolithAppConfig){
+        return new SimpleSnowflakeIdGenerateService(new SnowflakeIdGenerator(monolithAppConfig.getSnowflake()));
     }
 
     @Bean

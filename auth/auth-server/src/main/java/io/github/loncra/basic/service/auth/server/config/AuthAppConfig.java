@@ -3,6 +3,7 @@ package io.github.loncra.basic.service.auth.server.config;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.TimeProperties;
+import io.github.loncra.framework.commons.generator.twitter.BasicSnowflakeProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -39,6 +40,8 @@ public class AuthAppConfig {
      * 允许登录错误次数，当达到峰值时，出现验证码
      */
     private Integer allowableFailureNumber = 3;
+
+    private BasicSnowflakeProperties snowflake = new BasicSnowflakeProperties("001");
 
     /**
      * 登录错误使用的验证码类型

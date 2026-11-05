@@ -14,6 +14,7 @@ import io.github.loncra.basic.service.auth.server.service.enterprise.EnterpriseS
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -56,7 +57,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
 
     private final PersonalUserService personalUserService;
 
-    private final SnowflakeIdGenerator snowflakeIdGenerator;
+    private final SnowflakeIdGenerateService snowflakeIdGenerateService;
 
     private final EnterpriseService enterpriseService;
 
@@ -287,7 +288,7 @@ public class PersonalUserDetailsService extends AbstractRegistrationSystemUserDe
 
         user.setNickname(getCommonsConfig().generateRandomNickName());
         user.setStatus(UserStatus.Enabled);
-        user.setTenantId(snowflakeIdGenerator.generateId());
+        user.setTenantId(snowflakeIdGenerateService.generateSnowflakeId());
 
         RoleEntity role = personalUserService.getRoleService().getByAuthority(ResourceSourceEnum.PERSONAL.getAdminAuthority().getId());
         if (Objects.nonNull(role)) {

@@ -18,5 +18,5 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("loncra.basic-service.monolith.app")
 public class MonolithAppConfig {
 
-    private SnowflakeProperties snowflake;
+    private SnowflakeProperties snowflake = new SnowflakeProperties("005");
 }

@@ -21,6 +21,7 @@ import io.github.loncra.basic.service.commons.domain.metadata.ExportDataMetadata
 import io.github.loncra.basic.service.commons.enumerate.AuditStatusEnum;
 import io.github.loncra.basic.service.commons.enumerate.AuditTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
+import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.domain.ExpiredToken;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -84,7 +85,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
 
     private final AmqpTemplate amqpTemplate;
 
-    private final SnowflakeIdGenerator snowflakeIdGenerator;
+    private final SnowflakeIdGenerateService snowflakeIdGenerateService;
 
     @Transactional(rollbackFor = Exception.class)
     public String switchByEnterpriseId(
@@ -290,7 +291,7 @@ public class EnterpriseService extends BasicService<EnterpriseDao, EnterpriseEnt
             value = CastUtils.of(body, EnterpriseEntity.class);
             value.setOwnerPrincipal(token.getName());
             value.setEnabled(YesOrNo.Yes);
-            value.setTenantId(snowflakeIdGenerator.generateId());
+            value.setTenantId(snowflakeIdGenerateService.generateSnowflakeId());
             insert(value);
 
             OpenPlatformMerchantEntity merchant = new OpenPlatformMerchantEntity();
