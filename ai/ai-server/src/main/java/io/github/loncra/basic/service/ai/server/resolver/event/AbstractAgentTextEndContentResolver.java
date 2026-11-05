@@ -20,7 +20,8 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
     @Override
     public boolean postPublish(
             AbstractBlockRunningContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         String id = getBlockId(content.getEventSource());
         AbstractBlockRunningContentMetadata metadata = assistant.obtainBlock(id, getEndType());
@@ -32,7 +33,7 @@ public abstract class AbstractAgentTextEndContentResolver extends AbstractAgentE
         metadata.setStatus(content.getStatus());
 
         assistant.updateContent(metadata);
-        updateAssistantContent(assistant);
+        updateAssistantContent(assistant, context);
         return true;
     }
 

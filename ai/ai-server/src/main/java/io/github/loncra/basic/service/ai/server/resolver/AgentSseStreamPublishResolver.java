@@ -63,7 +63,5 @@ public interface AgentSseStreamPublishResolver {
         publish(channelKey, metadata);
     }
 
-    void sendExecuteMessage(AgentExecuteMessageMetadata metadata);
-
-    void sendExecuteMessageNow(AgentExecuteMessageMetadata metadata);
+    void sendExecuteMessage(AgentExecuteMessageMetadata metadata, boolean transactionSynchronization);
 }

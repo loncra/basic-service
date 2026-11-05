@@ -72,20 +72,18 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
     }
 
     @Override
-    public void sendExecuteMessage(AgentExecuteMessageMetadata metadata) {
+    public void sendExecuteMessage(AgentExecuteMessageMetadata metadata, boolean transactionSynchronization) {
         String payload = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
+        if (!transactionSynchronization) {
+            amqpTemplate.convertAndSend(SystemConstants.SYS_AI_RABBITMQ_EXCHANGE, AiConstants.MQ_AGENT_EXECUTE_QUEUE, payload);
+            return;
+        }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
                 amqpTemplate.convertAndSend(SystemConstants.SYS_AI_RABBITMQ_EXCHANGE, AiConstants.MQ_AGENT_EXECUTE_QUEUE, payload);
             }
         });
-    }
-
-    @Override
-    public void sendExecuteMessageNow(AgentExecuteMessageMetadata metadata) {
-        String payload = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(metadata));
-        amqpTemplate.convertAndSend(SystemConstants.SYS_AI_RABBITMQ_EXCHANGE, AiConstants.MQ_AGENT_EXECUTE_QUEUE, payload);
     }
 
     @Override

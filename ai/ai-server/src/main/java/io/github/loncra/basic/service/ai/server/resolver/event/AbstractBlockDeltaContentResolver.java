@@ -40,7 +40,8 @@ public abstract class AbstractBlockDeltaContentResolver extends AbstractAgentEve
     @Override
     public boolean postPublish(
             AbstractBlockDeltaContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         String id = getBlockId(content.getEventSource());
         AbstractBlockDeltaContentMetadata metadata = assistant.obtainBlock(id, getDeltaType());

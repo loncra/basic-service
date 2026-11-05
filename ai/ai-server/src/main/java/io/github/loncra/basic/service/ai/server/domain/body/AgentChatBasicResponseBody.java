@@ -14,6 +14,4 @@ public class AgentChatBasicResponseBody implements Serializable {
     private Long userMessageId;
 
     private Long assistantMessageId;
-
-    private String streamKey;
 }

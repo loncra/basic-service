@@ -35,7 +35,8 @@ public abstract class AbstractBlockRunningEventResolver extends AbstractAgentEve
     @Override
     public boolean postPublish(
             AbstractBlockRunningContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         assistant.updateContent(content);
         return false;

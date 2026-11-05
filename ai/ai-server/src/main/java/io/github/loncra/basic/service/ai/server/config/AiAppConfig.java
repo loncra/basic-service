@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.server.config;
 
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
+import io.github.loncra.framework.commons.generator.twitter.BasicSnowflakeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,8 @@ import java.util.Set;
 @EqualsAndHashCode
 @ConfigurationProperties("loncra.basic-service.ai.app")
 public class AiAppConfig {
+
+    private BasicSnowflakeProperties snowflake = new BasicSnowflakeProperties("004");
 
     private Map<String, String> key = new LinkedHashMap<>();
 

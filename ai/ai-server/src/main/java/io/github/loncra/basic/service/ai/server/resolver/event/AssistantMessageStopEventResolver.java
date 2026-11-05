@@ -5,12 +5,13 @@ import io.agentscope.core.event.AgentEvent;
 import io.github.loncra.basic.service.ai.server.domain.AssistantMessageStopEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AssistantMessageStopEventResolver implements AgentEventResolver {
 
-    private final AgentMessageService agentMessageService;
+    private final List<AgentChannelResolver> channelResolvers;
+
+    private AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
+        return AgentChannelResolver.channelResolver(channelResolvers, channel);
+    }
 
     @Override
     public boolean isSupport(AgentEvent event) {
@@ -37,12 +42,8 @@ public class AssistantMessageStopEventResolver implements AgentEventResolver {
     ) {
         AssistantMessageStopEvent stopEvent = CastUtils.cast(event);
         assistant.setStatus(AgentChatStatusEnum.STOPPED);
-        agentMessageService.lambdaUpdate()
-                .set(AgentMessageEntity::getStatus, assistant.getStatus().getValue())
-                .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
-                .set(AgentChatMetadata::getContent, assistant.obtainContentJsonString())
-                .eq(AgentMessageEntity::getId, assistant.getId())
-                .update();
+        AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
+        channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
 
         CustomizeMetadata metadata = new CustomizeMetadata();
         metadata.setId(stopEvent.getId());

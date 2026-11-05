@@ -4,7 +4,7 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.RequestStopEvent;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -41,14 +42,12 @@ public class RequestStopEventResolver extends AbstractAgentEventResolver<Customi
     @Override
     public boolean postPublish(
             CustomizeMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         assistant.setStatus(AgentChatStatusEnum.REQUEST_STOP);
-        getAgentMessageService().lambdaUpdate()
-                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.REQUEST_STOP.getValue())
-                .set(AgentChatMetadata::getContent, assistant.obtainContentJsonString())
-                .eq(AgentMessageEntity::getId, assistant.getId())
-                .update();
+        AgentExecutionMetadata execution = Objects.requireNonNull(context.get(AgentExecutionMetadata.class), "找不到执行元数据");
+        channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
         return true;
     }
 

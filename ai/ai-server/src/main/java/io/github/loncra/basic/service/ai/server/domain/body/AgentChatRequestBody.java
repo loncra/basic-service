@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.domain.body;
 
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.agent.LocalChatSourceMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -20,5 +20,6 @@ public class AgentChatRequestBody extends AgentChatMetadata {
     @NotNull
     private Long modelId;
 
-    private LocalChatSourceMetadata localSource;
+    @NotNull
+    private ExecutionChannelEnum channel;
 }

@@ -39,7 +39,8 @@ public class RequestUserConfirmEventResolver extends AbstractAgentEventResolver<
     @Override
     public boolean postPublish(
             ToolCallBlockContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         ToolCallBlockContentMetadata toolCallMetadata = assistant.obtainBlock(content.getId(), AgentMessageContentTypeEnum.TOOL_CALL);
         toolCallMetadata.setHitlStatus(content.getHitlStatus());

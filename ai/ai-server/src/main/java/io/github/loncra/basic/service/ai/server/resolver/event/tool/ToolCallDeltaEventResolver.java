@@ -39,7 +39,8 @@ public class ToolCallDeltaEventResolver extends AbstractAgentEventResolver<ToolC
     @Override
     public boolean postPublish(
             ToolCallBlockContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         ToolCallDeltaEvent event = CastUtils.cast(content.getEventSource());
         ToolCallBlockContentMetadata toolCallBlock = assistant.obtainBlock(event.getToolCallId(), AgentMessageContentTypeEnum.TOOL_CALL);

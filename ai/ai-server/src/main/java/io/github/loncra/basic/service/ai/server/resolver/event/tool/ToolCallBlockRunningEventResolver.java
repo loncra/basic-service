@@ -19,7 +19,8 @@ public class ToolCallBlockRunningEventResolver extends AbstractAgentEventResolve
     @Override
     public boolean postPublish(
             ToolCallBlockContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         assistant.updateContent(content);
         return false;

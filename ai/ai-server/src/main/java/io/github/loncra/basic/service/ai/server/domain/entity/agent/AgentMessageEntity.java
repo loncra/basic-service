@@ -8,7 +8,6 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadat
 import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
@@ -78,15 +77,6 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     @TableField(exist = false)
     private List<Tree<Long, AgentMessageEntity>> children = new LinkedList<>();
 
-    @TableField(exist = false)
-    private ExecutionChannelEnum executionChannel;
-
-    @TableField(exist = false)
-    private String executionRef;
-
-    @TableField(exist = false)
-    private String deviceIdentified;
-
     @Override
     @JsonIgnore
     public Long getParent() {
@@ -94,6 +84,11 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     }
 
     public String obtainUserId() {
+        return obtainUserId(principal);
+    }
+
+    public static String obtainUserId(String principal) {
         return Strings.CS.replace(principal, CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE);
     }
+
 }

@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.resolver.event.tool;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
+import io.agentscope.core.agent.RuntimeContext;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
@@ -14,7 +15,8 @@ public abstract class UpdateToolCallDataResolver extends AbstractAgentEventResol
     @Override
     public boolean postPublish(
             ToolCallBlockContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
 
         ToolCallBlockContentMetadata exist = assistant.obtainBlock(content.getId(), AgentMessageContentTypeEnum.TOOL_CALL);
@@ -24,11 +26,12 @@ public abstract class UpdateToolCallDataResolver extends AbstractAgentEventResol
         }
         BeanUtil.copyProperties(content, exist, options);
         assistant.updateContent(exist);
-        return postUpdate(content, assistant);
+        return postUpdate(content, assistant, context);
     }
 
     protected abstract boolean postUpdate(
             ToolCallBlockContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     );
 }

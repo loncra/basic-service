@@ -41,9 +41,10 @@ public class ToolResultEndEventResolver extends UpdateToolCallDataResolver {
     @Override
     protected boolean postUpdate(
             ToolCallBlockContentMetadata content,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
-        updateAssistantContent(assistant);
+        updateAssistantContent(assistant, context);
         return true;
     }
 }

@@ -6,6 +6,7 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
@@ -63,40 +64,64 @@ public class AgentController {
     public AgentChatBasicResponseBody resume(
             @RequestBody
             AgentResumeRequestBody body,
-            @CurrentSecurityContext SecurityContext securityContext
+            @CurrentSecurityContext SecurityContext securityContext,
+            HttpServletRequest request
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentManager.resume(body, token);
+        return agentManager.resume(
+                body,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
     }
 
     @DeleteMapping("/{assistantMessageId:\\d+}")
     public RestResult<Long> interrupt(
             @PathVariable
             Long assistantMessageId,
+            @RequestParam
+            ExecutionChannelEnum channel,
             @CurrentSecurityContext
-            SecurityContext securityContext
+            SecurityContext securityContext,
+            HttpServletRequest request
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        Long sessionId = agentManager.interrupt(assistantMessageId, token);
+        Long sessionId = agentManager.interrupt(
+                assistantMessageId,
+                channel,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
         return RestResult.of("中断 [" + sessionId + "] 会话成功");
     }
 
-    @PostMapping(value = "/stream/{assistantId:\\d+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/stream/{assistantMessageId:\\d+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> stream(
             @PathVariable
-            Long assistantId,
+            Long assistantMessageId,
+            @RequestParam
+            ExecutionChannelEnum channel,
             @RequestParam(required = false, defaultValue = "true")
             boolean loadHistory,
-            @CurrentSecurityContext SecurityContext securityContext
+            @CurrentSecurityContext SecurityContext securityContext,
+            HttpServletRequest request
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentManager.stream(assistantId, loadHistory, token);
+        return agentManager.stream(
+                assistantMessageId,
+                channel,
+                loadHistory,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
     }
 
     @PostMapping("message/history/{conversationId:\\d+}")
     public Page<AgentMessageEntity> history(
             PageRequest pageRequest,
             HttpServletRequest request,
+            @RequestParam
+            ExecutionChannelEnum channel,
             @RequestParam(required = false, defaultValue = "false")
             boolean totalPage,
             @PathVariable
@@ -110,9 +135,11 @@ public class AgentController {
         return agentManager.histories(
                 pageRequest,
                 filter,
+                channel,
                 conversationId,
                 totalPage,
-                token
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
         );
     }
 
@@ -123,10 +150,19 @@ public class AgentController {
             @PathVariable
             Long messageId,
             @PathVariable
-            int pageSize
+            int pageSize,
+            @RequestParam
+            ExecutionChannelEnum channel,
+            HttpServletRequest request
     ) {
         return RestResult.ofSuccess(
-                agentManager.positioningMessagePageNumber(conversationId, messageId, pageSize)
+                agentManager.positioningMessagePageNumber(
+                        channel,
+                        conversationId,
+                        messageId,
+                        pageSize,
+                        request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                )
         );
     }
 
@@ -134,11 +170,19 @@ public class AgentController {
     public RestResult<Void> deleteConversation(
             @RequestParam
             List<Integer> ids,
+            @RequestParam
+            ExecutionChannelEnum channel,
             @CurrentSecurityContext
-            SecurityContext securityContext
+            SecurityContext securityContext,
+            HttpServletRequest request
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        agentManager.deleteConversation(ids, token);
+        agentManager.deleteConversation(
+                ids,
+                channel,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }
 }

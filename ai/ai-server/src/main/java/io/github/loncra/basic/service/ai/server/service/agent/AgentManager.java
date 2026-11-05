@@ -1,6 +1,6 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
@@ -8,10 +8,7 @@ import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
-import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.github.loncra.basic.service.ai.api.enumerate.AgentBlockStatusEnum;
 import io.github.loncra.basic.service.ai.server.config.StreamConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
@@ -20,8 +17,7 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBo
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.AgentChatMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
@@ -38,21 +34,17 @@ import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstant
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
-import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.Strings;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -61,7 +53,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Flux;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -73,18 +68,11 @@ public class AgentManager {
 
     public final static String CONCURRENT_PREFIX = "loncra:basic-service:ai:app:agent:chat:concurrent:";
 
-    private final AgentConversationService conversationService;
-
-    @Getter
-    private final AgentMessageService messageService;
-
     private final AgentSseStreamPublishResolver agentSseStreamPublishResolver;
 
     private final List<AgentEventResolver> agentEventResolvers;
 
     private final List<AgentStreamEventInterceptor> agentStreamEventInterceptors;
-
-    private final AgentStateStore agentStateStore;
 
     private final StreamConfig streamConfig;
 
@@ -93,7 +81,8 @@ public class AgentManager {
     private final List<AgentChannelResolver> channelResolvers;
 
     @Concurrent(
-            value = CONCURRENT_PREFIX + "[#body.agentConversationId != null ? #body.agentConversationId : #body.localSource.workspaceKey + ':' + #body.localSource.conversationId]"
+            value = CONCURRENT_PREFIX + "[#body.channel:#body.agentConversationId]",
+            condition = "[#body.agentConversationId != null]"
     )
     @Transactional(rollbackFor = Exception.class)
     public AgentChatResponseBody chat(
@@ -101,26 +90,26 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return channelResolver(Objects.nonNull(body.getLocalSource()) ? ExecutionChannelEnum.REDIS : ExecutionChannelEnum.MYSQL)
+        return channelResolver(body.getChannel())
                 .chat(body, token, deviceIdentified);
     }
 
-    private AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
-        ExecutionChannelEnum effective = Objects.requireNonNullElse(channel, ExecutionChannelEnum.MYSQL);
-        return channelResolvers.stream()
-                .filter(s -> s.channel() == effective)
-                .findFirst()
-                .orElseThrow(() -> new SystemException("找不到通道 [" + effective + "] 的解析器"));
+    public AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
+        return AgentChannelResolver.channelResolver(channelResolvers, channel);
     }
 
     public Flux<ServerSentEvent<String>> stream(
-            Long assistantId,
+            Long assistantMessageId,
+            ExecutionChannelEnum channel,
             boolean loadHistory,
-            AuditAuthenticationToken token
+            AuditAuthenticationToken token,
+            String deviceIdentified
     ) {
-        AgentMessageEntity assistant = messageService.get(assistantId);
-        SystemException.isTrue(Objects.nonNull(assistant), "找不到 ID 为 [" + assistantId + "] 的助手消息");
-        SystemException.isTrue(AgentMessageRoleEnum.ASSISTANT.equals(assistant.getRole()), "ID 为 [" + assistantId + "] 的消息记录非助手消息");
+        AgentMessageEntity assistant = Objects.requireNonNull(
+                channelResolver(channel).getMessage(assistantMessageId, deviceIdentified),
+                "执行 [" + assistantMessageId + "] 不存在或已结束"
+        );
+        SystemException.isTrue(AgentMessageRoleEnum.ASSISTANT.equals(assistant.getRole()), "ID 为 [" + assistantMessageId + "] 的消息记录非助手消息");
         PrincipalDetailsConstants.equals(assistant, token);
         if (AgentChatStatusEnum.COMPLETED.equals(assistant.getStatus())) {
             return Flux.fromIterable(agentSseStreamPublishResolver.getAgentMessageServerSentEvent(assistant));
@@ -131,42 +120,29 @@ public class AgentManager {
     public Page<AgentMessageEntity> histories(
             PageRequest request,
             MultiValueMap<String, Object> filter,
+            ExecutionChannelEnum channel,
             Long conversationId,
             boolean totalPage,
-            AuditAuthenticationToken token
+            AuditAuthenticationToken token,
+            String deviceIdentified
     ) {
-        AgentConversationEntity conversation = conversationService.get(conversationId);
-        PrincipalDetailsConstants.equals(conversation, token);
-        QueryWrapper<AgentMessageEntity> wrapper = messageService.getQueryGenerator()
-                .createQueryWrapperFromMap(filter);
-        wrapper.eq(AgentMessageEntity.CONVERSATION_ID_TABLE_FIELD_NAME, conversationId)
-                .orderByDesc(IdEntity.ID_FIELD_NAME);
-
-        Page<AgentMessageEntity> page;
-        if (totalPage) {
-            page = messageService.findTotalPage(request, wrapper);
-        } else {
-            page = messageService.findPage(request, wrapper);
-        }
-
-        List<AgentMessageEntity> messages = page.getElements();
-        if (CollectionUtils.isEmpty(messages)) {
-            return page;
-        }
-
-        return page;
+        return channelResolver(channel).histories(request, filter, conversationId, totalPage, token, deviceIdentified);
     }
 
     public int positioningMessagePageNumber(
+            ExecutionChannelEnum channel,
             Long conversationId,
             Long messageId,
-            int pageSize
+            int pageSize,
+            String deviceIdentified
     ) {
-        return messageService.positioningPageNumber(conversationId, messageId, pageSize);
+        return channelResolver(channel).positioningMessagePageNumber(conversationId, messageId, pageSize, deviceIdentified);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void execute(AgentMessageEntity assistant) {
+    public void execute(AgentExecutionMetadata execution) {
+        AgentMessageEntity assistant = execution.getAssistantMessage();
+        ExecutionChannelEnum channel = execution.getChannel();
         Flux<AbstractAssistantMessageContentMetadata> flux;
         if (AgentChatStatusEnum.REQUEST_STOP.equals(assistant.getStatus())) {
             List<ConfirmResult> confirmResults = assistant.obtainUserConfirmResultMetadataThenRemove();
@@ -175,27 +151,25 @@ public class AgentManager {
             Msg msg = Msg.builderForRole(MsgRole.USER)
                     .metadata(metadata)
                     .build();
-            messageService.lambdaUpdate()
-                    .set(AgentChatMetadata::getMetadata, assistant.obtainMetadataJsonString())
-                    .eq(AgentMessageEntity::getId, assistant.getId())
-                    .update();
+            channelResolver(channel).saveAssistant(execution, assistant);
             flux = Flux.using(
-                    () -> channelResolver(assistant.getExecutionChannel()).createHarnessAgent(assistant),
-                    agent -> executeAgentStreamEvents(agent, List.of(msg), assistant),
+                    () -> channelResolver(channel).createHarnessAgent(execution),
+                    agent -> executeAgentStreamEvents(agent, List.of(msg), execution),
                     HarnessAgent::close
             );
         } else {
             AgentMessageEntity userMessage = Objects.requireNonNull(
-                    messageService.get(assistant.getParentId()),
+                    execution.getUserMessage(),
                     "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
             );
-            List<AgentMessageEntity> assistantMessages = messageService.findRequestStopAssistantMessage(
-                    assistant.getAgentConversationId()
+            List<AgentMessageEntity> assistantMessages = channelResolver(channel).findRequestStopAssistantMessage(
+                    assistant.getAgentConversationId(),
+                    execution.getDeviceIdentified()
             );
             if (CollectionUtils.isNotEmpty(assistantMessages)) {
                 flux = Flux.empty();
                 for (AgentMessageEntity rejectAssistantMessage : assistantMessages) {
-                    List<ConfirmResult> confirmResults = createRejectConfirmResults(rejectAssistantMessage);
+                    List<ConfirmResult> confirmResults = createRejectConfirmResults(execution, rejectAssistantMessage);
                     if (CollectionUtils.isEmpty(confirmResults)) {
                         continue;
                     }
@@ -203,9 +177,10 @@ public class AgentManager {
                             .role(MsgRole.USER)
                             .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, confirmResults))
                             .build();
+                    AgentExecutionMetadata rejectExecution = rejectExecution(execution, rejectAssistantMessage);
                     Flux<AbstractAssistantMessageContentMetadata> thenMany = Flux.using(
-                            () -> channelResolver(rejectAssistantMessage.getExecutionChannel()).createHarnessAgent(rejectAssistantMessage),
-                            agent -> executeAgentStreamEvents(agent, List.of(confirmMsg), rejectAssistantMessage),
+                            () -> channelResolver(channel).createHarnessAgent(rejectExecution),
+                            agent -> executeAgentStreamEvents(agent, List.of(confirmMsg), rejectExecution),
                             HarnessAgent::close
                     );
                     flux = flux.thenMany(Flux.deferContextual(
@@ -213,11 +188,11 @@ public class AgentManager {
                     ));
                 }
                 Flux<AbstractAssistantMessageContentMetadata> thenMany = Flux.using(
-                        () -> channelResolver(assistant.getExecutionChannel()).createHarnessAgent(assistant),
+                        () -> channelResolver(channel).createHarnessAgent(execution),
                         agent -> executeAgentStreamEvents(
                                 agent,
-                                List.of(createUserMentionMsg(agent, assistant, userMessage)),
-                                assistant
+                                List.of(createUserMentionMsg(agent, execution, userMessage)),
+                                execution
                         ),
                         HarnessAgent::close
                 );
@@ -226,11 +201,11 @@ public class AgentManager {
                 ));
             } else {
                 flux = Flux.using(
-                        () -> channelResolver(assistant.getExecutionChannel()).createHarnessAgent(assistant),
+                        () -> channelResolver(channel).createHarnessAgent(execution),
                         agent -> executeAgentStreamEvents(
                                 agent,
-                                List.of(createUserMentionMsg(agent, assistant, userMessage)),
-                                assistant
+                                List.of(createUserMentionMsg(agent, execution, userMessage)),
+                                execution
                         ),
                         HarnessAgent::close
                 );
@@ -238,15 +213,42 @@ public class AgentManager {
         }
 
         ReactorContextUtils.captureContext(flux)
+                .doFinally(signal ->
+                        channelResolver(channel).deleteConversationData(
+                                assistant.getAgentConversationId(),
+                                execution.getDeviceIdentified()
+                        )
+                )
                 .subscribe(
                         s -> {},
-                        error -> onError(error, assistant)
-                                .doOnNext(s -> publishStreamEvent(s, assistant))
+                        error -> onError(error, execution)
+                                .doOnNext(s -> publishStreamEvent(s, assistant, null))
                                 .subscribe()
                 );
     }
 
-    private List<ConfirmResult> createRejectConfirmResults(AgentMessageEntity assistantMessage) {
+    private AgentExecutionMetadata rejectExecution(AgentExecutionMetadata execution, AgentMessageEntity rejectAssistantMessage) {
+        AgentExecutionMetadata rejectExecution = new AgentExecutionMetadata();
+        rejectExecution.setChannel(execution.getChannel());
+        rejectExecution.setDeviceIdentified(execution.getDeviceIdentified());
+        rejectExecution.setClientConversationId(execution.getClientConversationId());
+        rejectExecution.setConversation(execution.getConversation());
+        rejectExecution.setUserMessage(resolveUserMessage(execution, rejectAssistantMessage));
+        rejectExecution.setAssistantMessage(rejectAssistantMessage);
+        return rejectExecution;
+    }
+
+    private AgentMessageEntity resolveUserMessage(AgentExecutionMetadata execution, AgentMessageEntity assistantMessage) {
+        if (Objects.equals(execution.getAssistantMessage().getParentId(), assistantMessage.getParentId())) {
+            return execution.getUserMessage();
+        }
+        return channelResolver(execution.getChannel()).getMessage(
+                assistantMessage.getParentId(),
+                execution.getDeviceIdentified()
+        );
+    }
+
+    private List<ConfirmResult> createRejectConfirmResults(AgentExecutionMetadata execution, AgentMessageEntity assistantMessage) {
         List<ConfirmResult> confirmResults = assistantMessage.obtainMessageContents()
                 .stream()
                 .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
@@ -257,11 +259,7 @@ public class AgentManager {
                 .toList();
 
         assistantMessage.setStatus(AgentChatStatusEnum.REJECT_ALL);
-
-        messageService.lambdaUpdate()
-                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.REJECT_ALL.getValue())
-                .eq(AgentMessageEntity::getId, assistantMessage.getId())
-                .update();
+        channelResolver(execution.getChannel()).saveAssistant(execution, assistantMessage);
 
         return confirmResults;
     }
@@ -269,46 +267,48 @@ public class AgentManager {
     private Flux<AbstractAssistantMessageContentMetadata> executeAgentStreamEvents(
             HarnessAgent agent,
             List<Msg> messages,
-            AgentMessageEntity assistantMessage
+            AgentExecutionMetadata execution
     ) {
+        AgentMessageEntity assistantMessage = execution.getAssistantMessage();
+        ExecutionChannelEnum channel = execution.getChannel();
 
         if (!AgentChatStatusEnum.REJECT_ALL.equals(assistantMessage.getStatus())) {
             assistantMessage.setStatus(AgentChatStatusEnum.RUNNING);
-            messageService.lambdaUpdate()
-                    .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
-                    .eq(AgentMessageEntity::getId, assistantMessage.getId())
-                    .update();
+            channelResolver(channel).saveAssistant(execution, assistantMessage);
         }
-        conversationService.lambdaUpdate()
-                .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.RUNNING.getValue())
-                .eq(AgentConversationEntity::getId, assistantMessage.getAgentConversationId())
-                .update();
+        channelResolver(channel).saveConversationStatus(execution, AgentChatStatusEnum.RUNNING);
 
         RuntimeContext context = RuntimeContext.builder()
                 .userId(assistantMessage.obtainUserId())
                 .sessionId(String.valueOf(assistantMessage.getAgentConversationId()))
                 .put(SecurityContext.class, SecurityContextHolder.getContext())
                 .put(AgentMessageRoleEnum.ASSISTANT.toString(), assistantMessage)
+                .put(AgentExecutionMetadata.class, execution)
                 .build();
 
         return agent.streamEvents(messages, context)
                 .concatMap(e -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> convertEventToMessageContent(e, context))))
                 .filter(Objects::nonNull)
-                .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, context))))
+                .onErrorResume(t -> Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onError(t, context.get(AgentExecutionMetadata.class)))))
                 .doOnNext(s -> publishStreamEvent(s, context));
 
     }
 
     private Msg createUserMentionMsg(
             HarnessAgent agent,
-            AgentMessageEntity assistant,
+            AgentExecutionMetadata execution,
             AgentMessageEntity userMessage
     ) {
+        AgentMessageEntity assistant = execution.getAssistantMessage();
+        AgentConversationEntity conversation = channelResolver(execution.getChannel()).getConversation(
+                assistant.getAgentConversationId(),
+                execution.getDeviceIdentified()
+        );
         AgentPluginInstructionContext context = new AgentPluginInstructionContext();
         context.setToolkit(agent.getToolkit());
         context.setAgent(agent);
         context.setUserMessage(userMessage);
-        context.setWorkspaceId(resolveWorkspaceId(conversationService.get(assistant.getAgentConversationId())));
+        context.setWorkspaceId(resolveWorkspaceId(conversation));
         applyPluginInstructions(context);
         String prompt = TextMessageMetadata.ofString(userMessage.getContent());
         if (CollectionUtils.isNotEmpty(context.getMentionSummaries())) {
@@ -345,12 +345,13 @@ public class AgentManager {
     ) {
 
         AgentMessageEntity assistant = context.get(AgentMessageRoleEnum.ASSISTANT.toString());
-        publishStreamEvent(message, assistant);
+        publishStreamEvent(message, assistant, context);
     }
 
     private void publishStreamEvent(
             AbstractAssistantMessageContentMetadata message,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         agentSseStreamPublishResolver.publish(assistant.getAgentConversationId().toString(), message);
 
@@ -359,16 +360,17 @@ public class AgentManager {
                     .filter(s -> s.isSupport(message.getEventSource()))
                     .filter(s -> AbstractAgentEventResolver.class.isAssignableFrom(s.getClass()))
                     .map(s -> CastUtils.cast(s, AbstractAgentEventResolver.class))
-                    .forEach(resolver -> resolverPostPublish(CastUtils.cast(resolver), message, assistant));
+                    .forEach(resolver -> resolverPostPublish(CastUtils.cast(resolver), message, assistant, context));
         }
     }
 
     private void resolverPostPublish(
             AbstractAgentEventResolver<AbstractAssistantMessageContentMetadata> resolver,
             AbstractAssistantMessageContentMetadata message,
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
-        boolean cleanStream = resolver.postPublish(message, assistant);
+        boolean cleanStream = resolver.postPublish(message, assistant, context);
         if (!cleanStream) {
             return ;
         }
@@ -385,10 +387,14 @@ public class AgentManager {
     }
 
     private Flux<AbstractAssistantMessageContentMetadata> onCompleted(
-            AgentMessageEntity assistant
+            AgentExecutionMetadata execution
     ) {
-        AgentConversationEntity conversation = conversationService.get(assistant.getAgentConversationId());
-        if (!AgentChatStatusEnum.STREAM_END_STATUS.contains(conversation.getStatus())) {
+        AgentMessageEntity assistant = execution.getAssistantMessage();
+        AgentConversationEntity conversation = channelResolver(execution.getChannel()).getConversation(
+                assistant.getAgentConversationId(),
+                execution.getDeviceIdentified()
+        );
+        if (Objects.isNull(conversation) || !AgentChatStatusEnum.STREAM_END_STATUS.contains(conversation.getStatus())) {
             log.warn("会话 [{}] 当前未处于完成状态略过推送 STREAM_END 事件", assistant.getId());
             return Flux.empty();
         }
@@ -408,17 +414,9 @@ public class AgentManager {
 
     public Flux<AbstractAssistantMessageContentMetadata> onError(
             Throwable t,
-            RuntimeContext context
+            AgentExecutionMetadata execution
     ) {
-
-        AgentMessageEntity assistant = context.get(AgentMessageRoleEnum.ASSISTANT.toString());
-        return onError(t, assistant);
-    }
-
-    public Flux<AbstractAssistantMessageContentMetadata> onError(
-            Throwable t,
-            AgentMessageEntity assistant
-    ) {
+        AgentMessageEntity assistant = execution.getAssistantMessage();
         log.error("助手消息 [{}] 执行失败", assistant.getId(), t);
 
         CustomizeMetadata content = new CustomizeMetadata();
@@ -427,22 +425,14 @@ public class AgentManager {
         content.getMetadata().put(RestResult.DEFAULT_MESSAGE_NAME, t.getMessage());
         assistant.updateContent(content);
         assistant.setStatus(AgentChatStatusEnum.FAILED);
-
-        messageService.lambdaUpdate()
-                .set(AgentMessageEntity::getStatus, AgentChatStatusEnum.FAILED.getValue())
-                .set(AgentMessageEntity::getContent, assistant.obtainContentJsonString())
-                .eq(AgentMessageEntity::getId, assistant.getId())
-                .update();
+        channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
 
         AgentStatusContentMetadata agentEndContent = new AgentStatusContentMetadata();
         agentEndContent.setId(assistant.getAgentConversationId().toString());
         agentEndContent.setStatus(AgentChatStatusEnum.FAILED);
 
-        conversationService.lambdaUpdate()
-                .set(AgentConversationEntity::getStatus, AgentChatStatusEnum.FAILED.getValue())
-                .eq(IdEntity::getId, assistant.getAgentConversationId())
-                .update();
-        return Flux.just(agentEndContent, content).concatWith(onCompleted(assistant));
+        channelResolver(execution.getChannel()).saveConversationStatus(execution, AgentChatStatusEnum.FAILED);
+        return Flux.just(agentEndContent, content).concatWith(onCompleted(execution));
     }
 
     private Flux<AbstractAssistantMessageContentMetadata> postStreamEvent(
@@ -471,7 +461,7 @@ public class AgentManager {
         Flux<AbstractAssistantMessageContentMetadata> flux = Flux.fromIterable(contents);
         if (AgentEndEvent.class.isAssignableFrom(event.getClass())) {
             flux = flux.concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
-                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(assistant))));
+                    .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(context.get(AgentExecutionMetadata.class)))));
         }
         return flux;
     }
@@ -479,100 +469,33 @@ public class AgentManager {
     @Transactional(rollbackFor = Exception.class)
     public AgentChatBasicResponseBody resume(
             AgentResumeRequestBody body,
-            AuditAuthenticationToken token
+            AuditAuthenticationToken token,
+            String deviceIdentified
     ) {
-        AgentMessageEntity assistantMessage = Objects.requireNonNull(messageService.get(body.getAssistantMessageId()));
-        PrincipalDetailsConstants.equals(assistantMessage, token);
-
-        List<ConfirmResult> confirmResults = getResumeConfirmResults(body, assistantMessage);
-
-        assistantMessage.saveUserConfirmResultMetadata(confirmResults);
-
-        messageService.lambdaUpdate()
-                .set(AgentChatMetadata::getContent, assistantMessage.obtainContentJsonString())
-                .set(AgentChatMetadata::getMetadata, assistantMessage.obtainMetadataJsonString())
-                .eq(AgentMessageEntity::getId, assistantMessage.getId())
-                .update();
-
-        agentSseStreamPublishResolver.publishStreamStart(assistantMessage.getAgentConversationId().toString(), assistantMessage.getId().toString());
-        agentSseStreamPublishResolver.sendExecuteMessage(
-                AgentExecuteMessageMetadata.of(ExecutionChannelEnum.MYSQL, assistantMessage.getId().toString(), null)
-        );
-
-        AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
-        result.setAssistantMessageId(assistantMessage.getId());
-        result.setUserMessageId(assistantMessage.getParentId());
-
-        return result;
-    }
-
-    private static List<ConfirmResult> getResumeConfirmResults(
-            AgentResumeRequestBody body,
-            AgentMessageEntity assistantMessage
-    ) {
-        List<ToolUseBlock> toolUseBlocks = assistantMessage.obtainMessageContents().stream()
-                .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
-                .map(s -> CastUtils.cast(s, ToolCallBlockContentMetadata.class))
-                .filter(s -> AgentBlockStatusEnum.PENDING.equals(s.getStatus()))
-                .map(ToolCallBlockContentMetadata::toToolUseBlock)
-                .toList();
-
-        List<ConfirmResult> confirmResults = new LinkedList<>();
-        for (ToolUseBlock toolUseBlock : toolUseBlocks) {
-            Boolean confirm = body.getConfirmResults()
-                    .stream()
-                    .filter(s -> s.getToolCallId().equals(toolUseBlock.getId()))
-                    .findFirst()
-                    .map(AgentResumeRequestBody.ConfirmResult::isConfirmed)
-                    .orElseThrow(() -> new SystemException("ID 为 [" + toolUseBlock.getId() + "] 的工具需要确认"));
-            confirmResults.add(new ConfirmResult(confirm, toolUseBlock));
-            Optional<ToolCallBlockContentMetadata> optional = assistantMessage
-                    .obtainMessageContents()
-                    .stream()
-                    .filter(s -> s.getId().equals(toolUseBlock.getId()))
-                    .map(s -> CastUtils.cast(s, ToolCallBlockContentMetadata.class))
-                    .findFirst();
-            if (optional.isPresent()) {
-                ToolCallBlockContentMetadata contentMetadata = optional.get();
-                contentMetadata.setUserConfirmed(confirm);
-                contentMetadata.setHitlStatus(confirm ? ToolCallState.ALLOWED : ToolCallState.FINISHED);
-                assistantMessage.updateContent(contentMetadata);
-            }
-
-        }
-        return confirmResults;
+        return channelResolver(body.getChannel())
+                .resume(body, token, deviceIdentified);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void deleteConversation(
             List<Integer> ids,
-            AuditAuthenticationToken token
+            ExecutionChannelEnum channel,
+            AuditAuthenticationToken token,
+            String deviceIdentified
     ) {
-        conversationService.get(ids).forEach(conversation -> deleteConversation(conversation, token));
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void deleteConversation(
-            AgentConversationEntity entity,
-            AuditAuthenticationToken token
-    ) {
-        PrincipalDetailsConstants.equals(entity, token);
-        SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
-        conversationService.lambdaQuery()
-                .eq(AgentConversationEntity::getParentId, entity.getId())
-                .list()
-                .forEach(conversation -> deleteConversation(conversation, token));
-        agentStateStore.delete(Strings.CS.replace(entity.getPrincipal(), CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE), entity.getId().toString());
-        agentSseStreamPublishResolver.remove(entity.getId().toString());
-        conversationService.deleteByEntity(entity);
-        messageService.findByConversationId(entity.getId()).forEach(messageService::deleteByEntity);
+        channelResolver(channel).deleteConversation(ids, token, deviceIdentified);
     }
 
     public Long interrupt(
             Long assistantMessageId,
-            AuditAuthenticationToken token
+            ExecutionChannelEnum channel,
+            AuditAuthenticationToken token,
+            String deviceIdentified
     ) {
-        AgentMessageEntity assistant = Objects.requireNonNull(messageService.get(assistantMessageId), "找不到 ID 为 [" + assistantMessageId + "] 的助手信息");
+        AgentMessageEntity assistant = Objects.requireNonNull(
+                channelResolver(channel).getMessage(assistantMessageId, deviceIdentified),
+                "执行 [" + assistantMessageId + "] 不存在或已结束"
+        );
         PrincipalDetailsConstants.equals(assistant, token);
         SystemException.isTrue(
                 !AgentChatStatusEnum.COMPLETED_STATUS.contains(assistant.getStatus()),

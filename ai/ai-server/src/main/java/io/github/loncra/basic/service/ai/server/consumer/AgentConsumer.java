@@ -7,8 +7,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentExecutionStore;
+import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
@@ -32,8 +31,6 @@ public class AgentConsumer {
 
     private final AgentManager agentManager;
 
-    private final AgentExecutionStore agentExecutionStore;
-
     @RabbitListener(
             bindings = @QueueBinding(
                     value = @Queue(value = AiConstants.MQ_AGENT_EXECUTE_QUEUE, durable = "true"),
@@ -56,19 +53,18 @@ public class AgentConsumer {
             return;
         }
 
-        AgentMessageEntity assistant;
-        if (ExecutionChannelEnum.MYSQL.equals(executeMessage.getChannel())) {
-            assistant = agentManager.getMessageService().get(Long.valueOf(executeMessage.getRef()));
-        } else {
-            AgentExecutionMetadata execution = agentExecutionStore.get(executeMessage.getRef());
-            if (Objects.isNull(execution)) {
-                log.info("执行引用 [{}] 不存在或已过期，跳过执行", executeMessage.getRef());
-                channel.basicAck(tag, false);
-                return;
-            }
-            assistant = execution.getAssistantMessage();
+        AgentExecutionMetadata execution;
+        try {
+            AgentChannelResolver resolver = agentManager.channelResolver(executeMessage.getChannel());
+            execution = resolver.getAgentExecutionMetadata(executeMessage);
+        }
+        catch (Exception e) {
+            log.info("执行引用 [{}] 组装执行内容失败，跳过执行: {}", executeMessage.getRef(), e.getMessage());
+            channel.basicAck(tag, false);
+            return;
         }
 
+        AgentMessageEntity assistant = Objects.nonNull(execution) ? execution.getAssistantMessage() : null;
         if (Objects.isNull(assistant)) {
             log.info("找不到 ID 为 [{}] 的助手消息", executeMessage.getRef());
             channel.basicNack(tag, false, false);
@@ -85,12 +81,8 @@ public class AgentConsumer {
             return;
         }
 
-        assistant.setExecutionChannel(executeMessage.getChannel());
-        assistant.setExecutionRef(executeMessage.getRef());
-        assistant.setDeviceIdentified(executeMessage.getDeviceIdentified());
-
         try {
-            agentManager.execute(assistant);
+            agentManager.execute(execution);
             channel.basicAck(tag, false);
         } catch (Exception e) {
             log.error("执行 ID 为 [{}] 的助手消息失败", assistant.getId(), e);
