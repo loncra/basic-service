@@ -1,11 +1,11 @@
 package io.github.loncra.basic.service.ai.server.resolver.channel;
 
-import io.agentscope.core.event.ConfirmResult;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.model.FileData;
-import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
+import io.agentscope.harness.agent.filesystem.model.FileInfo;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -26,7 +26,6 @@ import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesyste
 import io.github.loncra.basic.service.ai.server.resolver.state.RpcJsonFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
-import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -39,7 +38,7 @@ import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import lombok.RequiredArgsConstructor;
 import nl.basjes.parse.useragent.UserAgent;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 
@@ -72,11 +71,9 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
 
     private final RpcFilesystemInvoker rpcFilesystemInvoker;
 
-    private final SnowflakeIdGenerateService snowflakeIdGenerateService;
-
     @Override
-    public ExecutionChannelEnum channel() {
-        return ExecutionChannelEnum.REDIS;
+    public ExecutionChannelEnum getChannel() {
+        return ExecutionChannelEnum.LOCAL;
     }
 
     @Override
@@ -90,36 +87,19 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         String executeShell = Objects.toString(session.getMetadata().get(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME), null);
         SystemException.isTrue(StringUtils.isNotBlank(executeShell), "客户端 [" + deviceIdentified + "] 未上报 executeShell，无法执行本地任务");
 
-        ModelSettingMetadata modelMetadata = resolveModelMetadata(body.getModelId());
+        return super.chat(body,token, deviceIdentified);
+    }
 
-        AgentConversationEntity conversation = new AgentConversationEntity();
-        conversation.setId(Objects.nonNull(body.getAgentConversationId())
-                ? body.getAgentConversationId()
-                : NumberUtils.toLong(snowflakeIdGenerateService.generateSnowflakeId()));
-        conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
-        conversation.setPrincipal(token.getName());
-        prepareConversation(conversation, body, modelMetadata);
-
-        AgentMessageEntity userMessage = buildUserMessage(body, modelMetadata, conversation.getId(), token.getName());
-        userMessage.setId(NumberUtils.toLong(snowflakeIdGenerateService.generateSnowflakeId()));
-
-        AgentMessageEntity assistantMessage = buildAssistantMessage(userMessage, conversation.getId());
-        assistantMessage.setId(NumberUtils.toLong(snowflakeIdGenerateService.generateSnowflakeId()));
-
-        saveConversation(conversation, deviceIdentified);
-        saveMessage(userMessage, deviceIdentified);
-        saveMessage(assistantMessage, deviceIdentified);
-
-        agentSseStreamPublishResolver.sendExecuteMessage(
-                AgentExecuteMessageMetadata.of(ExecutionChannelEnum.REDIS, assistantMessage.getId().toString(), deviceIdentified),
-                false
-        );
-
-        AgentChatResponseBody responseBody = buildResponseBody(conversation, userMessage, assistantMessage);
-
-        agentSseStreamPublishResolver.publishStreamStart(conversation.getId().toString(), assistantMessage.getId().toString());
-
-        return responseBody;
+    @Override
+    protected AgentConversationEntity getDefaultWorkspace(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        return listConversationEntities(deviceIdentified).stream()
+                .filter(s -> Objects.equals(s.getPrincipal(), token.getName()))
+                .filter(s -> AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(s.getType()))
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -128,53 +108,29 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentConversationEntity conversation = Objects.requireNonNull(
-                getConversation(NumberUtils.toLong(body.getClientConversationId()), deviceIdentified),
-                "本地执行会话不存在"
-        );
-        AgentMessageEntity assistantMessage = Objects.requireNonNull(
-                getMessage(body.getAssistantMessageId(), deviceIdentified),
-                "本地执行数据不存在或已清理，无法恢复确认"
-        );
-        AgentMessageEntity userMessage = Objects.requireNonNull(
-                getMessage(assistantMessage.getParentId(), deviceIdentified),
-                "找不到 ID 为 [" + assistantMessage.getParentId() + "] 的用户消息记录"
-        );
-        PrincipalDetailsConstants.equals(assistantMessage, token);
-        SystemException.isTrue(
-                Objects.equals(String.valueOf(assistantMessage.getAgentConversationId()), body.getClientConversationId()),
-                "助手消息与会话不一致"
-        );
-        SystemException.isTrue(
-                AgentChatStatusEnum.REQUEST_STOP.equals(assistantMessage.getStatus()),
-                "当前助手消息不在等待确认状态"
-        );
-
-        List<ConfirmResult> confirmResults = getResumeConfirmResults(body, token, deviceIdentified);
-        assistantMessage.saveUserConfirmResultMetadata(confirmResults);
-        applyConfirmResults(assistantMessage, confirmResults);
-
-        saveConversation(conversation, deviceIdentified);
-        saveMessage(userMessage, deviceIdentified);
-        saveMessage(assistantMessage, deviceIdentified);
-
-        agentSseStreamPublishResolver.publishStreamStart(assistantMessage.getAgentConversationId().toString(), assistantMessage.getId().toString());
+        AgentChatBasicResponseBody responseBody = super.resume(body, token, deviceIdentified);
         agentSseStreamPublishResolver.sendExecuteMessage(
-                AgentExecuteMessageMetadata.of(ExecutionChannelEnum.REDIS, assistantMessage.getId().toString(), deviceIdentified),
+                AgentExecuteMessageMetadata.of(getChannel(), responseBody.getAssistantMessageId(), deviceIdentified),
                 false
         );
+        return responseBody;
+    }
 
-        AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
-        result.setAssistantMessageId(assistantMessage.getId());
-        result.setUserMessageId(assistantMessage.getParentId());
-
-        return result;
+    @Override
+    protected List<AgentConversationEntity> doFindConversations(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        return listConversationEntities(deviceIdentified).stream()
+                .filter(s -> Objects.equals(s.getPrincipal(), token.getName()))
+                .sorted(Comparator.comparing(AgentConversationEntity::getId).reversed())
+                .toList();
     }
 
     @Override
     public AgentExecutionMetadata getAgentExecutionMetadata(AgentExecuteMessageMetadata message) {
         String deviceIdentified = message.getDeviceIdentified();
-        AgentMessageEntity assistant = getMessage(NumberUtils.toLong(message.getRef()), deviceIdentified);
+        AgentMessageEntity assistant = getMessage(message.getRef(), deviceIdentified);
         if (Objects.isNull(assistant)) {
             return null;
         }
@@ -189,9 +145,9 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         );
 
         AgentExecutionMetadata execution = new AgentExecutionMetadata();
-        execution.setChannel(ExecutionChannelEnum.REDIS);
+        execution.setChannel(ExecutionChannelEnum.LOCAL);
         execution.setDeviceIdentified(deviceIdentified);
-        execution.setClientConversationId(assistant.getAgentConversationId().toString());
+        execution.setClientConversationId(assistant.getAgentConversationId());
         execution.setConversation(conversation);
         execution.setUserMessage(userMessage);
         execution.setAssistantMessage(assistant);
@@ -217,7 +173,10 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public AbstractFilesystem createFilesystem(AgentExecutionMetadata execution, String workspacePath) {
+    public AbstractFilesystem createFilesystem(
+            AgentExecutionMetadata execution,
+            String workspacePath
+    ) {
         return new RemoteRpcFilesystem(rpcFilesystemInvoker, execution.getDeviceIdentified());
     }
 
@@ -227,19 +186,36 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public void saveConversation(AgentConversationEntity conversation, String deviceIdentified) {
+    public void updateConversation(
+            AgentConversationEntity conversation,
+            String deviceIdentified
+    ) {
         writeString(deviceIdentified, conversationFile(conversation.getId()), toJson(conversation));
     }
 
     @Override
-    public AgentConversationEntity getConversation(Long conversationId, String deviceIdentified) {
+    public void insertConversation(
+            AgentConversationEntity conversation,
+            String deviceIdentified
+    ) {
+        writeString(deviceIdentified, conversationFile(conversation.getId()), toJson(conversation));
+    }
+
+    @Override
+    public AgentConversationEntity getConversation(
+            String conversationId,
+            String deviceIdentified
+    ) {
         return fromJson(readString(deviceIdentified, conversationFile(conversationId)), AgentConversationEntity.class);
     }
 
     @Override
-    public void saveMessage(AgentMessageEntity message, String deviceIdentified) {
+    public void saveMessage(
+            AgentMessageEntity message,
+            String deviceIdentified
+    ) {
         writeString(deviceIdentified, messageFile(message.getId()), toJson(message));
-        List<Long> messageIds = readMessageIds(message.getAgentConversationId(), deviceIdentified);
+        List<String> messageIds = readMessageIds(message.getAgentConversationId(), deviceIdentified);
         if (!messageIds.contains(message.getId())) {
             messageIds.add(message.getId());
             writeString(deviceIdentified, messageIndexFile(message.getAgentConversationId()), toJson(messageIds));
@@ -247,12 +223,18 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public AgentMessageEntity getMessage(Long messageId, String deviceIdentified) {
+    public AgentMessageEntity getMessage(
+            String messageId,
+            String deviceIdentified
+    ) {
         return fromJson(readString(deviceIdentified, messageFile(messageId)), AgentMessageEntity.class);
     }
 
     @Override
-    public List<AgentMessageEntity> getConversationMessages(Long conversationId, String deviceIdentified) {
+    public List<AgentMessageEntity> getConversationMessages(
+            String conversationId,
+            String deviceIdentified
+    ) {
         return readMessageIds(conversationId, deviceIdentified).stream()
                 .map(id -> getMessage(id, deviceIdentified))
                 .filter(Objects::nonNull)
@@ -260,7 +242,10 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public List<AgentMessageEntity> findRequestStopAssistantMessage(Long conversationId, String deviceIdentified) {
+    public List<AgentMessageEntity> findRequestStopAssistantMessage(
+            String conversationId,
+            String deviceIdentified
+    ) {
         return getConversationMessages(conversationId, deviceIdentified).stream()
                 .filter(s -> AgentChatStatusEnum.REQUEST_STOP.equals(s.getStatus()))
                 .filter(s -> AgentMessageRoleEnum.ASSISTANT.equals(s.getRole()))
@@ -268,41 +253,48 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public void deleteConversationData(Long conversationId, String deviceIdentified) {
-        AgentConversationEntity conversation = getConversation(conversationId, deviceIdentified);
-        if (Objects.nonNull(conversation)) {
-            BasicAgentExecutionMetadata basic = new BasicAgentExecutionMetadata();
-            basic.setChannel(ExecutionChannelEnum.REDIS);
-            basic.setDeviceIdentified(deviceIdentified);
-            basic.setClientConversationId(conversationId.toString());
-            resolveStateStore(basic).delete(AgentMessageEntity.obtainUserId(conversation.getPrincipal()), conversationId.toString());
-        }
-        for (Long messageId : readMessageIds(conversationId, deviceIdentified)) {
+    protected void doDeleteConversation(
+            AgentConversationEntity conversation,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        for (String messageId : readMessageIds(conversation.getId(), deviceIdentified)) {
             deleteFile(deviceIdentified, messageFile(messageId));
         }
-        deleteFile(deviceIdentified, messageIndexFile(conversationId));
-        deleteFile(deviceIdentified, conversationFile(conversationId));
+        deleteFile(deviceIdentified, messageIndexFile(conversation.getId()));
+        deleteFile(deviceIdentified, conversationFile(conversation.getId()));
+        List<AgentConversationEntity> entities = listConversationEntities(deviceIdentified);
+        entities.stream()
+                .filter(s -> Strings.CS.equals(s.getParentId(), conversation.getId()))
+                .forEach(s -> deleteConversation(s.getId(), token, deviceIdentified));
     }
 
-    @Override
-    public void deleteConversation(List<Integer> ids, AuditAuthenticationToken token, String deviceIdentified) {
-        for (Integer id : ids) {
-            AgentConversationEntity conversation = Objects.requireNonNull(
-                    getConversation(id.longValue(), deviceIdentified),
-                    "找不到 ID 为 [" + id + "] 的会话内容"
-            );
-            PrincipalDetailsConstants.equals(conversation, token);
-            SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(conversation.getType()), "无法删除 [" + conversation.getType().getName() + "]类型的空间");
-            deleteConversationData(conversation.getId(), deviceIdentified);
-            agentSseStreamPublishResolver.remove(conversation.getId().toString());
+    private List<AgentConversationEntity> listConversationEntities(String deviceIdentified) {
+        RestResult<Object> result = rpcFilesystemInvoker.invoke(
+                deviceIdentified,
+                RpcFilesystemOperationEnum.LS,
+                Map.of(PATH_FIELD_NAME, STORE_ROOT + "/" + CONVERSATIONS_DIR_NAME)
+        );
+        if (!result.isSuccess() || Objects.isNull(result.getData())) {
+            return List.of();
         }
+        List<FileInfo> files = CastUtils.convertValue( result.getData(), new TypeReference<>() {});
+        return files.stream()
+                .map(FileInfo::path)
+                .filter(Objects::nonNull)
+                .map(path -> path.substring(path.lastIndexOf('/') + 1))
+                .filter(name -> name.endsWith(".json"))
+                .map(name -> name.substring(0, name.length() - ".json".length()))
+                .map(id -> getConversation(id, deviceIdentified))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     @Override
     public Page<AgentMessageEntity> histories(
             PageRequest request,
             MultiValueMap<String, Object> filter,
-            Long conversationId,
+            String conversationId,
             boolean totalPage,
             AuditAuthenticationToken token,
             String deviceIdentified
@@ -323,7 +315,12 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public int positioningMessagePageNumber(Long conversationId, Long messageId, int pageSize, String deviceIdentified) {
+    public int positioningMessagePageNumber(
+            String conversationId,
+            String messageId,
+            int pageSize,
+            String deviceIdentified
+    ) {
         List<AgentMessageEntity> messages = getConversationMessages(conversationId, deviceIdentified).stream()
                 .sorted(Comparator.comparing(AgentMessageEntity::getId).reversed())
                 .toList();
@@ -338,22 +335,31 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public void saveAssistant(AgentExecutionMetadata execution, AgentMessageEntity assistant) {
+    public void saveAssistant(
+            AgentExecutionMetadata execution,
+            AgentMessageEntity assistant
+    ) {
         saveMessage(assistant, execution.getDeviceIdentified());
     }
 
     @Override
-    public void saveConversationStatus(AgentExecutionMetadata execution, AgentChatStatusEnum status) {
+    public void saveConversationStatus(
+            AgentExecutionMetadata execution,
+            AgentChatStatusEnum status
+    ) {
         AgentConversationEntity conversation = execution.getConversation();
         if (Objects.isNull(conversation)) {
             return;
         }
         conversation.setStatus(status);
-        saveConversation(conversation, execution.getDeviceIdentified());
+        updateConversation(conversation, execution.getDeviceIdentified());
     }
 
     @Override
-    protected String createEnvironmentMemory(String deviceIdentified, String principal) {
+    protected String createEnvironmentMemory(
+            String deviceIdentified,
+            String principal
+    ) {
 
         SocketSessionMetadata session = agentSocketSessionResolver.getSession(principal, deviceIdentified);
 
@@ -387,26 +393,29 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         );
     }
 
-    private String conversationFile(Long conversationId) {
+    private String conversationFile(String conversationId) {
         return STORE_ROOT + "/" + CONVERSATIONS_DIR_NAME + "/" + conversationId + ".json";
     }
 
-    private String messageFile(Long messageId) {
+    private String messageFile(String messageId) {
         return STORE_ROOT + "/" + MESSAGES_DIR_NAME + "/" + messageId + ".json";
     }
 
-    private String messageIndexFile(Long conversationId) {
+    private String messageIndexFile(String conversationId) {
         return STORE_ROOT + "/" + INDEXES_DIR_NAME + "/" + conversationId + ".json";
     }
 
-    private List<Long> readMessageIds(Long conversationId, String deviceIdentified) {
+    private List<String> readMessageIds(
+            String conversationId,
+            String deviceIdentified
+    ) {
         String json = readString(deviceIdentified, messageIndexFile(conversationId));
         if (Objects.isNull(json)) {
             return new LinkedList<>();
         }
         List<?> raw = SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(json, List.class));
         return raw.stream()
-                .map(n -> ((Number) n).longValue())
+                .map(String::valueOf)
                 .collect(Collectors.toCollection(LinkedList::new));
     }
 
@@ -414,14 +423,21 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         return SystemException.convertSupplier(() -> CastUtils.getObjectMapper().writeValueAsString(value));
     }
 
-    private <T> T fromJson(String json, Class<T> type) {
+    private <T> T fromJson(
+            String json,
+            Class<T> type
+    ) {
         if (Objects.isNull(json)) {
             return null;
         }
         return SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(json, type));
     }
 
-    private void writeString(String deviceIdentified, String path, String content) {
+    private void writeString(
+            String deviceIdentified,
+            String path,
+            String content
+    ) {
         RestResult<Object> result = invoke(
                 deviceIdentified,
                 RpcFilesystemOperationEnum.WRITE,
@@ -430,7 +446,10 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         SystemException.isTrue(result.isSuccess(), "写入客户端执行数据文件 [" + path + "] 失败: " + result.getMessage());
     }
 
-    private String readString(String deviceIdentified, String path) {
+    private String readString(
+            String deviceIdentified,
+            String path
+    ) {
         RestResult<Object> result = invoke(
                 deviceIdentified,
                 RpcFilesystemOperationEnum.READ,
@@ -443,7 +462,10 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         return Objects.isNull(fileData) ? null : fileData.content();
     }
 
-    private void deleteFile(String deviceIdentified, String path) {
+    private void deleteFile(
+            String deviceIdentified,
+            String path
+    ) {
         invoke(deviceIdentified, RpcFilesystemOperationEnum.DELETE, Map.of(PATH_FIELD_NAME, path));
     }
 

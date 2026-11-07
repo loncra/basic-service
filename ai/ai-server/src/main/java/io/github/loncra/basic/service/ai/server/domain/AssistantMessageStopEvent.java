@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 @EqualsAndHashCode(callSuper = true)
 public class AssistantMessageStopEvent extends AgentEvent {
 
-    private final Long assistantMessageId;
+    private final String assistantMessageId;
     private final String replyId;
 
     @Override

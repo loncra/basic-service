@@ -1,13 +1,11 @@
 package io.github.loncra.basic.service.ai.server.resolver.channel;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
-import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -21,23 +19,17 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgent
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentUserPluginToolkitService;
-import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
+import io.github.loncra.basic.service.ai.server.service.agent.*;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
-import io.github.loncra.framework.commons.CacheProperties;
-import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.Strings;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 
 import java.io.File;
@@ -53,104 +45,51 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     private final AgentHubSkillService agentHubSkillService;
 
+    private final AgentConversationService conversationService;
+
+    private final AgentMessageService messageService;
+
     @Override
-    public ExecutionChannelEnum channel() {
-        return ExecutionChannelEnum.MYSQL;
+    public ExecutionChannelEnum getChannel() {
+        return ExecutionChannelEnum.CLOUD;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public AgentChatResponseBody chat(
             AgentChatRequestBody body,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentConversationEntity conversation;
-
-        if (Objects.isNull(body.getAgentConversationId())) {
-            conversation = conversationService.getDefaultWorkspace(token.getName());
-        } else {
-            conversation = Objects.requireNonNull(
-                    conversationService.get(body.getAgentConversationId()),
-                    "找不到 ID 为 [" + body.getAgentConversationId() + "] 的会话内容"
-            );
-        }
-
-        ModelSettingMetadata modelMetadata = resolveModelMetadata(body.getModelId());
-
-        if (conversation.getType() != AgentConversationTypeEnum.WORKSPACE_CONVERSATION) {
-            Long parentId = conversation.getId();
-
-            conversation = new AgentConversationEntity();
-            conversation.setType(AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
-            conversation.setParentId(parentId);
-            conversation.setPrincipal(token.getName());
-            conversation.setMetadata(conversationService.get(parentId).getMetadata());
-        } else {
-            assertNoRunningAssistant(conversation.getId());
-        }
-
-        prepareConversation(conversation, body, modelMetadata);
-
-        conversationService.save(conversation);
-
-        AgentMessageEntity userMessage = buildUserMessage(body, modelMetadata, conversation.getId(), token.getName());
-        messageService.insert(userMessage);
-
-        AgentMessageEntity assistantMessage = buildAssistantMessage(userMessage, conversation.getId());
-        messageService.insert(assistantMessage);
-
-        agentSseStreamPublishResolver.sendExecuteMessage(
-                AgentExecuteMessageMetadata.of(ExecutionChannelEnum.MYSQL, assistantMessage.getId().toString(), deviceIdentified),
-                true
-        );
-
-        AgentChatResponseBody responseBody = buildResponseBody(conversation, userMessage, assistantMessage);
-
-        agentSseStreamPublishResolver.publishStreamStart(assistantMessage.getAgentConversationId().toString(), assistantMessage.getId().toString());
-
-        return responseBody;
+        return super.chat(body, token, deviceIdentified);
     }
 
     @Override
+    protected AgentConversationEntity getDefaultWorkspace(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        return conversationService.getDefaultWorkspace(token.getName());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public AgentChatBasicResponseBody resume(
             AgentResumeRequestBody body,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentMessageEntity assistantMessage = Objects.requireNonNull(messageService.get(body.getAssistantMessageId()));
-        PrincipalDetailsConstants.equals(assistantMessage, token);
-        SystemException.isTrue(
-                Objects.equals(String.valueOf(assistantMessage.getAgentConversationId()), body.getClientConversationId()),
-                "助手消息与会话不一致"
-        );
-
-        List<ConfirmResult> confirmResults = getResumeConfirmResults(body, token, deviceIdentified);
-
-        assistantMessage.saveUserConfirmResultMetadata(confirmResults);
-        applyConfirmResults(assistantMessage, confirmResults);
-
-        messageService.lambdaUpdate()
-                .set(AgentChatMetadata::getContent, assistantMessage.obtainContentJsonString())
-                .set(AgentChatMetadata::getMetadata, assistantMessage.obtainMetadataJsonString())
-                .eq(AgentMessageEntity::getId, assistantMessage.getId())
-                .update();
-
-        agentSseStreamPublishResolver.publishStreamStart(assistantMessage.getAgentConversationId().toString(), assistantMessage.getId().toString());
+        AgentChatBasicResponseBody responseBody = super.resume(body, token, deviceIdentified);
         agentSseStreamPublishResolver.sendExecuteMessage(
-                AgentExecuteMessageMetadata.of(ExecutionChannelEnum.MYSQL, assistantMessage.getId().toString(), deviceIdentified),
+                AgentExecuteMessageMetadata.of(getChannel(), responseBody.getAssistantMessageId(), deviceIdentified),
                 true
         );
-
-        AgentChatBasicResponseBody result = new AgentChatBasicResponseBody();
-        result.setAssistantMessageId(assistantMessage.getId());
-        result.setUserMessageId(assistantMessage.getParentId());
-
-        return result;
+        return responseBody;
     }
 
     @Override
     public AgentExecutionMetadata getAgentExecutionMetadata(AgentExecuteMessageMetadata message) {
-        AgentMessageEntity assistant = messageService.get(NumberUtils.toLong(message.getRef()));
+        AgentMessageEntity assistant = messageService.get(message.getRef());
         if (Objects.isNull(assistant)) {
             return null;
         }
@@ -159,13 +98,24 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
         AgentConversationEntity conversation = conversationService.get(assistant.getAgentConversationId());
 
         AgentExecutionMetadata execution = new AgentExecutionMetadata();
-        execution.setChannel(ExecutionChannelEnum.MYSQL);
+        execution.setChannel(ExecutionChannelEnum.CLOUD);
         execution.setDeviceIdentified(message.getDeviceIdentified());
-        execution.setClientConversationId(assistant.getAgentConversationId().toString());
+        execution.setClientConversationId(assistant.getAgentConversationId());
         execution.setConversation(conversation);
         execution.setUserMessage(userMessage);
         execution.setAssistantMessage(assistant);
         return execution;
+    }
+
+    @Override
+    protected List<AgentConversationEntity> doFindConversations(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        return conversationService.lambdaQuery()
+                .eq(AgentConversationEntity::getPrincipal, token.getName())
+                .orderByDesc(IdEntity::getId)
+                .list();
     }
 
     @Override
@@ -218,7 +168,10 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public AbstractFilesystem createFilesystem(AgentExecutionMetadata execution, String workspacePath) {
+    public AbstractFilesystem createFilesystem(
+            AgentExecutionMetadata execution,
+            String workspacePath
+    ) {
         return new LocalFilesystem(workspacePath);
     }
 
@@ -228,59 +181,90 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public void saveConversation(AgentConversationEntity conversation, String deviceIdentified) {
-        conversationService.save(conversation);
+    public void updateConversation(
+            AgentConversationEntity conversation,
+            String deviceIdentified
+    ) {
+        conversationService.updateById(conversation);
     }
 
     @Override
-    public AgentConversationEntity getConversation(Long conversationId, String deviceIdentified) {
+    public void insertConversation(
+            AgentConversationEntity conversation,
+            String deviceIdentified
+    ) {
+        conversationService.insert(conversation);
+    }
+
+    @Override
+    public AgentConversationEntity getConversation(
+            String conversationId,
+            String deviceIdentified
+    ) {
         return conversationService.get(conversationId);
     }
 
     @Override
-    public void saveMessage(AgentMessageEntity message, String deviceIdentified) {
+    public void saveMessage(
+            AgentMessageEntity message,
+            String deviceIdentified
+    ) {
         messageService.insert(message);
     }
 
     @Override
-    public AgentMessageEntity getMessage(Long messageId, String deviceIdentified) {
+    public AgentMessageEntity getMessage(
+            String messageId,
+            String deviceIdentified
+    ) {
         return messageService.get(messageId);
     }
 
     @Override
-    public List<AgentMessageEntity> getConversationMessages(Long conversationId, String deviceIdentified) {
+    public List<AgentMessageEntity> getConversationMessages(
+            String conversationId,
+            String deviceIdentified
+    ) {
         return messageService.findByConversationId(conversationId);
     }
 
     @Override
-    public List<AgentMessageEntity> findRequestStopAssistantMessage(Long conversationId, String deviceIdentified) {
+    public List<AgentMessageEntity> findRequestStopAssistantMessage(
+            String conversationId,
+            String deviceIdentified
+    ) {
         return messageService.findRequestStopAssistantMessage(conversationId);
     }
 
     @Override
-    public void deleteConversationData(Long conversationId, String deviceIdentified) {
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteConversation(
+            List<String> ids,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        super.deleteConversation(ids, token, deviceIdentified);
     }
 
     @Override
-    public void deleteConversation(List<Integer> ids, AuditAuthenticationToken token, String deviceIdentified) {
-        conversationService.get(ids).forEach(entity -> deleteConversation(entity, token));
-    }
-
-    private void deleteConversation(AgentConversationEntity entity, AuditAuthenticationToken token) {
-        PrincipalDetailsConstants.equals(entity, token);
-        SystemException.isTrue(!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(entity.getType()), "无法删除 [" + entity.getType().getName() + "]类型的空间");
+    protected void doDeleteConversation(
+            AgentConversationEntity conversation,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        conversationService.deleteByEntity(conversation);
+        messageService.findByConversationId(conversation.getId()).forEach(messageService::deleteByEntity);
         conversationService.lambdaQuery()
-                .eq(AgentConversationEntity::getParentId, entity.getId())
+                .eq(AgentConversationEntity::getParentId, conversation.getId())
                 .list()
-                .forEach(conversation -> deleteConversation(conversation, token));
-        agentStateStore.delete(Strings.CS.replace(entity.getPrincipal(), CacheProperties.DEFAULT_SEPARATOR, CastUtils.UNDERSCORE), entity.getId().toString());
-        agentSseStreamPublishResolver.remove(entity.getId().toString());
-        conversationService.deleteByEntity(entity);
-        messageService.findByConversationId(entity.getId()).forEach(messageService::deleteByEntity);
+                .forEach(e -> this.deleteConversation(e.getId(), token, deviceIdentified));
     }
 
     @Override
-    public void saveAssistant(AgentExecutionMetadata execution, AgentMessageEntity assistant) {
+    public void saveAssistant(
+            AgentExecutionMetadata execution,
+            AgentMessageEntity assistant
+    ) {
         messageService.lambdaUpdate()
                 .set(AgentMessageEntity::getStatus, assistant.getStatus().getValue())
                 .set(AgentChatMetadata::getContent, assistant.obtainContentJsonString())
@@ -290,7 +274,10 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public void saveConversationStatus(AgentExecutionMetadata execution, AgentChatStatusEnum status) {
+    public void saveConversationStatus(
+            AgentExecutionMetadata execution,
+            AgentChatStatusEnum status
+    ) {
         conversationService.lambdaUpdate()
                 .set(AgentConversationEntity::getStatus, status.getValue())
                 .eq(IdEntity::getId, execution.getAssistantMessage().getAgentConversationId())
@@ -301,7 +288,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     public Page<AgentMessageEntity> histories(
             PageRequest request,
             MultiValueMap<String, Object> filter,
-            Long conversationId,
+            String conversationId,
             boolean totalPage,
             AuditAuthenticationToken token,
             String deviceIdentified
@@ -321,16 +308,12 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public int positioningMessagePageNumber(Long conversationId, Long messageId, int pageSize, String deviceIdentified) {
+    public int positioningMessagePageNumber(
+            String conversationId,
+            String messageId,
+            int pageSize,
+            String deviceIdentified
+    ) {
         return messageService.positioningPageNumber(conversationId, messageId, pageSize);
-    }
-
-    private void assertNoRunningAssistant(Long conversationId) {
-        Long count = messageService.lambdaQuery()
-                .eq(AgentMessageEntity::getAgentConversationId, conversationId)
-                .eq(AgentMessageEntity::getRole, AgentMessageRoleEnum.ASSISTANT)
-                .eq(AgentMessageEntity::getStatus, AgentChatStatusEnum.RUNNING)
-                .count();
-        SystemException.isTrue(Objects.isNull(count) || count <= 0, "当前会话仍有进行中的助手回复，请稍后再试");
     }
 }

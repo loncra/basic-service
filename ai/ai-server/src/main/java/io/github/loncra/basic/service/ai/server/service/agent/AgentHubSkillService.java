@@ -41,7 +41,7 @@ public class AgentHubSkillService {
 
     private final SkillConfig skillConfig;
 
-    public HubSkillRepository ensureCached(String principal, Long workspaceId) {
+    public HubSkillRepository ensureCached(String principal, String workspaceId) {
         Map<String, Path> dirs = new LinkedHashMap<>();
         if (StringUtils.isBlank(principal) || workspaceId == null) {
             return new HubSkillRepository(dirs);
@@ -69,7 +69,7 @@ public class AgentHubSkillService {
     private void cacheOne(
             AgentSkillRepository systemRepo,
             AiSkillPackageEntity skillPackage,
-            Long workspaceId,
+            String workspaceId,
             Map<String, Path> dirs
     ) {
         if (skillPackage == null) {

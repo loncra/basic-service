@@ -11,7 +11,7 @@ public class AgentChatBasicResponseBody implements Serializable {
     @Serial
     private static final long serialVersionUID = 8249090608898653032L;
 
-    private Long userMessageId;
+    private String userMessageId;
 
-    private Long assistantMessageId;
+    private String assistantMessageId;
 }

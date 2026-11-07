@@ -2,16 +2,18 @@ package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
+import io.github.loncra.framework.commons.id.StringIdEntity;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
-import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
+import io.github.loncra.framework.mybatis.plus.baisc.VersionEntity;
 import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -37,7 +39,7 @@ import java.util.Map;
 @Alias("agentConversation")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_agent_conversation", autoResultMap = true)
-public class AgentConversationEntity extends LongVersionEntity<Integer> implements TenantEntity<String>, AuditPrincipal, Tree<Long, AgentConversationEntity> {
+public class AgentConversationEntity extends StringIdEntity implements TenantEntity<String>, AuditPrincipal, Tree<String, AgentConversationEntity>, VersionEntity<Integer, String> {
 
     @Serial
     private static final long serialVersionUID = -4801789299046545458L;
@@ -46,6 +48,9 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
      * 名称
      */
     private String name;
+
+    @Version
+    private Integer version = 1;
 
     /**
      * 状态
@@ -63,7 +68,7 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata = new LinkedHashMap<>();
 
-    private Long parentId;
+    private String parentId;
 
     /**
      * 最后使用的模型内容
@@ -77,15 +82,15 @@ public class AgentConversationEntity extends LongVersionEntity<Integer> implemen
     private AgentChatTypeEnum lastChatType;
 
     @TableField(exist = false)
-    private List<Tree<Long, AgentConversationEntity>> children = new LinkedList<>();
+    private List<Tree<String, AgentConversationEntity>> children = new LinkedList<>();
 
     @Override
     @JsonIgnore
-    public Long getParent() {
+    public String getParent() {
         return parentId;
     }
 
     public String getKey() {
-        return getId().toString();
+        return getId();
     }
 }

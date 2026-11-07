@@ -21,5 +21,5 @@ public class AgentPluginInstructionContext {
 
     private AgentMessageEntity userMessage;
 
-    private Long workspaceId;
+    private String workspaceId;
 }

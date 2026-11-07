@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.body;
 
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -17,10 +16,7 @@ public class AgentResumeRequestBody implements Serializable {
     private static final long serialVersionUID = 5184078388976327968L;
 
     @NotNull
-    private Long assistantMessageId;
-
-    @NotBlank
-    private String clientConversationId;
+    private String assistantMessageId;
 
     @NotEmpty
     @NotNull

@@ -25,7 +25,6 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,7 +98,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                 .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
                 .orderByDesc(AiUserPluginInstallEntity::getId)
                 .list();
-        Map<Long, List<Long>> workspaceIdsByInstall = groupingBySpecific(installs);
+        Map<Long, List<String>> workspaceIdsByInstall = groupingBySpecific(installs);
         Map<Long, AiSkillPackageEntity> skillPackages = findSkillPackages(installs);
         Map<Long, AiMcpPackageEntity> mcpPackages = findMcpPackages(installs);
         return installs.stream()
@@ -227,7 +226,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                 PluginInstallWorkspaceScopeEnum.ORG.equals(body.getWorkspaceScope()),
                 () -> new ServiceException("不支持的工作空间范围")
         );
-        Set<Long> ids = new LinkedHashSet<>();
+        Set<String> ids = new LinkedHashSet<>();
         if (CollectionUtils.isNotEmpty(body.getAgentConversationIds())) {
             body.getAgentConversationIds()
                     .stream()
@@ -240,10 +239,10 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
 
     private @NonNull List<IdNameMetadata> getWorkspaceIdNameMetadata(
             AuditAuthenticationToken token,
-            Set<Long> ids
+            Set<String> ids
     ) {
         List<IdNameMetadata> workspaces = new LinkedList<>();
-        for (Long workspaceId : ids) {
+        for (String workspaceId : ids) {
             AgentConversationEntity conversation = agentConversationService.get(workspaceId);
             SystemException.isTrue(Objects.nonNull(conversation), () -> new ServiceException("找不到 ID 为 [" + workspaceId + "] 的工作空间"));
             SystemException.isTrue(
@@ -268,7 +267,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         for (IdNameMetadata workspace : workspaces) {
             AiUserPluginInstallSpecificEntity row = new AiUserPluginInstallSpecificEntity();
             row.setAiUserPluginInstallId(installId);
-            row.setAgentConversationId(NumberUtils.toLong(workspace.getId()));
+            row.setAgentConversationId(workspace.getId());
             aiUserPluginInstallSpecificService.insert(row);
         }
     }
@@ -369,7 +368,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
      * 当前用户在指定工作空间下已激活的 Hub 安装记录。
      * {@code workspaceId == null} 时只计「所有工作空间」范围的安装。
      */
-    public List<AiUserPluginInstallEntity> findActivatedInstalls(String principal, Long workspaceId) {
+    public List<AiUserPluginInstallEntity> findActivatedInstalls(String principal, String workspaceId) {
         if (StringUtils.isBlank(principal)) {
             return List.of();
         }
@@ -381,14 +380,14 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         if (CollectionUtils.isEmpty(installs)) {
             return List.of();
         }
-        Map<Long, List<Long>> workspaceIdsByInstall = groupingBySpecific(installs);
+        Map<Long, List<String>> workspaceIdsByInstall = groupingBySpecific(installs);
         return installs.stream()
                 .filter(install -> isActivatedInWorkspace(install, workspaceId, workspaceIdsByInstall))
                 .filter(install -> Objects.nonNull(install.getPackageId()))
                 .toList();
     }
 
-    private Map<Long, List<Long>> groupingBySpecific(List<AiUserPluginInstallEntity> installs) {
+    private Map<Long, List<String>> groupingBySpecific(List<AiUserPluginInstallEntity> installs) {
         List<Long> installIds = installs.stream()
                 .map(AiUserPluginInstallEntity::getId)
                 .filter(Objects::nonNull)
@@ -407,8 +406,8 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
 
     private boolean isActivatedInWorkspace(
             AiUserPluginInstallEntity install,
-            Long workspaceId,
-            Map<Long, List<Long>> workspaceIdsByInstall
+            String workspaceId,
+            Map<Long, List<String>> workspaceIdsByInstall
     ) {
         if (PluginInstallWorkspaceScopeEnum.USER.equals(install.getWorkspaceScope())) {
             return true;
@@ -419,7 +418,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         if (workspaceId == null) {
             return false;
         }
-        List<Long> bound = workspaceIdsByInstall.getOrDefault(install.getId(), List.of());
+        List<String> bound = workspaceIdsByInstall.getOrDefault(install.getId(), List.of());
         return bound.contains(workspaceId);
     }
 }

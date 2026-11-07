@@ -5,6 +5,7 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicRespon
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
+import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
@@ -13,13 +14,16 @@ import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.RestResult;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
+import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
@@ -75,10 +79,10 @@ public class AgentController {
         );
     }
 
-    @DeleteMapping("/{assistantMessageId:\\d+}")
-    public RestResult<Long> interrupt(
+    @DeleteMapping("/{assistantMessageId}")
+    public RestResult<String> interrupt(
             @PathVariable
-            Long assistantMessageId,
+            String assistantMessageId,
             @RequestParam
             ExecutionChannelEnum channel,
             @CurrentSecurityContext
@@ -86,7 +90,7 @@ public class AgentController {
             HttpServletRequest request
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        Long sessionId = agentManager.interrupt(
+        String sessionId = agentManager.interrupt(
                 assistantMessageId,
                 channel,
                 token,
@@ -95,10 +99,10 @@ public class AgentController {
         return RestResult.of("中断 [" + sessionId + "] 会话成功");
     }
 
-    @PostMapping(value = "/stream/{assistantMessageId:\\d+}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/stream/{assistantMessageId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> stream(
             @PathVariable
-            Long assistantMessageId,
+            String assistantMessageId,
             @RequestParam
             ExecutionChannelEnum channel,
             @RequestParam(required = false, defaultValue = "true")
@@ -116,7 +120,7 @@ public class AgentController {
         );
     }
 
-    @PostMapping("message/history/{conversationId:\\d+}")
+    @PostMapping("message/history/{conversationId}")
     public Page<AgentMessageEntity> history(
             PageRequest pageRequest,
             HttpServletRequest request,
@@ -125,7 +129,7 @@ public class AgentController {
             @RequestParam(required = false, defaultValue = "false")
             boolean totalPage,
             @PathVariable
-            Long conversationId,
+            String conversationId,
             @CurrentSecurityContext SecurityContext securityContext
     ) {
         MultiValueMap<String, String> parameter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
@@ -143,12 +147,12 @@ public class AgentController {
         );
     }
 
-    @GetMapping("message/positioning/page/number/{conversationId:\\d+}/{messageId:\\d+}/{pageSize:\\d+}")
+    @GetMapping("message/positioning/page/number/{conversationId}/{messageId}/{pageSize:\\d+}")
     public RestResult<Integer> positioningPageNumber(
             @PathVariable
-            Long conversationId,
+            String conversationId,
             @PathVariable
-            Long messageId,
+            String messageId,
             @PathVariable
             int pageSize,
             @RequestParam
@@ -166,10 +170,47 @@ public class AgentController {
         );
     }
 
+    @OperationDataTrace("保存会话")
+    @PutMapping("conversation/{channel}")
+    public RestResult<String> saveWorkspace(
+            @PathVariable
+            ExecutionChannelEnum channel,
+            @RequestBody
+            IdNameMetadata body,
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            HttpServletRequest request
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        String id = agentManager.saveWorkspace(
+                channel,
+                body,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
+        return RestResult.of("保存成功", HttpStatus.OK.value(), String.valueOf(HttpStatus.OK.value()), id);
+    }
+
+    @PostMapping("conversation")
+    public List<AgentConversationEntity> findConversations(
+            @RequestParam
+            ExecutionChannelEnum channel,
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            HttpServletRequest request
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return agentManager.findConversations(
+                channel,
+                token,
+                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+        );
+    }
+
     @DeleteMapping("conversation")
     public RestResult<Void> deleteConversation(
             @RequestParam
-            List<Integer> ids,
+            List<String> ids,
             @RequestParam
             ExecutionChannelEnum channel,
             @CurrentSecurityContext

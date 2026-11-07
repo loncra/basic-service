@@ -62,7 +62,7 @@ public class AgentUserPluginToolkitService implements DisposableBean {
     public Path registerUserMcp(
             Toolkit toolkit,
             String principal,
-            Long workspaceId
+            String workspaceId
     ) {
         Path userSkillDir = resolveUserSkillDir(workspaceId);
         try {
@@ -214,8 +214,8 @@ public class AgentUserPluginToolkitService implements DisposableBean {
                 .collect(Collectors.toMap(AiMcpPackageEntity::getId, item -> item, (left, right) -> left));
     }
 
-    private Path resolveUserSkillDir(Long workspaceId) {
-        return Path.of(aiAppConfig.getWorkspacePath(), String.valueOf(workspaceId), ".skill-user");
+    private Path resolveUserSkillDir(String workspaceId) {
+        return Path.of(aiAppConfig.getWorkspacePath(), workspaceId, ".skill-user");
     }
 
     private String cacheKey(String principal, AiUserPluginInstallEntity install) {

@@ -32,5 +32,5 @@ public class UserPluginInstallRequestBody implements Serializable {
     /**
      * 指定工作空间时必填；全部范围忽略。
      */
-    private List<Long> agentConversationIds;
+    private List<String> agentConversationIds;
 }

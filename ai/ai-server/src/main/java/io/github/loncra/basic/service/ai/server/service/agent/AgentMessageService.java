@@ -27,8 +27,8 @@ import java.util.List;
 public class AgentMessageService extends BasicService<AgentMessageDao, AgentMessageEntity> {
 
     public int positioningPageNumber(
-            Long agentConversationId,
-            Long messageId,
+            String agentConversationId,
+            String messageId,
             int pageSize
     ) {
         long newerCount = lambdaQuery().eq(AgentMessageEntity::getAgentConversationId, agentConversationId)
@@ -37,11 +37,11 @@ public class AgentMessageService extends BasicService<AgentMessageDao, AgentMess
         return (int) (newerCount / pageSize) + 1;
     }
 
-    public List<AgentMessageEntity> findByConversationId(Long agentConversationId) {
+    public List<AgentMessageEntity> findByConversationId(String agentConversationId) {
         return lambdaQuery().eq(AgentMessageEntity::getAgentConversationId, agentConversationId).list();
     }
 
-    public List<AgentMessageEntity> findRequestStopAssistantMessage(Long agentConversationId) {
+    public List<AgentMessageEntity> findRequestStopAssistantMessage(String agentConversationId) {
         return lambdaQuery().eq(AgentMessageEntity::getStatus, AgentChatStatusEnum.REQUEST_STOP.getValue())
                 .eq(AgentMessageEntity::getAgentConversationId, agentConversationId)
                 .eq(AgentMessageEntity::getRole, AgentMessageRoleEnum.ASSISTANT.getValue())

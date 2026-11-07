@@ -11,8 +11,10 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessage
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -23,12 +25,15 @@ import java.util.Objects;
 
 public interface AgentChannelResolver {
 
-    ExecutionChannelEnum channel();
+    ExecutionChannelEnum getChannel();
 
-    static AgentChannelResolver channelResolver(List<AgentChannelResolver> resolvers, ExecutionChannelEnum channel) {
+    static AgentChannelResolver channelResolver(
+            List<AgentChannelResolver> resolvers,
+            ExecutionChannelEnum channel
+    ) {
         Objects.requireNonNull(channel, "执行通道不能为空");
         return resolvers.stream()
-                .filter(s -> s.channel() == channel)
+                .filter(s -> s.getChannel().equals(channel))
                 .findFirst()
                 .orElseThrow(() -> new SystemException("找不到通道 [" + channel + "] 的解析器"));
     }
@@ -47,38 +52,97 @@ public interface AgentChannelResolver {
 
     AgentExecutionMetadata getAgentExecutionMetadata(AgentExecuteMessageMetadata message);
 
+    List<AgentConversationEntity> findConversations(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    );
+
+    AgentConversationEntity saveWorkspace(
+            IdNameMetadata body,
+            AuditAuthenticationToken token,
+            String deviceIdentified,
+            AgentConversationTypeEnum type
+    );
+
     HarnessAgent createHarnessAgent(AgentExecutionMetadata execution);
 
-    AbstractFilesystem createFilesystem(AgentExecutionMetadata execution, String workspacePath);
+    AbstractFilesystem createFilesystem(
+            AgentExecutionMetadata execution,
+            String workspacePath
+    );
 
-    void saveConversation(AgentConversationEntity conversation, String deviceIdentified);
+    void updateConversation(
+            AgentConversationEntity conversation,
+            String deviceIdentified
+    );
 
-    AgentConversationEntity getConversation(Long conversationId, String deviceIdentified);
+    void insertConversation(
+            AgentConversationEntity conversation,
+            String deviceIdentified
+    );
 
-    void saveMessage(AgentMessageEntity message, String deviceIdentified);
+    AgentConversationEntity getConversation(
+            String conversationId,
+            String deviceIdentified
+    );
 
-    AgentMessageEntity getMessage(Long messageId, String deviceIdentified);
+    void saveMessage(
+            AgentMessageEntity message,
+            String deviceIdentified
+    );
 
-    List<AgentMessageEntity> getConversationMessages(Long conversationId, String deviceIdentified);
+    AgentMessageEntity getMessage(
+            String messageId,
+            String deviceIdentified
+    );
 
-    List<AgentMessageEntity> findRequestStopAssistantMessage(Long conversationId, String deviceIdentified);
+    List<AgentMessageEntity> getConversationMessages(
+            String conversationId,
+            String deviceIdentified
+    );
 
-    void deleteConversationData(Long conversationId, String deviceIdentified);
+    List<AgentMessageEntity> findRequestStopAssistantMessage(
+            String conversationId,
+            String deviceIdentified
+    );
 
-    void deleteConversation(List<Integer> ids, AuditAuthenticationToken token, String deviceIdentified);
+    void deleteConversation(
+            String id,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    );
+
+    default void deleteConversation(
+            List<String> ids,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        ids.forEach(id -> deleteConversation(id, token, deviceIdentified));
+    }
 
     Page<AgentMessageEntity> histories(
             PageRequest request,
             MultiValueMap<String, Object> filter,
-            Long conversationId,
+            String conversationId,
             boolean totalPage,
             AuditAuthenticationToken token,
             String deviceIdentified
     );
 
-    int positioningMessagePageNumber(Long conversationId, Long messageId, int pageSize, String deviceIdentified);
+    int positioningMessagePageNumber(
+            String conversationId,
+            String messageId,
+            int pageSize,
+            String deviceIdentified
+    );
 
-    void saveAssistant(AgentExecutionMetadata execution, AgentMessageEntity assistant);
+    void saveAssistant(
+            AgentExecutionMetadata execution,
+            AgentMessageEntity assistant
+    );
 
-    void saveConversationStatus(AgentExecutionMetadata execution, AgentChatStatusEnum status);
+    void saveConversationStatus(
+            AgentExecutionMetadata execution,
+            AgentChatStatusEnum status
+    );
 }

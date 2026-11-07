@@ -11,6 +11,7 @@ import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -19,6 +20,8 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -55,7 +58,7 @@ public class AgentConsumer {
 
         AgentExecutionMetadata execution;
         try {
-            AgentChannelResolver resolver = agentManager.channelResolver(executeMessage.getChannel());
+            AgentChannelResolver resolver = AgentChannelResolver.channelResolver(agentManager.getChannelResolvers(), executeMessage.getChannel());
             execution = resolver.getAgentExecutionMetadata(executeMessage);
         }
         catch (Exception e) {
@@ -80,6 +83,14 @@ public class AgentConsumer {
             channel.basicNack(tag, false, false);
             return;
         }
+
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        if (Objects.isNull(securityContext.getAuthentication()) || !AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass())) {
+            log.info("ID 为 [{}] 的助手消息在本次消费中无法获取认证信息跳过执行", assistant.getId());
+            channel.basicNack(tag, false, false);
+            return;
+        }
+        execution.setToken(CastUtils.cast(securityContext.getAuthentication()));
 
         try {
             agentManager.execute(execution);

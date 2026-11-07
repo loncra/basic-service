@@ -9,9 +9,9 @@ import lombok.Getter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum ExecutionChannelEnum implements NameValueEnum<String> {
 
-    MYSQL("mysql", "数据库执行引用"),
+    CLOUD("cloud", "云端执行通道"),
 
-    REDIS("redis", "缓存执行引用");
+    LOCAL("local", "本地执行通道");
 
     private final String value;
 

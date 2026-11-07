@@ -39,14 +39,14 @@ import java.util.List;
 @Alias("agentMessage")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_agent_message", autoResultMap = true)
-public class AgentMessageEntity extends AgentChatMetadata implements VersionEntity<Integer, Long>, AuditPrincipal, TenantEntity<String>, Tree<Long, AgentMessageEntity> {
+public class AgentMessageEntity extends AgentChatMetadata implements VersionEntity<Integer, String>, AuditPrincipal, TenantEntity<String>, Tree<String, AgentMessageEntity> {
 
     @Serial
     private static final long serialVersionUID = -5121909839700678113L;
 
     public static final String CONVERSATION_ID_TABLE_FIELD_NAME = "agent_conversation_id";
 
-    private Long id;
+    private String id;
 
     @Version
     private Integer version;
@@ -61,7 +61,7 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
     /**
      * 对话 id
      */
-    private Long agentConversationId;
+    private String agentConversationId;
 
     private AgentChatStatusEnum status;
 
@@ -72,14 +72,14 @@ public class AgentMessageEntity extends AgentChatMetadata implements VersionEnti
 
     private String tenantId;
 
-    private Long parentId;
+    private String parentId;
 
     @TableField(exist = false)
-    private List<Tree<Long, AgentMessageEntity>> children = new LinkedList<>();
+    private List<Tree<String, AgentMessageEntity>> children = new LinkedList<>();
 
     @Override
     @JsonIgnore
-    public Long getParent() {
+    public String getParent() {
         return parentId;
     }
 

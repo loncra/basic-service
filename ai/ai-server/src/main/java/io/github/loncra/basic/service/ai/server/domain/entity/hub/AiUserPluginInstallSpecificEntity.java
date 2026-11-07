@@ -35,6 +35,6 @@ public class AiUserPluginInstallSpecificEntity extends LongVersionEntity<Integer
     /**
      * 工作空间 tb_agent_conversation.id（DEFAULT/CUSTOMIZE）
      */
-    private Long agentConversationId;
+    private String agentConversationId;
 
 }

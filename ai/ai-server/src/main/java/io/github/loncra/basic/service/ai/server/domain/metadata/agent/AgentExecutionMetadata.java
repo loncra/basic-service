@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.domain.metadata.agent;
 
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -22,4 +23,6 @@ public class AgentExecutionMetadata extends BasicAgentExecutionMetadata implemen
     private AgentMessageEntity userMessage;
 
     private AgentMessageEntity assistantMessage;
+
+    private AuditAuthenticationToken token;
 }

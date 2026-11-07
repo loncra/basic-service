@@ -45,7 +45,7 @@ public class AgentChatMetadata implements Serializable {
     /**
      * 会话 id
      */
-    private Long agentConversationId;
+    private String agentConversationId;
 
     /**
      * 应答类型:10.ask,20.plan,30.agent
