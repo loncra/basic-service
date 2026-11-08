@@ -33,10 +33,6 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class GenerateConversationNameInterceptor implements AgentStreamEventInterceptor {
 
-    /*private final AgentConversationService agentConversationService;
-
-    private final AgentMessageService agentMessageService;*/
-
     private final ModelSettingService modelSettingService;
 
     private final ConversationConfig conversationConfig;
@@ -109,6 +105,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
 
             return List.of(content, usage);
         } catch (Exception e) {
+            log.error("会话 [{}] 生成名称失败", assistant.getAgentConversationId(), e);
             conversation.setGenerateNameStatus(ExecuteStatus.Failure);
             return List.of();
         } finally {

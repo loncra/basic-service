@@ -281,6 +281,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
         if (Objects.isNull(body.getAgentConversationId())) {
             conversation = getDefaultWorkspace(token, deviceIdentified);
+            SystemException.isTrue(Objects.nonNull(conversation), "默认工作空间不存在，请先打开智能体页面完成初始化");
         } else {
             conversation = Objects.requireNonNull(
                     getConversation(token.getName(), body.getAgentConversationId(), deviceIdentified),
