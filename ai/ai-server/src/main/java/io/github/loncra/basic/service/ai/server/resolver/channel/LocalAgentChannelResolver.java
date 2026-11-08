@@ -23,6 +23,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRole
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RemoteRpcFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemInvoker;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
 import io.github.loncra.basic.service.ai.server.resolver.state.RpcJsonFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
@@ -95,8 +96,7 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return listConversationEntities(deviceIdentified).stream()
-                .filter(s -> Objects.equals(s.getPrincipal(), token.getName()))
+        return listConversationEntities(token.getName(), deviceIdentified).stream()
                 .filter(s -> AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(s.getType()))
                 .findFirst()
                 .orElse(null);
@@ -121,37 +121,9 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return listConversationEntities(deviceIdentified).stream()
-                .filter(s -> Objects.equals(s.getPrincipal(), token.getName()))
+        return listConversationEntities(token.getName(), deviceIdentified).stream()
                 .sorted(Comparator.comparing(AgentConversationEntity::getId).reversed())
                 .toList();
-    }
-
-    @Override
-    public AgentExecutionMetadata getAgentExecutionMetadata(AgentExecuteMessageMetadata message) {
-        String deviceIdentified = message.getDeviceIdentified();
-        AgentMessageEntity assistant = getMessage(message.getRef(), deviceIdentified);
-        if (Objects.isNull(assistant)) {
-            return null;
-        }
-
-        AgentMessageEntity userMessage = Objects.requireNonNull(
-                getMessage(assistant.getParentId(), deviceIdentified),
-                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
-        );
-        AgentConversationEntity conversation = Objects.requireNonNull(
-                getConversation(assistant.getAgentConversationId(), deviceIdentified),
-                "找不到 ID 为 [" + assistant.getAgentConversationId() + "] 的会话内容"
-        );
-
-        AgentExecutionMetadata execution = new AgentExecutionMetadata();
-        execution.setChannel(ExecutionChannelEnum.LOCAL);
-        execution.setDeviceIdentified(deviceIdentified);
-        execution.setClientConversationId(assistant.getAgentConversationId());
-        execution.setConversation(conversation);
-        execution.setUserMessage(userMessage);
-        execution.setAssistantMessage(assistant);
-        return execution;
     }
 
     @Override
@@ -177,12 +149,17 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentExecutionMetadata execution,
             String workspacePath
     ) {
-        return new RemoteRpcFilesystem(rpcFilesystemInvoker, execution.getDeviceIdentified());
+        String principal = execution.getAssistantMessage().getPrincipal();
+        AgentConversationEntity conversation = execution.getConversation();
+        RpcFilesystemScope workspaceScope = Objects.isNull(conversation)
+                ? new RpcFilesystemScope.DefaultWorkspace()
+                : resolveWorkspaceScope(conversation, principal, execution.getDeviceIdentified());
+        return new RemoteRpcFilesystem(rpcFilesystemInvoker, execution.getDeviceIdentified(), principal, workspaceScope);
     }
 
     @Override
     protected AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution) {
-        return new RpcJsonFileAgentStateStore(rpcFilesystemInvoker, execution.getDeviceIdentified());
+        return new RpcJsonFileAgentStateStore(rpcFilesystemInvoker, execution);
     }
 
     @Override
@@ -190,7 +167,7 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentConversationEntity conversation,
             String deviceIdentified
     ) {
-        writeString(deviceIdentified, conversationFile(conversation.getId()), toJson(conversation));
+        writeString(deviceIdentified, conversationFile(conversation.getPrincipal(), conversation.getId()), toJson(conversation));
     }
 
     @Override
@@ -198,15 +175,16 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentConversationEntity conversation,
             String deviceIdentified
     ) {
-        writeString(deviceIdentified, conversationFile(conversation.getId()), toJson(conversation));
+        writeString(deviceIdentified, conversationFile(conversation.getPrincipal(), conversation.getId()), toJson(conversation));
     }
 
     @Override
     public AgentConversationEntity getConversation(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
-        return fromJson(readString(deviceIdentified, conversationFile(conversationId)), AgentConversationEntity.class);
+        return fromJson(readString(deviceIdentified, conversationFile(principal, conversationId)), AgentConversationEntity.class);
     }
 
     @Override
@@ -214,39 +192,43 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentMessageEntity message,
             String deviceIdentified
     ) {
-        writeString(deviceIdentified, messageFile(message.getId()), toJson(message));
-        List<String> messageIds = readMessageIds(message.getAgentConversationId(), deviceIdentified);
+        String principal = message.getPrincipal();
+        writeString(deviceIdentified, messageFile(principal, message.getId()), toJson(message));
+        List<String> messageIds = readMessageIds(principal, message.getAgentConversationId(), deviceIdentified);
         if (!messageIds.contains(message.getId())) {
             messageIds.add(message.getId());
-            writeString(deviceIdentified, messageIndexFile(message.getAgentConversationId()), toJson(messageIds));
+            writeString(deviceIdentified, messageIndexFile(principal, message.getAgentConversationId()), toJson(messageIds));
         }
     }
 
     @Override
     public AgentMessageEntity getMessage(
+            String principal,
             String messageId,
             String deviceIdentified
     ) {
-        return fromJson(readString(deviceIdentified, messageFile(messageId)), AgentMessageEntity.class);
+        return fromJson(readString(deviceIdentified, messageFile(principal, messageId)), AgentMessageEntity.class);
     }
 
     @Override
     public List<AgentMessageEntity> getConversationMessages(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
-        return readMessageIds(conversationId, deviceIdentified).stream()
-                .map(id -> getMessage(id, deviceIdentified))
+        return readMessageIds(principal, conversationId, deviceIdentified).stream()
+                .map(id -> getMessage(principal, id, deviceIdentified))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
     @Override
     public List<AgentMessageEntity> findRequestStopAssistantMessage(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
-        return getConversationMessages(conversationId, deviceIdentified).stream()
+        return getConversationMessages(principal, conversationId, deviceIdentified).stream()
                 .filter(s -> AgentChatStatusEnum.REQUEST_STOP.equals(s.getStatus()))
                 .filter(s -> AgentMessageRoleEnum.ASSISTANT.equals(s.getRole()))
                 .toList();
@@ -258,22 +240,24 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        for (String messageId : readMessageIds(conversation.getId(), deviceIdentified)) {
-            deleteFile(deviceIdentified, messageFile(messageId));
+        String principal = conversation.getPrincipal();
+        for (String messageId : readMessageIds(principal, conversation.getId(), deviceIdentified)) {
+            deleteFile(deviceIdentified, messageFile(principal, messageId));
         }
-        deleteFile(deviceIdentified, messageIndexFile(conversation.getId()));
-        deleteFile(deviceIdentified, conversationFile(conversation.getId()));
-        List<AgentConversationEntity> entities = listConversationEntities(deviceIdentified);
+        deleteFile(deviceIdentified, messageIndexFile(principal, conversation.getId()));
+        deleteFile(deviceIdentified, conversationFile(principal, conversation.getId()));
+        List<AgentConversationEntity> entities = listConversationEntities(principal, deviceIdentified);
         entities.stream()
                 .filter(s -> Strings.CS.equals(s.getParentId(), conversation.getId()))
                 .forEach(s -> deleteConversation(s.getId(), token, deviceIdentified));
     }
 
-    private List<AgentConversationEntity> listConversationEntities(String deviceIdentified) {
+    private List<AgentConversationEntity> listConversationEntities(String principal, String deviceIdentified) {
         RestResult<Object> result = rpcFilesystemInvoker.invoke(
                 deviceIdentified,
+                new RpcFilesystemScope.Store(),
                 RpcFilesystemOperationEnum.LS,
-                Map.of(PATH_FIELD_NAME, STORE_ROOT + "/" + CONVERSATIONS_DIR_NAME)
+                Map.of(PATH_FIELD_NAME, storeRoot(principal) + "/" + CONVERSATIONS_DIR_NAME)
         );
         if (!result.isSuccess() || Objects.isNull(result.getData())) {
             return List.of();
@@ -285,9 +269,30 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
                 .map(path -> path.substring(path.lastIndexOf('/') + 1))
                 .filter(name -> name.endsWith(".json"))
                 .map(name -> name.substring(0, name.length() - ".json".length()))
-                .map(id -> getConversation(id, deviceIdentified))
+                .map(id -> getConversation(principal, id, deviceIdentified))
                 .filter(Objects::nonNull)
                 .toList();
+    }
+
+    private RpcFilesystemScope resolveWorkspaceScope(
+            AgentConversationEntity conversation,
+            String principal,
+            String deviceIdentified
+    ) {
+        if (AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(conversation.getType())) {
+            return new RpcFilesystemScope.DefaultWorkspace();
+        }
+        String key = Objects.toString(conversation.getMetadata().get(WORKSPACE_KEY_METADATA_KEY), null);
+        if (AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE.equals(conversation.getType()) && StringUtils.isNotBlank(key)) {
+            return new RpcFilesystemScope.CustomWorkspace(key);
+        }
+        AgentConversationEntity parent = Objects.isNull(conversation.getParentId())
+                ? null
+                : getConversation(principal, conversation.getParentId(), deviceIdentified);
+        if (Objects.isNull(parent)) {
+            return new RpcFilesystemScope.DefaultWorkspace();
+        }
+        return resolveWorkspaceScope(parent, principal, deviceIdentified);
     }
 
     @Override
@@ -299,12 +304,13 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
+        String principal = token.getName();
         AgentConversationEntity conversation = Objects.requireNonNull(
-                getConversation(conversationId, deviceIdentified),
+                getConversation(principal, conversationId, deviceIdentified),
                 "找不到 ID 为 [" + conversationId + "] 的会话内容"
         );
         PrincipalDetailsConstants.equals(conversation, token);
-        List<AgentMessageEntity> messages = getConversationMessages(conversationId, deviceIdentified).stream()
+        List<AgentMessageEntity> messages = getConversationMessages(principal, conversationId, deviceIdentified).stream()
                 .sorted(Comparator.comparing(AgentMessageEntity::getId).reversed())
                 .toList();
         List<AgentMessageEntity> elements = messages.subList(
@@ -316,12 +322,13 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public int positioningMessagePageNumber(
+            String principal,
             String conversationId,
             String messageId,
             int pageSize,
             String deviceIdentified
     ) {
-        List<AgentMessageEntity> messages = getConversationMessages(conversationId, deviceIdentified).stream()
+        List<AgentMessageEntity> messages = getConversationMessages(principal, conversationId, deviceIdentified).stream()
                 .sorted(Comparator.comparing(AgentMessageEntity::getId).reversed())
                 .toList();
         int index = 0;
@@ -393,23 +400,32 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         );
     }
 
-    private String conversationFile(String conversationId) {
-        return STORE_ROOT + "/" + CONVERSATIONS_DIR_NAME + "/" + conversationId + ".json";
+    private String storeRoot(String principal) {
+        return STORE_ROOT + "/" + segment(principal);
     }
 
-    private String messageFile(String messageId) {
-        return STORE_ROOT + "/" + MESSAGES_DIR_NAME + "/" + messageId + ".json";
+    private String segment(String value) {
+        return value.replaceAll("[^a-zA-Z0-9_\\-.]", "_");
     }
 
-    private String messageIndexFile(String conversationId) {
-        return STORE_ROOT + "/" + INDEXES_DIR_NAME + "/" + conversationId + ".json";
+    private String conversationFile(String principal, String conversationId) {
+        return storeRoot(principal) + "/" + CONVERSATIONS_DIR_NAME + "/" + conversationId + ".json";
+    }
+
+    private String messageFile(String principal, String messageId) {
+        return storeRoot(principal) + "/" + MESSAGES_DIR_NAME + "/" + messageId + ".json";
+    }
+
+    private String messageIndexFile(String principal, String conversationId) {
+        return storeRoot(principal) + "/" + INDEXES_DIR_NAME + "/" + conversationId + ".json";
     }
 
     private List<String> readMessageIds(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
-        String json = readString(deviceIdentified, messageIndexFile(conversationId));
+        String json = readString(deviceIdentified, messageIndexFile(principal, conversationId));
         if (Objects.isNull(json)) {
             return new LinkedList<>();
         }
@@ -474,6 +490,6 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             RpcFilesystemOperationEnum operation,
             Map<String, Object> params
     ) {
-        return rpcFilesystemInvoker.invoke(deviceIdentified, operation, params);
+        return rpcFilesystemInvoker.invoke(deviceIdentified, new RpcFilesystemScope.Store(), operation, params);
     }
 }

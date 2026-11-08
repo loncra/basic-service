@@ -103,7 +103,7 @@ public class AgentManager {
             String deviceIdentified
     ) {
         AgentMessageEntity assistant = Objects.requireNonNull(
-                AgentChannelResolver.channelResolver(channelResolvers, channel).getMessage(assistantMessageId, deviceIdentified),
+                AgentChannelResolver.channelResolver(channelResolvers, channel).getMessage(token.getName(), assistantMessageId, deviceIdentified),
                 "执行 [" + assistantMessageId + "] 不存在或已结束"
         );
         SystemException.isTrue(AgentMessageRoleEnum.ASSISTANT.equals(assistant.getRole()), "ID 为 [" + assistantMessageId + "] 的消息记录非助手消息");
@@ -151,9 +151,10 @@ public class AgentManager {
             String conversationId,
             String messageId,
             int pageSize,
+            AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel).positioningMessagePageNumber(conversationId, messageId, pageSize, deviceIdentified);
+        return AgentChannelResolver.channelResolver(channelResolvers, channel).positioningMessagePageNumber(token.getName(), conversationId, messageId, pageSize, deviceIdentified);
     }
 
     public void execute(AgentExecutionMetadata execution) {
@@ -181,6 +182,7 @@ public class AgentManager {
                     "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
             );
             List<AgentMessageEntity> assistantMessages = resolver.findRequestStopAssistantMessage(
+                    assistant.getPrincipal(),
                     assistant.getAgentConversationId(),
                     execution.getDeviceIdentified()
             );
@@ -262,7 +264,7 @@ public class AgentManager {
             return execution.getUserMessage();
         }
         return AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
-                .getMessage(assistantMessage.getParentId(),execution.getDeviceIdentified());
+                .getMessage(assistantMessage.getPrincipal(), assistantMessage.getParentId(), execution.getDeviceIdentified());
     }
 
     private List<ConfirmResult> createRejectConfirmResults(AgentExecutionMetadata execution, AgentMessageEntity assistantMessage) {
@@ -301,6 +303,7 @@ public class AgentManager {
                 .put(SecurityContext.class, SecurityContextHolder.getContext())
                 .put(AgentMessageRoleEnum.ASSISTANT.toString(), assistantMessage)
                 .put(AgentExecutionMetadata.class, execution)
+                .put(AgentChannelResolver.class, resolver)
                 .build();
 
         return agent.streamEvents(messages, context)
@@ -318,7 +321,7 @@ public class AgentManager {
     ) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
         AgentConversationEntity conversation = AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
-                .getConversation(assistant.getAgentConversationId(),execution.getDeviceIdentified());
+                .getConversation(assistant.getPrincipal(), assistant.getAgentConversationId(), execution.getDeviceIdentified());
         AgentPluginInstructionContext context = new AgentPluginInstructionContext();
         context.setToolkit(agent.getToolkit());
         context.setAgent(agent);
@@ -406,7 +409,7 @@ public class AgentManager {
     ) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
         AgentConversationEntity conversation = AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
-                .getConversation(assistant.getAgentConversationId(),execution.getDeviceIdentified());
+                .getConversation(assistant.getPrincipal(), assistant.getAgentConversationId(), execution.getDeviceIdentified());
         if (Objects.isNull(conversation) || !AgentChatStatusEnum.STREAM_END_STATUS.contains(conversation.getStatus())) {
             log.warn("会话 [{}] 当前未处于完成状态略过推送 STREAM_END 事件", assistant.getId());
             return Flux.empty();
@@ -449,10 +452,11 @@ public class AgentManager {
     }
 
     private Flux<AbstractAssistantMessageContentMetadata> postStreamEvent(
-            AgentMessageEntity assistant
+            AgentMessageEntity assistant,
+            RuntimeContext context
     ) {
         return Flux.fromIterable(agentStreamEventInterceptors)
-                .concatMap(interceptor -> Flux.fromIterable(interceptor.postEventsStream(assistant))
+                .concatMap(interceptor -> Flux.fromIterable(interceptor.postEventsStream(assistant, context))
                         .doOnError(e -> log.error("助手消息 [{}] 拦截器 [{}] 执行失败", assistant.getId(), interceptor.getClass().getSimpleName(), e))
                 );
     }
@@ -473,7 +477,7 @@ public class AgentManager {
                 .toList();
         Flux<AbstractAssistantMessageContentMetadata> flux = Flux.fromIterable(contents);
         if (AgentEndEvent.class.isAssignableFrom(event.getClass())) {
-            flux = flux.concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant))))
+            flux = flux.concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> postStreamEvent(assistant, context))))
                     .concatWith(Flux.deferContextual(ctxView -> ReactorContextUtils.fluxWithContext(ctxView, () -> onCompleted(context.get(AgentExecutionMetadata.class)))));
         }
         return flux;
@@ -507,7 +511,7 @@ public class AgentManager {
         AgentChannelResolver resolver = AgentChannelResolver.channelResolver(channelResolvers, channel);
 
         AgentMessageEntity assistant = Objects.requireNonNull(
-                resolver.getMessage(assistantMessageId, deviceIdentified),
+                resolver.getMessage(token.getName(), assistantMessageId, deviceIdentified),
                 "执行 [" + assistantMessageId + "] 不存在或已结束"
         );
         PrincipalDetailsConstants.equals(assistant, token);

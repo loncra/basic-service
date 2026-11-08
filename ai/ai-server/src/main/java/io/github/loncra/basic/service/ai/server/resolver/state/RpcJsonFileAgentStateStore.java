@@ -4,8 +4,10 @@ import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.state.State;
 import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.filesystem.model.FileData;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.RpcFilesystemOperationEnum;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemInvoker;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.exception.SystemException;
@@ -26,7 +28,7 @@ public class RpcJsonFileAgentStateStore extends JsonFileAgentStateStore {
 
     private static final String LOCAL_STATE_DIR_NAME = "loncra-rpc-state-store";
 
-    private static final String ROOT_PATH = "/workspace/.agentscope-state";
+    private static final String ROOT_PATH = "/workspace/.loncra-agent";
 
     private static final String PATH_FIELD_NAME = "path";
 
@@ -38,22 +40,35 @@ public class RpcJsonFileAgentStateStore extends JsonFileAgentStateStore {
 
     private final RpcFilesystemInvoker invoker;
 
-    private final String deviceIdentified;
+    private final BasicAgentExecutionMetadata executionMetadata;
 
-    public RpcJsonFileAgentStateStore(RpcFilesystemInvoker invoker, String deviceIdentified) {
+    public RpcJsonFileAgentStateStore(
+            RpcFilesystemInvoker invoker,
+            BasicAgentExecutionMetadata executionMetadata
+    ) {
         super(Path.of(SystemProperties.getJavaIoTmpdir(), LOCAL_STATE_DIR_NAME));
         this.invoker = invoker;
-        this.deviceIdentified = deviceIdentified;
+        this.executionMetadata = executionMetadata;
     }
 
     @Override
-    public void save(String userId, String sessionId, String key, State value) {
+    public void save(
+            String userId,
+            String sessionId,
+            String key,
+            State value
+    ) {
         String json = JsonUtils.getJsonCodec().toPrettyJson(value);
         writeString(stateFilePath(userId, sessionId, key), json);
     }
 
     @Override
-    public void save(String userId, String sessionId, String key, List<? extends State> values) {
+    public void save(
+            String userId,
+            String sessionId,
+            String key,
+            List<? extends State> values
+    ) {
         String content = values.stream()
                 .map(s -> JsonUtils.getJsonCodec().toJson(s))
                 .reduce((a, b) -> a + StringUtils.LF + b)
@@ -62,7 +77,12 @@ public class RpcJsonFileAgentStateStore extends JsonFileAgentStateStore {
     }
 
     @Override
-    public <T extends State> Optional<T> get(String userId, String sessionId, String key, Class<T> type) {
+    public <T extends State> Optional<T> get(
+            String userId,
+            String sessionId,
+            String key,
+            Class<T> type
+    ) {
         String json = readString(stateFilePath(userId, sessionId, key));
         if (Objects.isNull(json)) {
             return Optional.empty();
@@ -71,7 +91,12 @@ public class RpcJsonFileAgentStateStore extends JsonFileAgentStateStore {
     }
 
     @Override
-    public <T extends State> List<T> getList(String userId, String sessionId, String key, Class<T> itemType) {
+    public <T extends State> List<T> getList(
+            String userId,
+            String sessionId,
+            String key,
+            Class<T> itemType
+    ) {
         String content = readString(listFilePath(userId, sessionId, key));
         if (Objects.isNull(content) || content.isBlank()) {
             return List.of();
@@ -83,25 +108,38 @@ public class RpcJsonFileAgentStateStore extends JsonFileAgentStateStore {
     }
 
     @Override
-    public boolean exists(String userId, String sessionId) {
+    public boolean exists(
+            String userId,
+            String sessionId
+    ) {
         RestResult<Object> result = invoke(RpcFilesystemOperationEnum.EXISTS, Map.of(PATH_FIELD_NAME, sessionDir(userId, sessionId)));
         return result.isSuccess() && Boolean.TRUE.equals(result.getData());
     }
 
     @Override
-    public void delete(String userId, String sessionId, String key) {
+    public void delete(
+            String userId,
+            String sessionId,
+            String key
+    ) {
         deleteFile(stateFilePath(userId, sessionId, key));
         deleteFile(listFilePath(userId, sessionId, key));
         deleteFile(hashFilePath(userId, sessionId, key));
     }
 
     @Override
-    public void delete(String userId, String sessionId) {
+    public void delete(
+            String userId,
+            String sessionId
+    ) {
         delete(userId, sessionId, AGENT_STATE_KEY);
         delete(userId, sessionId, MEMORY_MESSAGES_KEY);
     }
 
-    private void writeString(String path, String content) {
+    private void writeString(
+            String path,
+            String content
+    ) {
         RestResult<Object> result = invoke(
                 RpcFilesystemOperationEnum.WRITE,
                 Map.of(PATH_FIELD_NAME, path, CONTENT_FIELD_NAME, content)
@@ -125,28 +163,42 @@ public class RpcJsonFileAgentStateStore extends JsonFileAgentStateStore {
         invoke(RpcFilesystemOperationEnum.DELETE, Map.of(PATH_FIELD_NAME, path));
     }
 
-    private RestResult<Object> invoke(RpcFilesystemOperationEnum operation, Map<String, Object> params) {
-        return invoker.invoke(deviceIdentified, operation, params);
+    private RestResult<Object> invoke(
+            RpcFilesystemOperationEnum operation,
+            Map<String, Object> params
+    ) {
+        return invoker.invoke(executionMetadata.getDeviceIdentified(), new RpcFilesystemScope.Store(), operation, params);
     }
 
-    private String stateFilePath(String userId, String sessionId, String key) {
+    private String stateFilePath(
+            String userId,
+            String sessionId,
+            String key
+    ) {
         return sessionDir(userId, sessionId) + "/" + key + ".json";
     }
 
-    private String listFilePath(String userId, String sessionId, String key) {
+    private String listFilePath(
+            String userId,
+            String sessionId,
+            String key
+    ) {
         return sessionDir(userId, sessionId) + "/" + key + ".jsonl";
     }
 
-    private String hashFilePath(String userId, String sessionId, String key) {
+    private String hashFilePath(
+            String userId,
+            String sessionId,
+            String key
+    ) {
         return sessionDir(userId, sessionId) + "/" + key + ".hash";
     }
 
-    private String sessionDir(String userId, String sessionId) {
-        return ROOT_PATH + "/" + safeSegment(normalizeUser(userId)) + "/" + safeSegment(sessionId);
-    }
-
-    private String normalizeUser(String userId) {
-        return Objects.isNull(userId) || userId.isBlank() ? "__anon__" : userId;
+    private String sessionDir(
+            String userId,
+            String sessionId
+    ) {
+        return ROOT_PATH + "/" + safeSegment(Objects.requireNonNull(userId)) + "/state/" + safeSegment(sessionId);
     }
 
     private String safeSegment(String value) {

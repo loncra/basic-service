@@ -29,6 +29,8 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
 
     private static final String PARAMS_FIELD_NAME = "params";
 
+    private static final String SCOPE_FIELD_NAME = "scope";
+
     private static final String ACK_MESSAGE_FIELD_NAME = "message";
 
     private static final String ACK_VALUE_FIELD_NAME = "value";
@@ -42,6 +44,7 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
     @Override
     public RestResult<Object> invoke(
             String deviceIdentified,
+            RpcFilesystemScope scope,
             RpcFilesystemOperationEnum operation,
             Map<String, Object> params
     ) {
@@ -53,6 +56,7 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put(OPERATION_FIELD_NAME, operation.getValue());
         payload.put(PARAMS_FIELD_NAME, params);
+        payload.put(SCOPE_FIELD_NAME, scope.toPayload());
 
         UnicastMessageMetadata<Map<String, Object>> metadata = UnicastMessageMetadata.of(
                 deviceIdentified,

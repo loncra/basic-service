@@ -26,7 +26,10 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.ToolCallBlockContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.state.RpcJsonFileAgentStateStore;
@@ -47,12 +50,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Setter(onMethod_ = {@Autowired})
 public abstract class AbstractAgentChannelResolver implements AgentChannelResolver {
 
     public static final String WORKSPACE_KIND_METADATA_KEY = "kind";
+
+    public static final String WORKSPACE_KEY_METADATA_KEY = "key";
 
     protected ModelSettingService modelSettingService;
 
@@ -89,7 +95,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         } else {
             entity.setGenerateNameStatus(ExecuteStatus.Success);
         }
-        entity.getMetadata().put(WORKSPACE_KIND_METADATA_KEY, getChannel().toString());
+        entity.getMetadata().put(WORKSPACE_KIND_METADATA_KEY, getChannel().getValue());
         return entity;
     }
 
@@ -252,10 +258,12 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         if (StringUtils.isEmpty(body.getId())) {
             entity = buildBasicConversation(token.getName(), type);
             entity.setName(body.getName());
+            entity.getMetadata().putAll(body.getMetadata());
             insertConversation(entity, deviceIdentified);
         } else {
-            entity = getConversation(body.getId(), deviceIdentified);
+            entity = getConversation(token.getName(), body.getId(), deviceIdentified);
             entity.setName(body.getName());
+            entity.getMetadata().putAll(body.getMetadata());
             updateConversation(entity, deviceIdentified);
         }
 
@@ -275,7 +283,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             conversation = getDefaultWorkspace(token, deviceIdentified);
         } else {
             conversation = Objects.requireNonNull(
-                    getConversation(body.getAgentConversationId(), deviceIdentified),
+                    getConversation(token.getName(), body.getAgentConversationId(), deviceIdentified),
                     "找不到 ID 为 [" + body.getAgentConversationId() + "] 的会话内容"
             );
         }
@@ -283,12 +291,16 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         ModelSettingMetadata modelMetadata = resolveModelMetadata(body.getModelId());
 
         if (conversation.getType() != AgentConversationTypeEnum.WORKSPACE_CONVERSATION) {
-            //String parentId = conversation.getId();
+            String parentId = conversation.getId();
+            Map<String,Object> metadata = conversation.getMetadata();
             conversation = buildBasicConversation(token.getName(), AgentConversationTypeEnum.WORKSPACE_CONVERSATION);
-            conversation.setParentId(conversation.getId());
-            conversation.setMetadata(conversation.getMetadata());
+            conversation.setParentId(parentId);
+            conversation.setMetadata(metadata);
             conversation.setLastModel(modelMetadata);
             conversation.setLastChatType(body.getType());
+            conversation.setGenerateNameStatus(conversationConfig.isGenerateName() ? ExecuteStatus.Pending : ExecuteStatus.Success);
+            conversation.setName(StringUtils.defaultIfEmpty(conversation.getName(), conversationConfig.getNewConversation()));
+            conversation.setStatus(AgentChatStatusEnum.READY);
             insertConversation(conversation, deviceIdentified);
         } else {
             /* assertNoRunningAssistant(conversation.getId());*/
@@ -357,11 +369,11 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentMessageEntity assistantMessage = Objects.requireNonNull(getMessage(body.getAssistantMessageId(), deviceIdentified));
+        AgentMessageEntity assistantMessage = Objects.requireNonNull(getMessage(token.getName(), body.getAssistantMessageId(), deviceIdentified));
         PrincipalDetailsConstants.equals(assistantMessage, token);
 
         BasicAgentExecutionMetadata basic = new BasicAgentExecutionMetadata();
-        basic.setChannel(ExecutionChannelEnum.CLOUD);
+        basic.setChannel(getChannel());
         basic.setClientConversationId(assistantMessage.getAgentConversationId());
         basic.setDeviceIdentified(deviceIdentified);
         List<ConfirmResult> confirmResults = getResumeConfirmResults(body.getConfirmResults(), basic, token);
@@ -385,7 +397,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentConversationEntity conversation = getConversation(id, deviceIdentified);
+        AgentConversationEntity conversation = getConversation(token.getName(), id, deviceIdentified);
         PrincipalDetailsConstants.equals(conversation, token);
 
         doDeleteConversation(conversation, token, deviceIdentified);
@@ -404,4 +416,34 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             AuditAuthenticationToken token,
             String deviceIdentified
     );
+
+    @Override
+    public AgentExecutionMetadata getAgentExecutionMetadata(
+            AgentExecuteMessageMetadata message,
+            AuditAuthenticationToken token
+    ) {
+
+        AgentMessageEntity assistant = getMessage(token.getName(), message.getRef(), message.getDeviceIdentified());
+        if (Objects.isNull(assistant)) {
+            return null;
+        }
+
+        AgentMessageEntity userMessage = Objects.requireNonNull(
+                getMessage(token.getName(), assistant.getParentId(), message.getDeviceIdentified()),
+                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录")
+        ;
+        AgentConversationEntity conversation = Objects.requireNonNull(
+                getConversation(token.getName(), assistant.getAgentConversationId(), message.getDeviceIdentified()),
+                "找不到 ID 为 [" + assistant.getAgentConversationId() + "] 的会话内容"
+        );
+
+        AgentExecutionMetadata execution = new AgentExecutionMetadata();
+        execution.setChannel(getChannel());
+        execution.setDeviceIdentified(message.getDeviceIdentified());
+        execution.setClientConversationId(assistant.getAgentConversationId());
+        execution.setConversation(conversation);
+        execution.setUserMessage(userMessage);
+        execution.setAssistantMessage(assistant);
+        return execution;
+    }
 }

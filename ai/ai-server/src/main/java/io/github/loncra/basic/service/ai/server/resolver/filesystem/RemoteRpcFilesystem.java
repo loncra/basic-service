@@ -2,24 +2,14 @@ package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.harness.agent.filesystem.model.EditResult;
-import io.agentscope.harness.agent.filesystem.model.ExecuteResponse;
-import io.agentscope.harness.agent.filesystem.model.FileData;
-import io.agentscope.harness.agent.filesystem.model.FileDownloadResponse;
-import io.agentscope.harness.agent.filesystem.model.FileInfo;
-import io.agentscope.harness.agent.filesystem.model.FileUploadResponse;
-import io.agentscope.harness.agent.filesystem.model.GlobResult;
-import io.agentscope.harness.agent.filesystem.model.GrepMatch;
-import io.agentscope.harness.agent.filesystem.model.GrepResult;
-import io.agentscope.harness.agent.filesystem.model.LsResult;
-import io.agentscope.harness.agent.filesystem.model.ReadResult;
-import io.agentscope.harness.agent.filesystem.model.WriteResult;
+import io.agentscope.harness.agent.filesystem.model.*;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.enumerate.RpcFilesystemOperationEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Strings;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,6 +51,24 @@ public class RemoteRpcFilesystem implements AbstractSandboxFilesystem {
     private final RpcFilesystemInvoker invoker;
 
     private final String deviceIdentified;
+
+    private final String principal;
+
+    private final RpcFilesystemScope workspaceScope;
+
+    private static final String WORKSPACE_PREFIX = "/workspace/";
+
+    private static final String STORE_ROOT = "/workspace/.loncra-agent";
+
+    private static final String MEMORY_MD = "MEMORY.md";
+
+    private static final String MEMORY_DIR = "memory";
+
+    private static final List<String> PATH_PARAM_FIELDS = List.of(
+            PATH_FIELD_NAME,
+            FROM_PATH_FIELD_NAME,
+            TO_PATH_FIELD_NAME
+    );
 
     @Override
     public String id() {
@@ -258,7 +266,11 @@ public class RemoteRpcFilesystem implements AbstractSandboxFilesystem {
             Map<String, Object> params
     ) {
 
-        RestResult<Object> result = invoker.invoke(deviceIdentified, operation, params);
+        Map<String, Object> mapped = remapPaths(params);
+        RpcFilesystemScope scope = Objects.equals(mapped, params)
+                ? workspaceScope
+                : new RpcFilesystemScope.Store();
+        RestResult<Object> result = invoker.invoke(deviceIdentified, scope, operation, mapped);
 
         if (Objects.isNull(result)) {
             return RestResult.of("客户端未返回文件系统结果", 500);
@@ -266,16 +278,46 @@ public class RemoteRpcFilesystem implements AbstractSandboxFilesystem {
 
         if (log.isInfoEnabled()) {
             log.info(
-                    "客户端文件系统调用, deviceIdentified={}, operation={}, params={}, success={}, message={}",
+                    "客户端文件系统调用, deviceIdentified={}, operation={}, scope={}, params={}, success={}, message={}",
                     deviceIdentified,
                     operation,
-                    params,
+                    scope,
+                    mapped,
                     result.isSuccess(),
                     result.getMessage()
             );
         }
 
         return result;
+    }
+
+    private Map<String, Object> remapPaths(Map<String, Object> params) {
+        Map<String, Object> mapped = new LinkedHashMap<>(params);
+        for (String field : PATH_PARAM_FIELDS) {
+            Object value = mapped.get(field);
+            if (value instanceof String path) {
+                mapped.put(field, remap(path));
+            }
+        }
+        return mapped;
+    }
+
+    private String remap(String path) {
+        String normalized = Strings.CS.removeStart(path, WORKSPACE_PREFIX);
+        if (Strings.CS.equals(normalized, MEMORY_MD)) {
+            return STORE_ROOT + "/" + segment(principal) + "/memory/" + MEMORY_MD;
+        }
+        if (Strings.CS.equals(normalized, MEMORY_DIR)) {
+            return STORE_ROOT + "/" + segment(principal) + "/memory";
+        }
+        if (normalized.startsWith(MEMORY_DIR + "/")) {
+            return STORE_ROOT + "/" + segment(principal) + "/memory/" + normalized.substring(MEMORY_DIR.length() + 1);
+        }
+        return path;
+    }
+
+    private String segment(String value) {
+        return value.replaceAll("[^a-zA-Z0-9_\\-.]", "_");
     }
 
 }

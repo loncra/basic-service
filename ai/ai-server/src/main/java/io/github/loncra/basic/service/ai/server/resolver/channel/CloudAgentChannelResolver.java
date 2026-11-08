@@ -22,6 +22,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversatio
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.service.agent.*;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.page.Page;
@@ -85,26 +86,6 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
                 true
         );
         return responseBody;
-    }
-
-    @Override
-    public AgentExecutionMetadata getAgentExecutionMetadata(AgentExecuteMessageMetadata message) {
-        AgentMessageEntity assistant = messageService.get(message.getRef());
-        if (Objects.isNull(assistant)) {
-            return null;
-        }
-
-        AgentMessageEntity userMessage = messageService.get(assistant.getParentId());
-        AgentConversationEntity conversation = conversationService.get(assistant.getAgentConversationId());
-
-        AgentExecutionMetadata execution = new AgentExecutionMetadata();
-        execution.setChannel(ExecutionChannelEnum.CLOUD);
-        execution.setDeviceIdentified(message.getDeviceIdentified());
-        execution.setClientConversationId(assistant.getAgentConversationId());
-        execution.setConversation(conversation);
-        execution.setUserMessage(userMessage);
-        execution.setAssistantMessage(assistant);
-        return execution;
     }
 
     @Override
@@ -198,6 +179,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public AgentConversationEntity getConversation(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
@@ -214,6 +196,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public AgentMessageEntity getMessage(
+            String principal,
             String messageId,
             String deviceIdentified
     ) {
@@ -222,6 +205,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public List<AgentMessageEntity> getConversationMessages(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
@@ -230,6 +214,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public List<AgentMessageEntity> findRequestStopAssistantMessage(
+            String principal,
             String conversationId,
             String deviceIdentified
     ) {
@@ -309,11 +294,47 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public int positioningMessagePageNumber(
+            String principal,
             String conversationId,
             String messageId,
             int pageSize,
             String deviceIdentified
     ) {
         return messageService.positioningPageNumber(conversationId, messageId, pageSize);
+    }
+
+    @Override
+    public void updateConversationGenerateNameStatus(
+            String id,
+            ExecuteStatus status,
+            AgentExecutionMetadata executionMetadata
+    ) {
+        conversationService.lambdaUpdate()
+                .set(AgentConversationEntity::getGenerateNameStatus, status.getValue())
+                .eq(IdEntity::getId, id)
+                .update();
+    }
+
+    @Override
+    public void updateAssistantMetadata(
+            AgentMessageEntity assistantEntity,
+            AgentExecutionMetadata executionMetadata
+    ) {
+        messageService.lambdaUpdate()
+                .set(AgentMessageEntity::getMetadata, assistantEntity.obtainMetadataJsonString())
+                .eq(AgentMessageEntity::getId, assistantEntity.getId())
+                .update();
+    }
+
+    @Override
+    public void updateGenerateName(
+            AgentConversationEntity conversation,
+            AgentExecutionMetadata executionMetadata
+    ) {
+        conversationService.lambdaUpdate()
+                .set(AgentConversationEntity::getGenerateNameStatus, conversation.getGenerateNameStatus())
+                .set(AgentConversationEntity::getName, conversation.getName())
+                .eq(IdEntity::getId, conversation.getId())
+                .update();
     }
 }

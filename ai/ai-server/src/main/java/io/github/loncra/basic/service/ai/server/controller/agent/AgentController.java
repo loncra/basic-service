@@ -157,14 +157,18 @@ public class AgentController {
             int pageSize,
             @RequestParam
             ExecutionChannelEnum channel,
+            @CurrentSecurityContext
+            SecurityContext securityContext,
             HttpServletRequest request
     ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return RestResult.ofSuccess(
                 agentManager.positioningMessagePageNumber(
                         channel,
                         conversationId,
                         messageId,
                         pageSize,
+                        token,
                         request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
                 )
         );

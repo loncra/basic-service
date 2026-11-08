@@ -56,10 +56,18 @@ public class AgentConsumer {
             return;
         }
 
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        if (Objects.isNull(securityContext.getAuthentication()) || !AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass())) {
+            log.info("ID 为 [{}] 的助手消息在本次消费中无法获取认证信息跳过执行", executeMessage.getRef());
+            channel.basicNack(tag, false, false);
+            return;
+        }
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+
         AgentExecutionMetadata execution;
         try {
             AgentChannelResolver resolver = AgentChannelResolver.channelResolver(agentManager.getChannelResolvers(), executeMessage.getChannel());
-            execution = resolver.getAgentExecutionMetadata(executeMessage);
+            execution = resolver.getAgentExecutionMetadata(executeMessage, token);
         }
         catch (Exception e) {
             log.info("执行引用 [{}] 组装执行内容失败，跳过执行: {}", executeMessage.getRef(), e.getMessage());
@@ -84,13 +92,7 @@ public class AgentConsumer {
             return;
         }
 
-        SecurityContext securityContext = SecurityContextHolder.getContext();
-        if (Objects.isNull(securityContext.getAuthentication()) || !AuditAuthenticationToken.class.isAssignableFrom(securityContext.getAuthentication().getClass())) {
-            log.info("ID 为 [{}] 的助手消息在本次消费中无法获取认证信息跳过执行", assistant.getId());
-            channel.basicNack(tag, false, false);
-            return;
-        }
-        execution.setToken(CastUtils.cast(securityContext.getAuthentication()));
+        execution.setToken(token);
 
         try {
             agentManager.execute(execution);

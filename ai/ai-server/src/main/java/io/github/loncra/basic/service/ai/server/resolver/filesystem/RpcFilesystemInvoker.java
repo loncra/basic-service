@@ -9,6 +9,7 @@ public interface RpcFilesystemInvoker {
 
     RestResult<Object> invoke(
             String deviceIdentified,
+            RpcFilesystemScope scope,
             RpcFilesystemOperationEnum operation,
             Map<String, Object> params
     );

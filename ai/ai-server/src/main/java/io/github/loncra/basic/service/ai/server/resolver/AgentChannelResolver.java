@@ -13,6 +13,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.commons.page.Page;
@@ -50,7 +51,10 @@ public interface AgentChannelResolver {
             String deviceIdentified
     );
 
-    AgentExecutionMetadata getAgentExecutionMetadata(AgentExecuteMessageMetadata message);
+    AgentExecutionMetadata getAgentExecutionMetadata(
+            AgentExecuteMessageMetadata message,
+            AuditAuthenticationToken token
+    );
 
     List<AgentConversationEntity> findConversations(
             AuditAuthenticationToken token,
@@ -82,6 +86,7 @@ public interface AgentChannelResolver {
     );
 
     AgentConversationEntity getConversation(
+            String principal,
             String conversationId,
             String deviceIdentified
     );
@@ -92,16 +97,19 @@ public interface AgentChannelResolver {
     );
 
     AgentMessageEntity getMessage(
+            String principal,
             String messageId,
             String deviceIdentified
     );
 
     List<AgentMessageEntity> getConversationMessages(
+            String principal,
             String conversationId,
             String deviceIdentified
     );
 
     List<AgentMessageEntity> findRequestStopAssistantMessage(
+            String principal,
             String conversationId,
             String deviceIdentified
     );
@@ -130,6 +138,7 @@ public interface AgentChannelResolver {
     );
 
     int positioningMessagePageNumber(
+            String principal,
             String conversationId,
             String messageId,
             int pageSize,
@@ -145,4 +154,28 @@ public interface AgentChannelResolver {
             AgentExecutionMetadata execution,
             AgentChatStatusEnum status
     );
+
+    default void updateConversationGenerateNameStatus(
+            String id,
+            ExecuteStatus status,
+            AgentExecutionMetadata executionMetadata
+    ) {
+        AgentConversationEntity entity = getConversation(executionMetadata.getToken().getName(), id, executionMetadata.getDeviceIdentified());
+        entity.setGenerateNameStatus(status);
+        updateConversation(entity, executionMetadata.getDeviceIdentified());
+    }
+
+    default void updateAssistantMetadata(
+            AgentMessageEntity assistantEntity,
+            AgentExecutionMetadata executionMetadata
+    ) {
+        saveMessage(assistantEntity, executionMetadata.getDeviceIdentified());
+    }
+
+    default void updateGenerateName(
+            AgentConversationEntity conversation,
+            AgentExecutionMetadata executionMetadata
+    ) {
+        updateConversation(conversation, executionMetadata.getDeviceIdentified());
+    }
 }

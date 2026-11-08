@@ -123,9 +123,7 @@ public class AgentConversationService extends BasicService<AgentConversationDao,
             );
             entity.setTenantId(tenantContext.getId().toString());
         }
-        entity.setGenerateNameStatus(conversationConfig.isGenerateName() ? ExecuteStatus.Pending : ExecuteStatus.Success);
-        entity.setName(StringUtils.defaultIfEmpty(entity.getName(), conversationConfig.getNewConversation()));
-        entity.setStatus(AgentChatStatusEnum.READY);
+
         return super.insert(entity);
     }
 }
