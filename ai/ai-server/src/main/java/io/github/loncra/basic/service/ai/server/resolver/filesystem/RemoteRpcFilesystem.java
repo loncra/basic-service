@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Strings;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -246,7 +247,16 @@ public class RemoteRpcFilesystem implements AbstractSandboxFilesystem {
     ) {
         return files
                 .stream()
-                .map(s -> FileUploadResponse.fail(s.getKey(), "客户端文件系统暂不支持 uploadFiles"))
+                .map(entry -> {
+                    WriteResult result = write(
+                            runtimeContext,
+                            entry.getKey(),
+                            new String(entry.getValue(), StandardCharsets.UTF_8)
+                    );
+                    return result.isSuccess()
+                            ? FileUploadResponse.success(entry.getKey())
+                            : FileUploadResponse.fail(entry.getKey(), result.error());
+                })
                 .toList();
     }
 
@@ -257,7 +267,13 @@ public class RemoteRpcFilesystem implements AbstractSandboxFilesystem {
     ) {
         return paths
                 .stream()
-                .map(s -> FileDownloadResponse.fail(s, "客户端文件系统暂不支持 downloadFiles"))
+                .map(path -> {
+                    ReadResult result = read(runtimeContext, path, 0, 0);
+                    if (!result.isSuccess() || Objects.isNull(result.fileData()) || Objects.isNull(result.fileData().content())) {
+                        return FileDownloadResponse.fail(path, result.isSuccess() ? "文件内容为空" : result.error());
+                    }
+                    return FileDownloadResponse.success(path, result.fileData().content().getBytes(StandardCharsets.UTF_8));
+                })
                 .toList();
     }
 

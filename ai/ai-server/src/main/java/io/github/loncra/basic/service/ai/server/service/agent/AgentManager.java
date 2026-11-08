@@ -233,13 +233,6 @@ public class AgentManager {
         }
 
         ReactorContextUtils.captureContext(flux)
-                .doFinally(signal ->
-                        resolver.deleteConversation(
-                                assistant.getAgentConversationId(),
-                                execution.getToken(),
-                                execution.getDeviceIdentified()
-                        )
-                )
                 .subscribe(
                         s -> {},
                         error -> onError(error, execution)
