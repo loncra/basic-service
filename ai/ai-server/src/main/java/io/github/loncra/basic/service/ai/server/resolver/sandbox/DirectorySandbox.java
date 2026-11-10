@@ -1,10 +1,9 @@
-package io.github.loncra.basic.service.ai.server.resolver.sandbox.directory;
+package io.github.loncra.basic.service.ai.server.resolver.sandbox;
 
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.harness.agent.sandbox.ExecResult;
 import io.agentscope.harness.agent.sandbox.SandboxErrorCode;
 import io.agentscope.harness.agent.sandbox.SandboxException;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.AbstractCommandSandbox;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.InputStream;
@@ -22,10 +21,6 @@ public class DirectorySandbox extends AbstractCommandSandbox {
     public DirectorySandbox(Path directory) {
         super(directory.toAbsolutePath().normalize().toString());
         this.directory = directory.toAbsolutePath().normalize();
-    }
-
-    public Path directory() {
-        return directory;
     }
 
     @Override

@@ -13,8 +13,9 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgent
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
+import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.directory.DirectoryFilesystemSpec;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxRecords;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
@@ -25,6 +26,8 @@ import io.github.loncra.framework.spring.security.core.authentication.token.Audi
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -113,7 +116,16 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentExecutionMetadata execution,
             String workspacePath
     ) {
-        return builder.filesystem(DirectoryFilesystemSpec.forDirectory(Path.of(workspacePath)));
+        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getSandboxType())) {
+            return builder.filesystem(aiAppConfig.getDocker().toSpec());
+        }
+        Path directory = Path.of(workspacePath);
+        try {
+            Files.createDirectories(directory);
+        } catch (IOException exception) {
+            throw new SystemException("创建云端工作区目录失败: " + directory, exception);
+        }
+        return builder.filesystem(new LocalFilesystemSpec().project(directory));
     }
 
     @Override

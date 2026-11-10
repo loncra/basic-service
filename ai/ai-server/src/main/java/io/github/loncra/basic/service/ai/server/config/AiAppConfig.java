@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.server.config;
 
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
 import io.github.loncra.framework.commons.generator.twitter.BasicSnowflakeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -32,6 +33,12 @@ public class AiAppConfig {
     private int defaultMaxClarifyRounds = 5;
 
     private String workspacePath = "./.workspace/";
+
+    /** directory：本机目录，不需要 Docker。docker：官方 DockerFilesystemSpec。 */
+    private SandboxTypeEnum sandboxType = SandboxTypeEnum.DIRECTORY;
+
+    /** 仅 sandbox-type=docker 时使用，字段对齐 DockerSandboxClientOptions。 */
+    private DockerSandboxConfig docker = new DockerSandboxConfig();
 
     /** 上下文压缩配置，enabled=false 时整个 compaction 不生效 */
     private Compaction compaction = new Compaction();
