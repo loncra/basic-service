@@ -10,6 +10,7 @@ import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
@@ -34,7 +35,6 @@ import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxAgentRecordStore;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxRecords;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
@@ -378,10 +378,18 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
         if (Objects.isNull(entity)) {
             IdNameMetadata body = IdNameMetadata.of(StringUtils.EMPTY, conversationConfig.getDefaultWorkspaceName());
+            preCreateDefaultWorkspace(body, token, deviceIdentified);
             entity = saveWorkspace(body, token, deviceIdentified, AgentConversationTypeEnum.DEFAULT_WORKSPACE);
         }
 
         return entity;
+    }
+
+    protected void preCreateDefaultWorkspace(
+            IdNameMetadata body,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
     }
 
     protected List<AgentConversationEntity> doFindConversations(
@@ -454,7 +462,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .forEach(item -> deleteConversation(item.getId(), token, deviceIdentified));
     }
 
-    protected abstract SandboxRecords openRecords(String deviceIdentified);
+    protected abstract AbstractSandboxFilesystem openRecords(String deviceIdentified);
 
     protected abstract String recordHome();
 

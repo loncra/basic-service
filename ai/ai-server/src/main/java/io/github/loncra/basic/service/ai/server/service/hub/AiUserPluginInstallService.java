@@ -9,8 +9,10 @@ import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallReq
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
+import io.agentscope.harness.agent.filesystem.model.ReadResult;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxRecords;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.*;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
@@ -245,14 +247,19 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
             Set<String> ids
     ) {
         List<IdNameMetadata> workspaces = new LinkedList<>();
+        Path home = Path.of(aiAppConfig.getWorkspacePath()).toAbsolutePath().normalize();
+        LocalFilesystemWithShell filesystem = new LocalFilesystemWithShell(home);
         for (String workspaceId : ids) {
-            Path home = Path.of(aiAppConfig.getWorkspacePath()).toAbsolutePath().normalize();
-            String json = SandboxRecords.cloud(home).readText(
-                    AgentSandboxLayout.conversationFile(home.toString(), token.getName(), workspaceId)
-            );
-            AgentConversationEntity conversation = Objects.isNull(json) || json.isBlank()
+            String path = AgentSandboxLayout.conversationFile(home.toString(), token.getName(), workspaceId);
+            ReadResult result = filesystem.read(RuntimeContext.empty(), path, 0, 0);
+            String json = result.isSuccess() && result.fileData() != null ? result.fileData().content() : null;
+            if (json != null && (json.isBlank() || json.startsWith("System reminder: File exists but has empty contents"))) {
+                json = null;
+            }
+            String body = json;
+            AgentConversationEntity conversation = Objects.isNull(body) || body.isBlank()
                     ? null
-                    : SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(json, AgentConversationEntity.class));
+                    : SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(body, AgentConversationEntity.class));
             SystemException.isTrue(Objects.nonNull(conversation), () -> new ServiceException("找不到 ID 为 [" + workspaceId + "] 的工作空间"));
             SystemException.isTrue(
                     token.getName().equals(conversation.getPrincipal()),

@@ -18,6 +18,8 @@ public class SocketSessionMetadata implements Serializable {
 
     public static final String EXECUTE_SHELL_METADATA_NAME = "executeShell";
 
+    public static final String CLIENT_HOME_METADATA_NAME = "clientHome";
+
     private boolean online;
 
     private String principal;

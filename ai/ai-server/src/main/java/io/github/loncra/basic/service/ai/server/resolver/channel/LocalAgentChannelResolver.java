@@ -14,15 +14,15 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgent
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemInvoker;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.ClientFilesystemSpec;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.ClientSandboxClientOptions;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxRecords;
+import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
+import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
+import io.github.loncra.basic.service.ai.server.resolver.rpc.RpcFilesystemScope;
+import io.github.loncra.basic.service.ai.server.resolver.rpc.ClientRpcFilesystem;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
-import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,6 @@ import nl.basjes.parse.useragent.UserAgent;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +40,7 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
 
     private final AgentSocketSessionResolver agentSocketSessionResolver;
 
-    private final RpcFilesystemInvoker rpcFilesystemInvoker;
+    private final SocketServiceClient socketServiceClient;
 
     @Override
     public ExecutionChannelEnum getChannel() {
@@ -77,6 +76,23 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
+    protected void preCreateDefaultWorkspace(
+            IdNameMetadata body,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        SocketSessionMetadata session = agentSocketSessionResolver.getSession(token.getName(), deviceIdentified);
+        if (Objects.isNull(session)) {
+            return;
+        }
+        String clientHome = Objects.toString(session.getMetadata().get(SocketSessionMetadata.CLIENT_HOME_METADATA_NAME), null);
+        if (StringUtils.isBlank(clientHome)) {
+            return;
+        }
+        body.getMetadata().put(WORKSPACE_ROOTS_METADATA_KEY, List.of(clientHome));
+    }
+
+    @Override
     public HarnessAgent createHarnessAgent(AgentExecutionMetadata execution) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
         AgentMessageEntity userMessage = Objects.requireNonNull(
@@ -89,7 +105,11 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
                 userMessage.getMetadata()
         );
 
-        String workspacePath = resolveClientWorkspacePath(execution);
+        String workspacePath = workspaceRoot(
+                execution.getConversation(),
+                execution.getAssistantMessage().getPrincipal(),
+                execution.getDeviceIdentified()
+        );
 
         return finishAgent(baseBuilder(execution, modelResolverMetadata, workspacePath), execution);
     }
@@ -105,8 +125,8 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         RpcFilesystemScope workspaceScope = Objects.isNull(conversation)
                 ? new RpcFilesystemScope.DefaultWorkspace()
                 : resolveWorkspaceScope(conversation, principal, execution.getDeviceIdentified());
-        return builder.filesystem(ClientFilesystemSpec.forDevice(
-                rpcFilesystemInvoker,
+        return builder.abstractFilesystem(new ClientRpcFilesystem(
+                socketServiceClient,
                 execution.getDeviceIdentified(),
                 workspaceScope
         ));
@@ -114,20 +134,17 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution) {
-        return new SandboxFileAgentStateStore(
-                SandboxRecords.client(rpcFilesystemInvoker, execution.getDeviceIdentified()),
-                recordHome()
-        );
+        return new SandboxFileAgentStateStore(openRecords(execution.getDeviceIdentified()), recordHome());
     }
 
     @Override
-    protected SandboxRecords openRecords(String deviceIdentified) {
-        return SandboxRecords.client(rpcFilesystemInvoker, deviceIdentified);
+    protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
+        return new ClientRpcFilesystem(socketServiceClient, deviceIdentified, new RpcFilesystemScope.Store());
     }
 
     @Override
     protected String recordHome() {
-        return ClientSandboxClientOptions.VIRTUAL_ROOT;
+        return ClientRpcFilesystem.VIRTUAL_ROOT;
     }
 
     private RpcFilesystemScope resolveWorkspaceScope(
@@ -149,18 +166,6 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             return new RpcFilesystemScope.DefaultWorkspace();
         }
         return resolveWorkspaceScope(parent, principal, deviceIdentified);
-    }
-
-    private String resolveClientWorkspacePath(AgentExecutionMetadata execution) {
-        String root = workspaceRoot(
-                execution.getConversation(),
-                execution.getAssistantMessage().getPrincipal(),
-                execution.getDeviceIdentified()
-        );
-        if (StringUtils.isNotBlank(root)) {
-            return root;
-        }
-        return Path.of(aiAppConfig.getWorkspacePath(), execution.getClientConversationId()).toString();
     }
 
     private String workspaceRoot(
@@ -216,7 +221,7 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
                 operatingSystemName,
                 operatingSystemClass,
                 executeShell,
-                ClientSandboxClientOptions.VIRTUAL_ROOT
+                ClientRpcFilesystem.VIRTUAL_ROOT
         );
     }
 }

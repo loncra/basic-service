@@ -14,9 +14,11 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResol
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
+import io.github.loncra.basic.service.ai.server.resolver.rpc.ClientRpcFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxRecords;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentUserPluginToolkitService;
@@ -24,6 +26,7 @@ import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
+import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -129,13 +132,24 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    protected AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution) {
-        return new SandboxFileAgentStateStore(SandboxRecords.cloud(recordDirectory()), recordHome());
+    protected String createEnvironmentMemory(String deviceIdentified, String principal) {
+        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getSandboxType())) {
+            String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ClientRpcFilesystem.VIRTUAL_ROOT);
+            return "云端环境：Docker 容器，执行命令的终端为 bash，工作区根为 " + root + "。执行命令时请使用 bash 语法。";
+        }
+        String os = System.getProperty("os.name");
+        String shell = os.toLowerCase().contains("win") ? "cmd.exe /c" : "sh -c";
+        return "云端环境：操作系统 " + os + "，执行命令的终端为 " + shell + "，工作区是服务器本机目录。文件工具不经过终端。执行命令时请使用与 " + shell + " 匹配的语法。";
     }
 
     @Override
-    protected SandboxRecords openRecords(String deviceIdentified) {
-        return SandboxRecords.cloud(recordDirectory());
+    protected AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution) {
+        return new SandboxFileAgentStateStore(openRecords(execution.getDeviceIdentified()), recordHome());
+    }
+
+    @Override
+    protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
+        return new LocalFilesystemWithShell(recordDirectory());
     }
 
     @Override

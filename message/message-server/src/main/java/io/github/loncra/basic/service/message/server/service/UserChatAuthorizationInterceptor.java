@@ -42,7 +42,7 @@ public class UserChatAuthorizationInterceptor implements AuthorizationIntercepto
             AuditAuthenticationToken socketAuthenticationToken
     ) {
         AuthorizationInterceptor.super.onConnect(client, socketAuthenticationToken);
-        registerExecuteShell(client, socketAuthenticationToken);
+        copyHandshakeMetadata(client, socketAuthenticationToken);
         List<UserChatParticipantEntity> chatParticipants = userChatParticipantService.findByPrincipal(socketAuthenticationToken.getName());
         Set<String> ids = chatParticipants.stream()
                 .map(UserChatParticipantEntity::getUserChatRoomId)
@@ -52,14 +52,15 @@ public class UserChatAuthorizationInterceptor implements AuthorizationIntercepto
         client.joinRooms(ids);
     }
 
-    private void registerExecuteShell(SocketIOClient client, AuditAuthenticationToken token) {
-        String executeShell = client.getHandshakeData().getSingleUrlParam(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME);
-        if (StringUtils.isBlank(executeShell)) {
+    private void copyHandshakeMetadata(SocketIOClient client, AuditAuthenticationToken token) {
+        if (!(token.getDetails() instanceof AuditAuthenticationSuccessDetails details)) {
             return;
         }
-
-        if (token.getDetails() instanceof AuditAuthenticationSuccessDetails details) {
-            details.getMetadata().put(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME, executeShell);
+        for (String name : List.of(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME, SocketSessionMetadata.CLIENT_HOME_METADATA_NAME)) {
+            String value = client.getHandshakeData().getSingleUrlParam(name);
+            if (StringUtils.isNotBlank(value)) {
+                details.getMetadata().put(name, value);
+            }
         }
     }
 }

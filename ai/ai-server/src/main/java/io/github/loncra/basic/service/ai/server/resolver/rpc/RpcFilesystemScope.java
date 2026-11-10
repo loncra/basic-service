@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.resolver.filesystem;
+package io.github.loncra.basic.service.ai.server.resolver.rpc;
 
 import java.util.Map;
 
