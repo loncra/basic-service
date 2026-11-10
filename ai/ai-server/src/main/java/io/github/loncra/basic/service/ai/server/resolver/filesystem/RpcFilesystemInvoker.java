@@ -1,16 +1,15 @@
 package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
-import io.github.loncra.basic.service.ai.server.enumerate.RpcFilesystemOperationEnum;
+import io.agentscope.harness.agent.sandbox.ExecResult;
 import io.github.loncra.framework.commons.RestResult;
 
 import java.util.Map;
 
 public interface RpcFilesystemInvoker {
 
-    RestResult<Object> invoke(
+    RestResult<ExecResult> execute(
             String deviceIdentified,
             RpcFilesystemScope scope,
-            RpcFilesystemOperationEnum operation,
             Map<String, Object> params
     );
 

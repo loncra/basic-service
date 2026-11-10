@@ -36,9 +36,9 @@ import java.util.Map;
  */
 @Data
 @NoArgsConstructor
-@Alias("agentConversation")
+//@Alias("agentConversation")
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "tb_agent_conversation", autoResultMap = true)
+//@TableName(value = "tb_agent_conversation", autoResultMap = true)
 public class AgentConversationEntity extends StringIdEntity implements TenantEntity<String>, AuditPrincipal, Tree<String, AgentConversationEntity>, VersionEntity<Integer, String> {
 
     @Serial

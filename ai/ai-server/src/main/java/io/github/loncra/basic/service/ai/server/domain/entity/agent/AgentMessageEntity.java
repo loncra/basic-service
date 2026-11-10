@@ -36,9 +36,9 @@ import java.util.List;
  */
 @Data
 @NoArgsConstructor
-@Alias("agentMessage")
+//@Alias("agentMessage")
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "tb_agent_message", autoResultMap = true)
+//@TableName(value = "tb_agent_message", autoResultMap = true)
 public class AgentMessageEntity extends AgentChatMetadata implements VersionEntity<Integer, String>, AuditPrincipal, TenantEntity<String>, Tree<String, AgentMessageEntity> {
 
     @Serial

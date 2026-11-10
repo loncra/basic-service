@@ -15,6 +15,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusE
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
+import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
@@ -48,7 +49,8 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
         }
         AgentExecutionMetadata executionMetadata = context.get(AgentExecutionMetadata.class);
         AgentChannelResolver agentChannelResolver = context.get(AgentChannelResolver.class);
-        AgentConversationEntity conversation = agentChannelResolver.getConversation(
+        AgentRecordStore records = agentChannelResolver.getAgentRecordStore();
+        AgentConversationEntity conversation = records.getConversation(
                 executionMetadata.getToken().getName(),
                 assistant.getAgentConversationId(),
                 executionMetadata.getDeviceIdentified()
@@ -58,13 +60,13 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
             return List.of();
         }
 
-        agentChannelResolver.updateConversationGenerateNameStatus(
+        records.updateConversationGenerateNameStatus(
                 conversation.getId(),
                 ExecuteStatus.Processing,
                 executionMetadata
         );
 
-        AgentMessageEntity userMessage = agentChannelResolver.getMessage(
+        AgentMessageEntity userMessage = records.getMessage(
                 executionMetadata.getToken().getName(),
                 assistant.getParentId(),
                 executionMetadata.getDeviceIdentified()
@@ -89,7 +91,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
 
             assistant.saveAgentTokenUsageMetadata(usage);
 
-            agentChannelResolver.updateAssistantMetadata(
+            records.updateAssistantMetadata(
                     assistant,
                     executionMetadata
             );
@@ -109,7 +111,7 @@ public class GenerateConversationNameInterceptor implements AgentStreamEventInte
             conversation.setGenerateNameStatus(ExecuteStatus.Failure);
             return List.of();
         } finally {
-            agentChannelResolver.updateGenerateName(conversation, executionMetadata);
+            records.updateGenerateName(conversation, executionMetadata);
         }
     }
 }

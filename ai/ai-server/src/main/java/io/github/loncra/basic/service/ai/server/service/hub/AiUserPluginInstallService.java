@@ -7,10 +7,12 @@ import io.github.loncra.basic.service.ai.api.enumerate.hub.*;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiUserPluginInstallDao;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
+import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxRecords;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.*;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentConversationService;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -29,6 +31,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -56,7 +59,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
 
     private final AiMcpPackageService aiMcpPackageService;
 
-    private final AgentConversationService agentConversationService;
+    private final AiAppConfig aiAppConfig;
 
     @Transactional(rollbackFor = Exception.class)
     @Concurrent(value = "installPlugin:[#token.name]:[#body.targetType]:[#body.packageId]")
@@ -243,7 +246,13 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
     ) {
         List<IdNameMetadata> workspaces = new LinkedList<>();
         for (String workspaceId : ids) {
-            AgentConversationEntity conversation = agentConversationService.get(workspaceId);
+            Path home = Path.of(aiAppConfig.getWorkspacePath()).toAbsolutePath().normalize();
+            String json = SandboxRecords.cloud(home).readText(
+                    AgentSandboxLayout.conversationFile(home.toString(), token.getName(), workspaceId)
+            );
+            AgentConversationEntity conversation = Objects.isNull(json) || json.isBlank()
+                    ? null
+                    : SystemException.convertSupplier(() -> CastUtils.getObjectMapper().readValue(json, AgentConversationEntity.class));
             SystemException.isTrue(Objects.nonNull(conversation), () -> new ServiceException("找不到 ID 为 [" + workspaceId + "] 的工作空间"));
             SystemException.isTrue(
                     token.getName().equals(conversation.getPrincipal()),

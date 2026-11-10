@@ -2,8 +2,6 @@ package io.github.loncra.basic.service.ai.server.config;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
 import com.alibaba.cloud.nacos.NacosServiceManager;
-import io.agentscope.core.state.AgentStateStore;
-import io.agentscope.extensions.mysql.state.MysqlAgentStateStore;
 import io.github.loncra.basic.service.commons.service.NacosSnowflakeIdGenerateService;
 import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.basic.service.resource.api.service.CaptchaServiceClient;
@@ -18,10 +16,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.SQLException;
-
 /**
  * 服务配置
  *
@@ -30,8 +24,6 @@ import java.sql.SQLException;
 @Configuration
 @ConditionalOnProperty(prefix = "loncra.basic-service.commons.app", value = "runtime-mode", havingValue = "MICROSERVICE")
 public class AiStartupAutoConfig {
-
-    public static final String AGENT_STATE_STORE_TABLE_NAME = "tb_agent_state_store";
 
     @Bean
     @ConditionalOnBean(FeignClientsConfiguration.class)
@@ -45,20 +37,6 @@ public class AiStartupAutoConfig {
             CaptchaProperties captchaProperties
     ) {
         return new RedissonCaptchaStorageManager(redissonClient, captchaProperties);
-    }
-
-    @Bean
-    public AgentStateStore agentStateStore(DataSource dataSource) throws SQLException {
-        String catalog;
-        try (Connection conn = dataSource.getConnection()) {
-            catalog = conn.getCatalog();
-        }
-        return new MysqlAgentStateStore(
-                dataSource,
-                catalog,
-                AGENT_STATE_STORE_TABLE_NAME,
-                true
-        );
     }
 
     @Bean

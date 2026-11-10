@@ -14,11 +14,11 @@ import io.github.loncra.basic.service.ai.server.domain.AssistantMessageStopEvent
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractBlockDeltaContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentMessageService;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.framework.commons.CastUtils;
@@ -50,8 +50,6 @@ import static io.github.loncra.basic.service.ai.server.domain.metadata.AgentChat
 public class InterruptSignalMiddleware implements MiddlewareBase {
 
     private final AgentSseStreamPublishResolver agentSseStreamPublishResolver;
-
-    private final AgentMessageService agentMessageService;
 
     public static final int CHARS_PER_TOKEN = 4;
 
@@ -106,7 +104,8 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
         if (assistantMessage.getMetadata().containsKey(TOKEN_USAGE_KEY)) {
             return Flux.just(currentEvent);
         }
-        AgentMessageEntity userMessage = agentMessageService.get(assistantMessage.getParentId());
+        AgentExecutionMetadata execution = ctx.get(AgentExecutionMetadata.class);
+        AgentMessageEntity userMessage = execution.getUserMessage();
 
         String userInput = TextMessageMetadata.ofString(userMessage.getContent());
         int inputToken = estimateTokens(userInput, userMessage.getModel());

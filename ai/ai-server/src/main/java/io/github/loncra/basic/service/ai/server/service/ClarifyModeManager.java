@@ -36,26 +36,26 @@ public class ClarifyModeManager implements AgentToolkitContributor {
 
     public static final String CLARIFY_EXIT = "clarify_exit";
 
-    private final AgentStateStore agentStateStore;
-
     private final AiAppConfig aiAppConfig;
 
     private final AiMcpPackageService aiMcpPackageService;
 
     public ClarifyModeContextState getOrCreateClarifyModeContextState(
             String userId,
-            String sessionId
+            String sessionId,
+            AgentStateStore agentStateStore
     ) {
         return agentStateStore.get(userId, sessionId, STATE_KEY, ClarifyModeContextState.class)
-                .orElseGet(() -> createClarifyModeContextState(userId, sessionId));
+                .orElseGet(() -> createClarifyModeContextState(userId, sessionId, agentStateStore));
     }
 
     public ClarifyModeContextState enter(
             AgentState state,
-            int maxClarifyRounds
+            int maxClarifyRounds,
+            AgentStateStore agentStateStore
     ) {
 
-        ClarifyModeContextState ctx = getOrCreateClarifyModeContextState(state.getUserId(), state.getSessionId());
+        ClarifyModeContextState ctx = getOrCreateClarifyModeContextState(state.getUserId(), state.getSessionId(), agentStateStore);
         ctx.setStatus(ClarifyModeStatusEnum.PENDING);
         ctx.setMaxClarifyRounds(maxClarifyRounds);
         ctx.setQuestions(new LinkedList<>());
@@ -82,7 +82,8 @@ public class ClarifyModeManager implements AgentToolkitContributor {
                     description = "MCP tool name (target gated tool)"
             )
             String mcpTool,
-            AgentState state
+            AgentState state,
+            AgentStateStore agentStateStore
     ) {
         SystemException.isTrue(Objects.nonNull(state), "Error: agent state unavailable.");
         if (StringUtils.isAnyBlank(mcpName, mcpTool)) {
@@ -101,7 +102,7 @@ public class ClarifyModeManager implements AgentToolkitContributor {
         }
 
         ClarifyModeContextState contextState =
-                enter(state, Objects.requireNonNullElse(metadata.getMaxClarifyRounds(), aiAppConfig.getDefaultMaxClarifyRounds()));
+                enter(state, Objects.requireNonNullElse(metadata.getMaxClarifyRounds(), aiAppConfig.getDefaultMaxClarifyRounds()), agentStateStore);
         return "Entered CLARIFY mode (" + contextState.getStatus().toString() + "). Gated MCP tools are still blocked."
                 + "Next: ask exactly ONE clarifying question in plain chat with A / B / C (and more if needed) options, then stop and wait for the user."
                 + " If you already have enough information, call clarify_exit now (no question), then call the gated tool."
@@ -111,8 +112,8 @@ public class ClarifyModeManager implements AgentToolkitContributor {
     /**
      * Exits plan mode (back to BUILD). Idempotent. Keeps {@code currentPlanFile} for reference.
      */
-    public void exit(AgentState state) {
-        ClarifyModeContextState ctx = getOrCreateClarifyModeContextState(state.getUserId(), state.getSessionId());
+    public void exit(AgentState state, AgentStateStore agentStateStore) {
+        ClarifyModeContextState ctx = getOrCreateClarifyModeContextState(state.getUserId(), state.getSessionId(), agentStateStore);
         ctx.setStatus(ClarifyModeStatusEnum.DONE);
         agentStateStore.save(state.getUserId(), state.getSessionId(), STATE_KEY, ctx);
     }
@@ -125,14 +126,14 @@ public class ClarifyModeManager implements AgentToolkitContributor {
                     Gated MCP tools stay blocked until this succeeds. After success, call the gated tool in this turn.
                     """
     )
-    public String exitTool(AgentState state) {
+    public String exitTool(AgentState state, AgentStateStore agentStateStore) {
         SystemException.isTrue(Objects.nonNull(state), "Error: agent state unavailable.");
         ClarifyModeContextState ctx =
-                getOrCreateClarifyModeContextState(state.getUserId(), state.getSessionId());
+                getOrCreateClarifyModeContextState(state.getUserId(), state.getSessionId(), agentStateStore);
         if (ClarifyModeStatusEnum.READY.equals(ctx.getStatus())) {
             return "Error: not in clarify mode. Call " + CLARIFY_ENTER + " first.";
         }
-        exit(state);
+        exit(state, agentStateStore);
         return "Clarify mode finished (DONE). You may now call the gated MCP tool using the information collected." +
                 "Do not ask more clarifying questions in this turn. On the user's next new request you must " + CLARIFY_ENTER + " again before gated tools.";
     }
@@ -194,7 +195,8 @@ public class ClarifyModeManager implements AgentToolkitContributor {
 
     private ClarifyModeContextState createClarifyModeContextState(
             String userId,
-            String sessionId
+            String sessionId,
+            AgentStateStore agentStateStore
     ) {
         ClarifyModeContextState clarifyModeContextState = new ClarifyModeContextState();
         agentStateStore.save(userId, sessionId, STATE_KEY, clarifyModeContextState);

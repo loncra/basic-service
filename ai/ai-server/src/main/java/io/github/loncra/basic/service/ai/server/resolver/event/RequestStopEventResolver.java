@@ -47,7 +47,7 @@ public class RequestStopEventResolver extends AbstractAgentEventResolver<Customi
     ) {
         assistant.setStatus(AgentChatStatusEnum.REQUEST_STOP);
         AgentExecutionMetadata execution = Objects.requireNonNull(context.get(AgentExecutionMetadata.class), "找不到执行元数据");
-        channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
+        channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
         return true;
     }
 

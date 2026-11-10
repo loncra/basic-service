@@ -13,6 +13,7 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.middleware.ActingInput;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.state.AgentState;
+import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.ToolResultMessageBuilder;
 import io.github.loncra.basic.service.ai.api.enumerate.ClarifyModeStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.ClarifyModeContextState;
@@ -59,7 +60,12 @@ public class ClarifyModelMiddleware implements MiddlewareBase {
             return next.apply(input);
         }
 
-        ClarifyModeContextState clarifyModeContextState = manager.getOrCreateClarifyModeContextState(ctx.getUserId(), ctx.getSessionId());
+        AgentStateStore agentStateStore = ctx.get(AgentStateStore.class);
+        ClarifyModeContextState clarifyModeContextState = manager.getOrCreateClarifyModeContextState(
+                ctx.getUserId(),
+                ctx.getSessionId(),
+                agentStateStore
+        );
         if (!ClarifyModeStatusEnum.ACTIVE_STATUS.contains(clarifyModeContextState.getStatus())) {
             return next.apply(input);
         }

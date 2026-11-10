@@ -43,7 +43,7 @@ public class AssistantMessageStopEventResolver implements AgentEventResolver {
         AssistantMessageStopEvent stopEvent = CastUtils.cast(event);
         assistant.setStatus(AgentChatStatusEnum.STOPPED);
         AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
-        channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
+        channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
 
         CustomizeMetadata metadata = new CustomizeMetadata();
         metadata.setId(stopEvent.getId());

@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.github.loncra.basic.service.ai.server.enumerate.RpcFilesystemOperationEnum;
+import io.agentscope.harness.agent.sandbox.ExecResult;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -25,6 +25,8 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
 
     public static final String REQUEST_EVENT_NAME = "agent_filesystem_request";
 
+    private static final String EXECUTE = "execute";
+
     private static final String OPERATION_FIELD_NAME = "operation";
 
     private static final String PARAMS_FIELD_NAME = "params";
@@ -42,10 +44,9 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
     private final SocketServiceClient socketServiceClient;
 
     @Override
-    public RestResult<Object> invoke(
+    public RestResult<ExecResult> execute(
             String deviceIdentified,
             RpcFilesystemScope scope,
-            RpcFilesystemOperationEnum operation,
             Map<String, Object> params
     ) {
 
@@ -54,7 +55,7 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put(OPERATION_FIELD_NAME, operation.getValue());
+        payload.put(OPERATION_FIELD_NAME, EXECUTE);
         payload.put(PARAMS_FIELD_NAME, params);
         payload.put(SCOPE_FIELD_NAME, scope.toPayload());
 
@@ -92,12 +93,18 @@ public class MessageServiceRpcFilesystemInvoker implements RpcFilesystemInvoker 
                     new TypeReference<>() {}
             );
 
-            return Objects.isNull(response)
-                    ? RestResult.of("客户端 [" + deviceIdentified + "] 返回内容为空", FAIL_STATUS)
-                    : response;
+            if (Objects.isNull(response)) {
+                return RestResult.of("客户端 [" + deviceIdentified + "] 返回内容为空", FAIL_STATUS);
+            }
+            if (!response.isSuccess() || Objects.isNull(response.getData())) {
+                return RestResult.of(response.getMessage(), response.getStatus(), response.getExecuteCode());
+            }
+            Map<String, Object> body = CastUtils.convertValue(response.getData(), CastUtils.MAP_TYPE_REFERENCE);
+            body.remove("output");
+            return RestResult.ofSuccess(CastUtils.convertValue(body, ExecResult.class));
         }
         catch (Exception e) {
-            log.warn("客户端文件系统请求失败, deviceIdentified={}, operation={}", deviceIdentified, operation, e);
+            log.warn("客户端文件系统请求失败, deviceIdentified={}, operation={}", deviceIdentified, EXECUTE, e);
             return RestResult.of("客户端文件系统请求失败: " + e.getMessage(), FAIL_STATUS);
         }
 

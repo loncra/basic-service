@@ -53,7 +53,7 @@ public class ModelCallEndEventResolver implements AgentEventResolver {
         }
         assistant.saveAgentTokenUsageMetadata(usage);
         AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
-        channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
+        channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
 
         usage.setAssistantMessageId(assistant.getId());
 

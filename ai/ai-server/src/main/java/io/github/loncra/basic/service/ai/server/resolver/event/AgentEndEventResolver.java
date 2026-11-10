@@ -46,7 +46,7 @@ public class AgentEndEventResolver implements AgentEventResolver {
         AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
         if (assistant.getStatus() == AgentChatStatusEnum.RUNNING) {
             assistant.setStatus(AgentChatStatusEnum.COMPLETED);
-            channelResolver(execution.getChannel()).saveAssistant(execution, assistant);
+            channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
             AgentEndEvent endEvent = CastUtils.cast(event);
 
             CustomizeMetadata metadata = new CustomizeMetadata();
@@ -56,7 +56,7 @@ public class AgentEndEventResolver implements AgentEventResolver {
             metadata.getMetadata().put(SystemConstants.STATUS_TABLE_FIELD_NAME, assistant.getStatus());
             result.add(metadata);
         }
-        channelResolver(execution.getChannel()).saveConversationStatus(execution, assistant.getStatus());
+        channelResolver(execution.getChannel()).getAgentRecordStore().saveConversationStatus(execution, assistant.getStatus());
 
         AgentStatusContentMetadata metadata = new AgentStatusContentMetadata();
         metadata.setId(assistant.getAgentConversationId().toString());
