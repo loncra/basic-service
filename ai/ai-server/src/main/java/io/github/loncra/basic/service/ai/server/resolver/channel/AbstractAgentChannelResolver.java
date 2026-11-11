@@ -10,6 +10,7 @@ import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
@@ -34,6 +35,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRole
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxAgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
@@ -57,10 +59,12 @@ import org.springframework.util.MultiValueMap;
 
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 @Setter(onMethod_ = {@Autowired})
 public abstract class AbstractAgentChannelResolver implements AgentChannelResolver {
@@ -175,6 +179,14 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             String workspacePath
     );
 
+    protected Map<String, AbstractFilesystem> userLevelRouteMap(Function<String, AbstractFilesystem> storeBackend) {
+        Map<String, AbstractFilesystem> routes = new LinkedHashMap<>();
+        for (AgentSandboxLayout.UserLevelRoute route : AgentSandboxLayout.USER_LEVEL_ROUTES) {
+            routes.put(route.prefix(), storeBackend.apply(route.dir()));
+        }
+        return routes;
+    }
+
     protected HarnessAgent finishAgent(
             HarnessAgent.Builder builder,
             AgentExecutionMetadata execution
@@ -185,8 +197,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             builder.environmentMemory(environmentMemory);
         }
         if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
-            builder.enablePlanMode()
-                    .planFileDirectory(assistant.getType().toString());
+            builder.enablePlanMode();
         }
         return builder.build();
     }

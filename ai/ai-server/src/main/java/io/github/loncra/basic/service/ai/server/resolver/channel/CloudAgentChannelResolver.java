@@ -3,6 +3,9 @@ package io.github.loncra.basic.service.ai.server.resolver.channel;
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.IsolationScope;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
@@ -17,7 +20,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
 import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
-import io.github.loncra.basic.service.ai.server.resolver.rpc.ClientRpcFilesystem;
+import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
@@ -33,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
@@ -119,7 +123,9 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentExecutionMetadata execution,
             String workspacePath
     ) {
+        Function<String, AbstractFilesystem> storeBackend = storeBackend(execution.getAssistantMessage().getPrincipal());
         if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getSandboxType())) {
+            userLevelRouteMap(storeBackend).forEach(builder::filesystemRoute);
             return builder.filesystem(aiAppConfig.getDocker().toSpec());
         }
         Path directory = Path.of(workspacePath);
@@ -128,13 +134,46 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
         } catch (IOException exception) {
             throw new SystemException("创建云端工作区目录失败: " + directory, exception);
         }
-        return builder.filesystem(new LocalFilesystemSpec().project(directory));
+        return builder.abstractFilesystem(new RoutedSandboxFilesystem(
+                primaryFilesystem(directory, directory),
+                userLevelRouteMap(storeBackend)
+        ));
+    }
+
+    private AbstractSandboxFilesystem primaryFilesystem(Path workspace, Path project) {
+        AbstractFilesystem filesystem = new LocalFilesystemSpec()
+                .project(project)
+                .toFilesystem(workspace, IsolationScope.USER.toNamespaceFactory());
+        if (filesystem instanceof AbstractSandboxFilesystem sandbox) {
+            return sandbox;
+        }
+        throw new SystemException("本地文件系统规格未产出沙箱文件系统: " + filesystem.getClass().getName());
+    }
+
+    private Function<String, AbstractFilesystem> storeBackend(String principal) {
+        Path userRoot = Path.of(aiAppConfig.getWorkspacePath(), AgentSandboxLayout.DATA_DIR, AgentSandboxLayout.segment(principal))
+                .toAbsolutePath()
+                .normalize();
+        try {
+            Files.createDirectories(userRoot);
+        } catch (IOException exception) {
+            throw new SystemException("创建云端用户级存储目录失败: " + userRoot, exception);
+        }
+        return dir -> {
+            Path target = userRoot.resolve(dir);
+            try {
+                Files.createDirectories(target);
+            } catch (IOException exception) {
+                throw new SystemException("创建云端用户级存储目录失败: " + target, exception);
+            }
+            return new LocalFilesystemWithShell(target);
+        };
     }
 
     @Override
     protected String createEnvironmentMemory(String deviceIdentified, String principal) {
         if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getSandboxType())) {
-            String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ClientRpcFilesystem.VIRTUAL_ROOT);
+            String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ShellPathPolicy.SANDBOX_WORKSPACE_PREFIX);
             return "云端环境：Docker 容器，执行命令的终端为 bash，工作区根为 " + root + "。执行命令时请使用 bash 语法。";
         }
         String os = System.getProperty("os.name");

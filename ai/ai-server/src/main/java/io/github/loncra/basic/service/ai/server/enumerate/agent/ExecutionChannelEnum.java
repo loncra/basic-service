@@ -11,7 +11,7 @@ public enum ExecutionChannelEnum implements NameValueEnum<String> {
 
     CLOUD("cloud", "云端执行通道"),
 
-    LOCAL("local", "本地执行通道");
+    CLIENT("client", "客户端执行通道");
 
     private final String value;
 

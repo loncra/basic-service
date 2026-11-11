@@ -1,45 +1,30 @@
-package io.github.loncra.basic.service.ai.server.resolver.rpc;
+package io.github.loncra.basic.service.ai.server.resolver.sandbox;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.harness.agent.filesystem.model.EditResult;
-import io.agentscope.harness.agent.filesystem.model.ExecuteResponse;
-import io.agentscope.harness.agent.filesystem.model.FileData;
-import io.agentscope.harness.agent.filesystem.model.FileDownloadResponse;
-import io.agentscope.harness.agent.filesystem.model.FileInfo;
-import io.agentscope.harness.agent.filesystem.model.FileUploadResponse;
-import io.agentscope.harness.agent.filesystem.model.GlobResult;
-import io.agentscope.harness.agent.filesystem.model.GrepMatch;
-import io.agentscope.harness.agent.filesystem.model.GrepResult;
-import io.agentscope.harness.agent.filesystem.model.LsResult;
-import io.agentscope.harness.agent.filesystem.model.ReadResult;
-import io.agentscope.harness.agent.filesystem.model.WriteResult;
+import io.agentscope.harness.agent.filesystem.model.*;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.RpcFilesystemOperationEnum;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
-import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.socketio.api.metadata.UnicastMessageMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.AntPathMatcher;
 
-import java.util.Base64;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
-public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
-
-    public static final String VIRTUAL_ROOT = "/workspace";
+public class ClientRpcSandboxFilesystem implements AbstractSandboxFilesystem {
 
     private static final String REQUEST_EVENT_NAME = "agent_filesystem_request";
 
     private static final int REQUEST_TIMEOUT_SECONDS = 60;
+
+    private static final List<String> PATH_PARAM_FIELDS = List.of("path", "fromPath", "toPath");
 
     private final SocketServiceClient socketServiceClient;
 
@@ -47,10 +32,32 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
 
     private final RpcFilesystemScope scope;
 
-    public ClientRpcFilesystem(SocketServiceClient socketServiceClient, String deviceIdentified, RpcFilesystemScope scope) {
+    public ClientRpcSandboxFilesystem(
+            SocketServiceClient socketServiceClient,
+            String deviceIdentified,
+            RpcFilesystemScope scope
+    ) {
         this.socketServiceClient = socketServiceClient;
         this.deviceIdentified = deviceIdentified;
         this.scope = scope;
+    }
+
+    private String mapPath(String path) {
+        if (!(scope instanceof RpcFilesystemScope.Store)) {
+            return path;
+        }
+        return StringUtils.stripStart(path, AntPathMatcher.DEFAULT_PATH_SEPARATOR);
+    }
+
+    private Map<String, Object> mapParams(Map<String, Object> params) {
+        Map<String, Object> mapped = new LinkedHashMap<>(params);
+        for (String field : PATH_PARAM_FIELDS) {
+            Object value = mapped.get(field);
+            if (value instanceof String path) {
+                mapped.put(field, mapPath(path));
+            }
+        }
+        return mapped;
     }
 
     @Override
@@ -59,8 +66,15 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public LsResult ls(RuntimeContext runtimeContext, String path) {
-        RestResult<Object> result = call(RpcFilesystemOperationEnum.LS, Map.of("path", path == null ? VIRTUAL_ROOT : path));
+    public LsResult ls(
+            RuntimeContext runtimeContext,
+            String path
+    ) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (path != null) {
+            params.put("path", path);
+        }
+        RestResult<Object> result = call(RpcFilesystemOperationEnum.LS, params);
         if (!result.isSuccess()) {
             return LsResult.fail(result.getMessage());
         }
@@ -68,7 +82,12 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public ReadResult read(RuntimeContext runtimeContext, String filePath, int offset, int limit) {
+    public ReadResult read(
+            RuntimeContext runtimeContext,
+            String filePath,
+            int offset,
+            int limit
+    ) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("path", filePath);
         params.put("offset", offset);
@@ -81,7 +100,11 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public WriteResult write(RuntimeContext runtimeContext, String filePath, String content) {
+    public WriteResult write(
+            RuntimeContext runtimeContext,
+            String filePath,
+            String content
+    ) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("path", filePath);
         params.put("content", content);
@@ -94,7 +117,13 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public EditResult edit(RuntimeContext runtimeContext, String filePath, String oldString, String newString, boolean replaceAll) {
+    public EditResult edit(
+            RuntimeContext runtimeContext,
+            String filePath,
+            String oldString,
+            String newString,
+            boolean replaceAll
+    ) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("path", filePath);
         params.put("oldString", oldString);
@@ -109,7 +138,12 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public GrepResult grep(RuntimeContext runtimeContext, String pattern, String path, String glob) {
+    public GrepResult grep(
+            RuntimeContext runtimeContext,
+            String pattern,
+            String path,
+            String glob
+    ) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("pattern", pattern);
         params.put("path", path);
@@ -125,7 +159,11 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public GlobResult glob(RuntimeContext runtimeContext, String pattern, String path) {
+    public GlobResult glob(
+            RuntimeContext runtimeContext,
+            String pattern,
+            String path
+    ) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("pattern", pattern);
         params.put("path", path);
@@ -137,9 +175,12 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public List<FileUploadResponse> uploadFiles(RuntimeContext runtimeContext, List<Map.Entry<String, byte[]>> files) {
+    public List<FileUploadResponse> uploadFiles(
+            RuntimeContext runtimeContext,
+            List<Map.Entry<String, byte[]>> files
+    ) {
         List<Map<String, String>> payload = files.stream()
-                .map(entry -> Map.of("path", entry.getKey(), "contentBase64", Base64.getEncoder().encodeToString(entry.getValue())))
+                .map(entry -> Map.of("path", mapPath(entry.getKey()), "contentBase64", Base64.getEncoder().encodeToString(entry.getValue())))
                 .toList();
         RestResult<Object> result = call(RpcFilesystemOperationEnum.UPLOAD, Map.of("files", payload));
         if (!result.isSuccess()) {
@@ -155,8 +196,11 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public List<FileDownloadResponse> downloadFiles(RuntimeContext runtimeContext, List<String> paths) {
-        RestResult<Object> result = call(RpcFilesystemOperationEnum.DOWNLOAD, Map.of("paths", paths));
+    public List<FileDownloadResponse> downloadFiles(
+            RuntimeContext runtimeContext,
+            List<String> paths
+    ) {
+        RestResult<Object> result = call(RpcFilesystemOperationEnum.DOWNLOAD, Map.of("paths", paths.stream().map(this::mapPath).toList()));
         if (!result.isSuccess()) {
             return List.of(FileDownloadResponse.fail("", result.getMessage()));
         }
@@ -173,7 +217,10 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public WriteResult delete(RuntimeContext runtimeContext, String path) {
+    public WriteResult delete(
+            RuntimeContext runtimeContext,
+            String path
+    ) {
         RestResult<Object> result = call(RpcFilesystemOperationEnum.DELETE, Map.of("path", path));
         if (!result.isSuccess()) {
             return WriteResult.fail(result.getMessage());
@@ -182,7 +229,11 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public WriteResult move(RuntimeContext runtimeContext, String fromPath, String toPath) {
+    public WriteResult move(
+            RuntimeContext runtimeContext,
+            String fromPath,
+            String toPath
+    ) {
         RestResult<Object> result = call(RpcFilesystemOperationEnum.MOVE, Map.of("fromPath", fromPath, "toPath", toPath));
         if (!result.isSuccess()) {
             return WriteResult.fail(result.getMessage());
@@ -191,13 +242,20 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
     }
 
     @Override
-    public boolean exists(RuntimeContext runtimeContext, String path) {
+    public boolean exists(
+            RuntimeContext runtimeContext,
+            String path
+    ) {
         RestResult<Object> result = call(RpcFilesystemOperationEnum.EXISTS, Map.of("path", path));
         return result.isSuccess() && Boolean.TRUE.equals(map(result.getData()).get("exists"));
     }
 
     @Override
-    public ExecuteResponse execute(RuntimeContext runtimeContext, String command, Integer timeoutSeconds) {
+    public ExecuteResponse execute(
+            RuntimeContext runtimeContext,
+            String command,
+            Integer timeoutSeconds
+    ) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("command", command);
         params.put("timeoutSeconds", timeoutSeconds == null ? 60 : timeoutSeconds);
@@ -212,13 +270,16 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
         return new ExecuteResponse(output, number(result.getExecuteCode()), Boolean.TRUE.equals(body.get("truncated")));
     }
 
-    private RestResult<Object> call(RpcFilesystemOperationEnum operation, Map<String, Object> params) {
+    private RestResult<Object> call(
+            RpcFilesystemOperationEnum operation,
+            Map<String, Object> params
+    ) {
         if (StringUtils.isEmpty(deviceIdentified)) {
             return RestResult.of("当前会话没有绑定客户端设备，无法执行文件系统操作", 500, "500");
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("operation", operation.getValue());
-        payload.put("params", params);
+        payload.put("params", mapParams(params));
         payload.put("scope", scope.toPayload());
         UnicastMessageMetadata<Map<String, Object>> metadata = UnicastMessageMetadata.of(
                 deviceIdentified,
@@ -237,7 +298,10 @@ public class ClientRpcFilesystem implements AbstractSandboxFilesystem {
             if (Objects.isNull(value)) {
                 return RestResult.of("客户端 [" + deviceIdentified + "] 响应超时", 500, "500");
             }
-            RestResult<Object> response = CastUtils.convertValue(value, new TypeReference<>() {});
+            RestResult<Object> response = CastUtils.convertValue(
+                    value, new TypeReference<>() {
+                    }
+            );
             if (Objects.isNull(response)) {
                 return RestResult.of("客户端 [" + deviceIdentified + "] 返回内容为空", 500, "500");
             }

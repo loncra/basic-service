@@ -2,6 +2,9 @@ package io.github.loncra.basic.service.ai.server.resolver.channel;
 
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
+import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -16,9 +19,10 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversatio
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
-import io.github.loncra.basic.service.ai.server.resolver.rpc.RpcFilesystemScope;
-import io.github.loncra.basic.service.ai.server.resolver.rpc.ClientRpcFilesystem;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.ClientRpcSandboxFilesystem;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.RpcFilesystemScope;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.framework.commons.exception.SystemException;
@@ -33,10 +37,11 @@ import org.springframework.stereotype.Component;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
-public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
+public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
 
     private final AgentSocketSessionResolver agentSocketSessionResolver;
 
@@ -44,7 +49,7 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     public ExecutionChannelEnum getChannel() {
-        return ExecutionChannelEnum.LOCAL;
+        return ExecutionChannelEnum.CLIENT;
     }
 
     @Override
@@ -54,9 +59,9 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
             String deviceIdentified
     ) {
         SocketSessionMetadata session = agentSocketSessionResolver.getSession(token.getName(), deviceIdentified);
-        SystemException.isTrue(Objects.nonNull(session), "本地工作空间执行需要桌面客户端在线");
+        SystemException.isTrue(Objects.nonNull(session), "客户端工作空间执行需要桌面客户端在线");
         String executeShell = Objects.toString(session.getMetadata().get(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME), null);
-        SystemException.isTrue(StringUtils.isNotBlank(executeShell), "客户端 [" + deviceIdentified + "] 未上报 executeShell，无法执行本地任务");
+        SystemException.isTrue(StringUtils.isNotBlank(executeShell), "客户端 [" + deviceIdentified + "] 未上报 executeShell，无法执行客户端任务");
 
         return super.chat(body, token, deviceIdentified);
     }
@@ -125,11 +130,18 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
         RpcFilesystemScope workspaceScope = Objects.isNull(conversation)
                 ? new RpcFilesystemScope.DefaultWorkspace()
                 : resolveWorkspaceScope(conversation, principal, execution.getDeviceIdentified());
-        return builder.abstractFilesystem(new ClientRpcFilesystem(
+        ClientRpcSandboxFilesystem workspacePipe = new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
                 workspaceScope
-        ));
+        );
+        String storeBase = String.join("/", AgentSandboxLayout.DATA_DIR, AgentSandboxLayout.segment(principal));
+        Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
+                socketServiceClient,
+                execution.getDeviceIdentified(),
+                new RpcFilesystemScope.Store(storeBase + "/" + dir)
+        );
+        return builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)));
     }
 
     @Override
@@ -139,12 +151,12 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
-        return new ClientRpcFilesystem(socketServiceClient, deviceIdentified, new RpcFilesystemScope.Store());
+        return new ClientRpcSandboxFilesystem(socketServiceClient, deviceIdentified, new RpcFilesystemScope.Store(""));
     }
 
     @Override
     protected String recordHome() {
-        return ClientRpcFilesystem.VIRTUAL_ROOT;
+        return "";
     }
 
     private RpcFilesystemScope resolveWorkspaceScope(
@@ -221,7 +233,7 @@ public class LocalAgentChannelResolver extends AbstractAgentChannelResolver {
                 operatingSystemName,
                 operatingSystemClass,
                 executeShell,
-                ClientRpcFilesystem.VIRTUAL_ROOT
+                ShellPathPolicy.SANDBOX_WORKSPACE_PREFIX
         );
     }
 }

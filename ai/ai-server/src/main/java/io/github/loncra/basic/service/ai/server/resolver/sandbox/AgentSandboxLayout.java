@@ -1,12 +1,19 @@
 package io.github.loncra.basic.service.ai.server.resolver.sandbox;
 
+import cn.hutool.core.text.AntPathMatcher;
+import io.agentscope.harness.agent.workspace.WorkspaceConstants;
 import io.github.loncra.framework.commons.CastUtils;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public final class AgentSandboxLayout {
 
     public static final String DATA_DIR = ".loncra-agent";
+
+    public static final String BUS_DIR = "bus";
+
+    public static final String HARNESS_BUS_PREFIX = ".agentscope";
 
     public static final String CONVERSATIONS_DIR = "conversations";
 
@@ -28,6 +35,17 @@ public final class AgentSandboxLayout {
     public static String segment(String principal) {
         return principal.replaceAll(PRINCIPAL_UNSAFE_PATTERN, CastUtils.UNDERSCORE);
     }
+
+    public record UserLevelRoute(String prefix, String dir) {
+    }
+
+    public static final List<UserLevelRoute> USER_LEVEL_ROUTES = List.of(
+            new UserLevelRoute(WorkspaceConstants.MEMORY_MD, WorkspaceConstants.MEMORY_DIR),
+            new UserLevelRoute(WorkspaceConstants.MEMORY_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, WorkspaceConstants.MEMORY_DIR),
+            new UserLevelRoute(WorkspaceConstants.AGENTS_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, WorkspaceConstants.AGENTS_DIR),
+            new UserLevelRoute(WorkspaceConstants.SKILLS_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, WorkspaceConstants.SKILLS_DIR),
+            new UserLevelRoute(HARNESS_BUS_PREFIX + AntPathMatcher.DEFAULT_PATH_SEPARATOR, BUS_DIR)
+    );
 
     public static String storePrincipal(String home, String principal) {
         return join(home, DATA_DIR, segment(principal));
@@ -70,12 +88,12 @@ public final class AgentSandboxLayout {
     }
 
     private static String join(String root, String... parts) {
-        StringBuilder path = new StringBuilder(root.replace('\\', '/'));
-        while (path.length() > 1 && path.charAt(path.length() - 1) == '/') {
+        StringBuilder path = new StringBuilder(root.replace('\\', AntPathMatcher.DEFAULT_PATH_SEPARATOR.charAt(0)));
+        while (path.length() > 1 && path.charAt(path.length() - 1) == AntPathMatcher.DEFAULT_PATH_SEPARATOR.charAt(0)) {
             path.setLength(path.length() - 1);
         }
         for (String part : parts) {
-            path.append('/').append(part);
+            path.append(AntPathMatcher.DEFAULT_PATH_SEPARATOR).append(part);
         }
         return path.toString();
     }
