@@ -6,7 +6,6 @@ import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
-import io.agentscope.harness.agent.transcript.ObjectStoreTranscriptStore;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -151,11 +150,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 execution.getDeviceIdentified(),
                 new RpcFilesystemScope.Store(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, storeBase, dir))
         );
-        builder.transcriptStore(new ObjectStoreTranscriptStore(new ClientRpcSandboxFilesystem(
-                socketServiceClient,
-                execution.getDeviceIdentified(),
-                new RpcFilesystemScope.Store(AgentSandboxLayout.transcriptsDir(aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal)))
-        )));
+        builder.transcriptTenant(AgentSandboxLayout.TRANSCRIPTS_DIR);
         return builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)));
     }
 

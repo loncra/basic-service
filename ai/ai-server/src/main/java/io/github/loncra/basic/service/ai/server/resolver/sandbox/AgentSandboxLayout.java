@@ -44,7 +44,8 @@ public final class AgentSandboxLayout {
             new UserLevelRoute(WorkspaceConstants.MEMORY_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, WorkspaceConstants.MEMORY_DIR),
             new UserLevelRoute(WorkspaceConstants.AGENTS_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, WorkspaceConstants.AGENTS_DIR),
             new UserLevelRoute(WorkspaceConstants.SKILLS_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, WorkspaceConstants.SKILLS_DIR),
-            new UserLevelRoute(HARNESS_BUS_PREFIX + AntPathMatcher.DEFAULT_PATH_SEPARATOR, BUS_DIR)
+            new UserLevelRoute(HARNESS_BUS_PREFIX + AntPathMatcher.DEFAULT_PATH_SEPARATOR, BUS_DIR),
+            new UserLevelRoute(TRANSCRIPTS_DIR + AntPathMatcher.DEFAULT_PATH_SEPARATOR, TRANSCRIPTS_DIR)
     );
 
     public static String storePrincipal(String home, String principal) {
