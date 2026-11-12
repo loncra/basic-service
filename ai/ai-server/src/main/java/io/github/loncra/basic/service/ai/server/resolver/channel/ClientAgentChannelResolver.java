@@ -150,7 +150,6 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 execution.getDeviceIdentified(),
                 new RpcFilesystemScope.Store(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, storeBase, dir))
         );
-        builder.transcriptTenant(AgentSandboxLayout.TRANSCRIPTS_DIR);
         return builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)));
     }
 

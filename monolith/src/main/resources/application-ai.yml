@@ -1,0 +1,22 @@
+loncra:
+  basic-service:
+    ai:
+      app:
+        workspace-path: "E:/"
+        data-dir: ".loncra-admin"
+        store-max-file-size-mb: 10
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker-sandbox
+
+loncra:
+  basic-service:
+    ai:
+      app:
+        sandbox-type: docker
+        docker:
+          image: "ubuntu:22.04"
+          workspace-root: "/workspace"

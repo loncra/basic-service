@@ -38,6 +38,8 @@ public class AiAppConfig {
 
     private String dataDir = ".loncra-admin";
 
+    private int storeMaxFileSizeMb = 10;
+
     /** directory：本机目录，不需要 Docker。docker：官方 DockerFilesystemSpec。 */
     private SandboxTypeEnum sandboxType = SandboxTypeEnum.DIRECTORY;
 

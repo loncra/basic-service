@@ -6,6 +6,7 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.IsolationScope;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
@@ -30,10 +31,11 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
 import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
+import org.apache.commons.lang3.SystemProperties;
+import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Function;
@@ -129,11 +131,6 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             return builder.filesystem(aiAppConfig.getDocker().toSpec());
         }
         Path directory = Path.of(workspacePath);
-        try {
-            Files.createDirectories(directory);
-        } catch (IOException exception) {
-            throw new SystemException("创建云端工作区目录失败: " + directory, exception);
-        }
         return builder.abstractFilesystem(new RoutedSandboxFilesystem(
                 primaryFilesystem(directory, directory),
                 userLevelRouteMap(storeBackend)
@@ -154,20 +151,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
         Path userRoot = Path.of(aiAppConfig.getWorkspacePath(), aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal))
                 .toAbsolutePath()
                 .normalize();
-        try {
-            Files.createDirectories(userRoot);
-        } catch (IOException exception) {
-            throw new SystemException("创建云端用户级存储目录失败: " + userRoot, exception);
-        }
-        return dir -> {
-            Path target = userRoot.resolve(dir);
-            try {
-                Files.createDirectories(target);
-            } catch (IOException exception) {
-                throw new SystemException("创建云端用户级存储目录失败: " + target, exception);
-            }
-            return new LocalFilesystemWithShell(target);
-        };
+        return dir -> new LocalFilesystem(userRoot.resolve(dir), true, aiAppConfig.getStoreMaxFileSizeMb());
     }
 
     @Override
@@ -176,9 +160,8 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ShellPathPolicy.SANDBOX_WORKSPACE_PREFIX);
             return "云端环境：Docker 容器，执行命令的终端为 bash，工作区根为 " + root + "。执行命令时请使用 bash 语法。";
         }
-        String os = System.getProperty("os.name");
-        String shell = os.toLowerCase().contains("win") ? "cmd.exe /c" : "sh -c";
-        return "云端环境：操作系统 " + os + "，执行命令的终端为 " + shell + "，工作区是服务器本机目录。文件工具不经过终端。执行命令时请使用与 " + shell + " 匹配的语法。";
+        String shell = SystemUtils.IS_OS_WINDOWS ? "cmd.exe /c" : "sh -c";
+        return "云端环境：操作系统 " + SystemProperties.getOsName() + "，执行命令的终端为 " + shell + "，工作区是服务器本机目录。文件工具不经过终端。执行命令时请使用与 " + shell + " 匹配的语法。";
     }
 
     @Override

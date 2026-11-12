@@ -158,7 +158,6 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             ModelResolverMetadata modelResolverMetadata,
             String workspacePath
     ) {
-        //AgentMessageEntity assistant = execution.getAssistantMessage();
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(AiAppConfig.DEFAULT_AGENT_NAME)
                 .sysPrompt(aiAppConfig.getSystemPrompt())
@@ -169,6 +168,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(workspacePath)
+                .transcriptTenant(AgentSandboxLayout.TRANSCRIPTS_DIR)
                 .middlewares(middlewares);
         return attachFilesystem(builder, execution, workspacePath);
     }
