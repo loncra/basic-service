@@ -158,9 +158,9 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             ModelResolverMetadata modelResolverMetadata,
             String workspacePath
     ) {
-        AgentMessageEntity assistant = execution.getAssistantMessage();
+        //AgentMessageEntity assistant = execution.getAssistantMessage();
         HarnessAgent.Builder builder = HarnessAgent.builder()
-                .name(assistant.getType().toString())
+                .name(AiAppConfig.DEFAULT_AGENT_NAME)
                 .sysPrompt(aiAppConfig.getSystemPrompt())
                 .model(modelResolverMetadata.getModel())
                 .toolkit(modelResolverMetadata.getToolkit())

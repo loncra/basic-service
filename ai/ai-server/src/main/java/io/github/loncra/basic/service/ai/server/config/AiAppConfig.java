@@ -26,13 +26,17 @@ import java.util.Set;
 @ConfigurationProperties("loncra.basic-service.ai.app")
 public class AiAppConfig {
 
+    public static final String DEFAULT_AGENT_NAME = "loncra-agent";
+
     private BasicSnowflakeProperties snowflake = new BasicSnowflakeProperties("004");
 
     private Map<String, String> key = new LinkedHashMap<>();
 
     private int defaultMaxClarifyRounds = 5;
 
-    private String workspacePath = "./.workspace/";
+    private String workspacePath = "./";
+
+    private String dataDir = ".loncra-admin";
 
     /** directory：本机目录，不需要 Docker。docker：官方 DockerFilesystemSpec。 */
     private SandboxTypeEnum sandboxType = SandboxTypeEnum.DIRECTORY;

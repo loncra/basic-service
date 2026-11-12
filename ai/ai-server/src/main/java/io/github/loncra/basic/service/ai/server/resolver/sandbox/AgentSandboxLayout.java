@@ -9,9 +9,9 @@ import java.util.List;
 
 public final class AgentSandboxLayout {
 
-    public static final String DATA_DIR = ".loncra-agent";
-
     public static final String BUS_DIR = "bus";
+
+    public static final String TRANSCRIPTS_DIR = "transcripts";
 
     public static final String HARNESS_BUS_PREFIX = ".agentscope";
 
@@ -48,7 +48,7 @@ public final class AgentSandboxLayout {
     );
 
     public static String storePrincipal(String home, String principal) {
-        return join(home, DATA_DIR, segment(principal));
+        return join(home, segment(principal));
     }
 
     public static String conversationFile(String home, String principal, String conversationId) {
@@ -77,6 +77,10 @@ public final class AgentSandboxLayout {
 
     public static String stateFile(String home, String principal, String sessionId, String key) {
         return join(stateSession(home, principal, sessionId), key + JSON_SUFFIX);
+    }
+
+    public static String transcriptsDir(String home, String principal) {
+        return join(storePrincipal(home, principal), TRANSCRIPTS_DIR);
     }
 
     public static String stateListFile(String home, String principal, String sessionId, String key) {

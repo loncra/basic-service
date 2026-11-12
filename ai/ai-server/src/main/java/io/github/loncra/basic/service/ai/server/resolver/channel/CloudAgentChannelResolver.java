@@ -151,7 +151,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private Function<String, AbstractFilesystem> storeBackend(String principal) {
-        Path userRoot = Path.of(aiAppConfig.getWorkspacePath(), AgentSandboxLayout.DATA_DIR, AgentSandboxLayout.segment(principal))
+        Path userRoot = Path.of(aiAppConfig.getWorkspacePath(), aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal))
                 .toAbsolutePath()
                 .normalize();
         try {
@@ -197,6 +197,6 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private Path recordDirectory() {
-        return Path.of(aiAppConfig.getWorkspacePath()).toAbsolutePath().normalize();
+        return Path.of(aiAppConfig.getWorkspacePath(), aiAppConfig.getDataDir()).toAbsolutePath().normalize();
     }
 }

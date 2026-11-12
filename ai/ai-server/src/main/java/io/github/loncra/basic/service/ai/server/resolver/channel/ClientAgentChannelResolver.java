@@ -4,7 +4,9 @@ import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
+import io.agentscope.harness.agent.transcript.ObjectStoreTranscriptStore;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -17,14 +19,13 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgent
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
-import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
+import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.ClientRpcSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.RpcFilesystemScope;
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
+import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
+import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
@@ -32,8 +33,12 @@ import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import lombok.RequiredArgsConstructor;
 import nl.basjes.parse.useragent.UserAgent;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
@@ -110,13 +115,17 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 userMessage.getMetadata()
         );
 
-        String workspacePath = workspaceRoot(
-                execution.getConversation(),
-                execution.getAssistantMessage().getPrincipal(),
-                execution.getDeviceIdentified()
-        );
+        return finishAgent(baseBuilder(execution, modelResolverMetadata, clientWorkspaceScratch()), execution);
+    }
 
-        return finishAgent(baseBuilder(execution, modelResolverMetadata, workspacePath), execution);
+    private String clientWorkspaceScratch() {
+        Path scratch = Path.of(aiAppConfig.getWorkspacePath(), "client-scratch");
+        try {
+            Files.createDirectories(scratch);
+        } catch (IOException exception) {
+            throw new SystemException("创建客户端会话暂存目录失败: " + scratch, exception);
+        }
+        return scratch.toString();
     }
 
     @Override
@@ -135,12 +144,18 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 execution.getDeviceIdentified(),
                 workspaceScope
         );
-        String storeBase = String.join("/", AgentSandboxLayout.DATA_DIR, AgentSandboxLayout.segment(principal));
+
+        String storeBase = AgentSandboxLayout.storePrincipal(aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal));
         Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
-                new RpcFilesystemScope.Store(storeBase + "/" + dir)
+                new RpcFilesystemScope.Store(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, storeBase, dir))
         );
+        builder.transcriptStore(new ObjectStoreTranscriptStore(new ClientRpcSandboxFilesystem(
+                socketServiceClient,
+                execution.getDeviceIdentified(),
+                new RpcFilesystemScope.Store(AgentSandboxLayout.transcriptsDir(aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal)))
+        )));
         return builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)));
     }
 
@@ -156,7 +171,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected String recordHome() {
-        return "";
+        return aiAppConfig.getDataDir();
     }
 
     private RpcFilesystemScope resolveWorkspaceScope(
@@ -178,30 +193,6 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
             return new RpcFilesystemScope.DefaultWorkspace();
         }
         return resolveWorkspaceScope(parent, principal, deviceIdentified);
-    }
-
-    private String workspaceRoot(
-            AgentConversationEntity conversation,
-            String principal,
-            String deviceIdentified
-    ) {
-        if (Objects.isNull(conversation)) {
-            return null;
-        }
-        Object roots = conversation.getMetadata().get(WORKSPACE_ROOTS_METADATA_KEY);
-        if (roots instanceof List<?> list) {
-            for (Object item : list) {
-                String root = Objects.toString(item, null);
-                if (StringUtils.isNotBlank(root)) {
-                    return root;
-                }
-            }
-        }
-        if (Objects.isNull(conversation.getParentId())) {
-            return null;
-        }
-        AgentConversationEntity parent = getAgentRecordStore().getConversation(principal, conversation.getParentId(), deviceIdentified);
-        return workspaceRoot(parent, principal, deviceIdentified);
     }
 
     @Override
