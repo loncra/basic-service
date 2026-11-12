@@ -247,7 +247,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
             Set<String> ids
     ) {
         List<IdNameMetadata> workspaces = new LinkedList<>();
-        Path home = Path.of(aiAppConfig.getWorkspacePath()).toAbsolutePath().normalize();
+        Path home = Path.of(aiAppConfig.getWorkspace().getPath()).toAbsolutePath().normalize();
         LocalFilesystemWithShell filesystem = new LocalFilesystemWithShell(home);
         for (String workspaceId : ids) {
             String path = AgentSandboxLayout.conversationFile(home.toString(), token.getName(), workspaceId);

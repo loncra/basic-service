@@ -2,9 +2,14 @@ loncra:
   basic-service:
     ai:
       app:
-        workspace-path: "E:/"
         data-dir: ".loncra-admin"
         store-max-file-size-mb: 10
+        source-of-truth:
+          type: LOCAL
+          path: "E:/"
+        workspace:
+          sandbox-type: DIRECTORY
+          path: "E:/loncra-agent"
 
 ---
 spring:
@@ -16,7 +21,8 @@ loncra:
   basic-service:
     ai:
       app:
-        sandbox-type: docker
+        workspace:
+          sandbox-type: docker
         docker:
           image: "ubuntu:22.04"
           workspace-root: "/workspace"

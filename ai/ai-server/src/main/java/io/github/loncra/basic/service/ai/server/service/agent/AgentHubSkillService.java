@@ -102,7 +102,7 @@ public class AgentHubSkillService {
             return;
         }
         Path dir = Path.of(
-                aiAppConfig.getWorkspacePath(),
+                aiAppConfig.getWorkspace().getPath(),
                 String.valueOf(workspaceId),
                 ".skill-hub",
                 releaseVersion,

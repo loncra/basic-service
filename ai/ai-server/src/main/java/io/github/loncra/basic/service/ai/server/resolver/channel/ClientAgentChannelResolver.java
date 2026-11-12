@@ -85,11 +85,15 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    protected void preCreateDefaultWorkspace(
-            IdNameMetadata body,
+    protected void preCreateWorkspace(
+            AgentConversationEntity workspace,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
+        if (AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(workspace.getType())) {
+            return ;
+        }
+
         SocketSessionMetadata session = agentSocketSessionResolver.getSession(token.getName(), deviceIdentified);
         if (Objects.isNull(session)) {
             return;
@@ -98,7 +102,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
         if (StringUtils.isBlank(clientHome)) {
             return;
         }
-        body.getMetadata().put(WORKSPACE_ROOTS_METADATA_KEY, List.of(clientHome));
+        workspace.getMetadata().put(WORKSPACE_ROOTS_METADATA_KEY, List.of(clientHome));
     }
 
     @Override
@@ -118,7 +122,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private String clientWorkspaceScratch() {
-        Path scratch = Path.of(aiAppConfig.getWorkspacePath(), "client-scratch");
+        Path scratch = Path.of(aiAppConfig.getWorkspace().getPath(), "client-scratch");
         try {
             Files.createDirectories(scratch);
         } catch (IOException exception) {

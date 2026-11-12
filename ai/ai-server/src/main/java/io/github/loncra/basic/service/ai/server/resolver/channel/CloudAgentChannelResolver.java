@@ -37,6 +37,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -107,10 +108,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
                 workspace.getId()
         );
 
-        String workspacePath = AgentSandboxLayout.workspaceDirectory(
-                Path.of(aiAppConfig.getWorkspacePath()),
-                workspace.getId()
-        ).toString();
+        String workspacePath = resolveWorkspacePath(workspace);
 
         HarnessAgent.Builder builder = baseBuilder(execution, modelResolverMetadata, workspacePath)
                 .skillRepository(new FileSystemSkillRepository(userSkillDir))
@@ -126,7 +124,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             String workspacePath
     ) {
         Function<String, AbstractFilesystem> storeBackend = storeBackend(execution.getAssistantMessage().getPrincipal());
-        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getSandboxType())) {
+        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getWorkspace().getSandboxType())) {
             userLevelRouteMap(storeBackend).forEach(builder::filesystemRoute);
             return builder.filesystem(aiAppConfig.getDocker().toSpec());
         }
@@ -148,15 +146,43 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private Function<String, AbstractFilesystem> storeBackend(String principal) {
-        Path userRoot = Path.of(aiAppConfig.getWorkspacePath(), aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal))
+        Path userRoot = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal))
                 .toAbsolutePath()
                 .normalize();
-        return dir -> new LocalFilesystem(userRoot.resolve(dir), true, aiAppConfig.getStoreMaxFileSizeMb());
+        return dir -> sourceOfTruthFilesystem(userRoot.resolve(dir));
+    }
+
+    private AbstractSandboxFilesystem sourceOfTruthFilesystem(Path root) {
+        return switch (aiAppConfig.getSourceOfTruth().getType()) {
+            case LOCAL -> new LocalFilesystemWithShell(root, true, 60, 100_000, null, false, null);
+            case MINIO -> throw new SystemException("MinIO 存储后端待接入（MinioBaseStore → RemoteFilesystem）");
+        };
+    }
+
+    private String resolveWorkspacePath(AgentConversationEntity workspace) {
+        Object roots = workspace.getMetadata().get(WORKSPACE_ROOTS_METADATA_KEY);
+        if (roots instanceof List<?> list && !list.isEmpty()) {
+            return String.valueOf(list.getFirst());
+        }
+        return AgentSandboxLayout.workspaceDirectory(
+                Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString();
+    }
+
+    @Override
+    protected void preCreateWorkspace(
+            AgentConversationEntity workspace,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        workspace.getMetadata().put(
+                WORKSPACE_ROOTS_METADATA_KEY,
+                List.of(AgentSandboxLayout.workspaceDirectory(
+                        Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString()));
     }
 
     @Override
     protected String createEnvironmentMemory(String deviceIdentified, String principal) {
-        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getSandboxType())) {
+        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getWorkspace().getSandboxType())) {
             String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ShellPathPolicy.SANDBOX_WORKSPACE_PREFIX);
             return "云端环境：Docker 容器，执行命令的终端为 bash，工作区根为 " + root + "。执行命令时请使用 bash 语法。";
         }
@@ -180,6 +206,6 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private Path recordDirectory() {
-        return Path.of(aiAppConfig.getWorkspacePath(), aiAppConfig.getDataDir()).toAbsolutePath().normalize();
+        return Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getDataDir()).toAbsolutePath().normalize();
     }
 }

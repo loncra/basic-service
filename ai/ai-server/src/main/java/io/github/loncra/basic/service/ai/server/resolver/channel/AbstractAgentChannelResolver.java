@@ -290,11 +290,15 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             entity = buildBasicConversation(token.getName(), type);
             entity.setName(body.getName());
             entity.getMetadata().putAll(body.getMetadata());
+
+            preCreateWorkspace(entity, token, deviceIdentified);
             getAgentRecordStore().insertConversation(entity, deviceIdentified);
         } else {
             entity = getAgentRecordStore().getConversation(token.getName(), body.getId(), deviceIdentified);
             entity.setName(body.getName());
             entity.getMetadata().putAll(body.getMetadata());
+
+            preCreateWorkspace(entity, token, deviceIdentified);
             getAgentRecordStore().updateConversation(entity, deviceIdentified);
         }
 
@@ -389,18 +393,18 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
         if (Objects.isNull(entity)) {
             IdNameMetadata body = IdNameMetadata.of(StringUtils.EMPTY, conversationConfig.getDefaultWorkspaceName());
-            preCreateDefaultWorkspace(body, token, deviceIdentified);
             entity = saveWorkspace(body, token, deviceIdentified, AgentConversationTypeEnum.DEFAULT_WORKSPACE);
         }
 
         return entity;
     }
 
-    protected void preCreateDefaultWorkspace(
-            IdNameMetadata body,
+    protected void preCreateWorkspace(
+            AgentConversationEntity workspace,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
+
     }
 
     protected List<AgentConversationEntity> doFindConversations(

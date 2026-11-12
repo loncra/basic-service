@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.config;
 
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.SourceOfTruthTypeEnum;
 import io.github.loncra.framework.commons.generator.twitter.BasicSnowflakeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -34,14 +35,13 @@ public class AiAppConfig {
 
     private int defaultMaxClarifyRounds = 5;
 
-    private String workspacePath = "./";
+    private SourceOfTruth sourceOfTruth = new SourceOfTruth();
+
+    private Workspace workspace = new Workspace();
 
     private String dataDir = ".loncra-admin";
 
     private int storeMaxFileSizeMb = 10;
-
-    /** directory：本机目录，不需要 Docker。docker：官方 DockerFilesystemSpec。 */
-    private SandboxTypeEnum sandboxType = SandboxTypeEnum.DIRECTORY;
 
     /** 仅 sandbox-type=docker 时使用，字段对齐 DockerSandboxClientOptions。 */
     private DockerSandboxConfig docker = new DockerSandboxConfig();
@@ -202,6 +202,18 @@ public class AiAppConfig {
     // ═══════════════════════════════════════════════════════
     // 内嵌配置类（对应 yml 层级，默认值全部与源码 Builder 对齐）
     // ═══════════════════════════════════════════════════════
+
+    @Data
+    public static class SourceOfTruth {
+        private SourceOfTruthTypeEnum type = SourceOfTruthTypeEnum.LOCAL;
+        private String path = "./";
+    }
+
+    @Data
+    public static class Workspace {
+        private SandboxTypeEnum sandboxType = SandboxTypeEnum.DIRECTORY;
+        private String path = "./";
+    }
 
     @Data
     public static class Compaction {

@@ -215,7 +215,7 @@ public class AgentUserPluginToolkitService implements DisposableBean {
     }
 
     private Path resolveUserSkillDir(String workspaceId) {
-        return Path.of(aiAppConfig.getWorkspacePath(), workspaceId, ".skill-user");
+        return Path.of(aiAppConfig.getWorkspace().getPath(), workspaceId, ".skill-user");
     }
 
     private String cacheKey(String principal, AiUserPluginInstallEntity install) {
