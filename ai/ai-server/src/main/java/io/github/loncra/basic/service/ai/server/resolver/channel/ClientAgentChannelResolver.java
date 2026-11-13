@@ -148,7 +148,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 workspaceScope
         );
 
-        String storeBase = AgentSandboxLayout.storePrincipal(aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal));
+        String storeBase = AgentSandboxLayout.storePrincipal(aiAppConfig.getSourceOfTruth().getDataDir(), AgentSandboxLayout.segment(principal));
         Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
@@ -169,7 +169,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected String recordHome() {
-        return aiAppConfig.getDataDir();
+        return aiAppConfig.getSourceOfTruth().getDataDir();
     }
 
     private RpcFilesystemScope resolveWorkspaceScope(

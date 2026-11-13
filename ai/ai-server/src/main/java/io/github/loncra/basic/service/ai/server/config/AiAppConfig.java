@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.ai.server.config;
 
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SourceOfTruthTypeEnum;
@@ -38,8 +39,6 @@ public class AiAppConfig {
     private SourceOfTruth sourceOfTruth = new SourceOfTruth();
 
     private Workspace workspace = new Workspace();
-
-    private String dataDir = ".loncra-admin";
 
     private int storeMaxFileSizeMb = 10;
 
@@ -207,6 +206,9 @@ public class AiAppConfig {
     public static class SourceOfTruth {
         private SourceOfTruthTypeEnum type = SourceOfTruthTypeEnum.LOCAL;
         private String path = "./";
+        private String dataDir = ".loncra-admin";
+        private int executeTimeoutSeconds = LocalFilesystemWithShell.DEFAULT_EXECUTE_TIMEOUT;
+        private int maxOutputBytes = 100_000;
     }
 
     @Data

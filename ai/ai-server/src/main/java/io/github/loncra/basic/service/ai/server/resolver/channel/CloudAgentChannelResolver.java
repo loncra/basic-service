@@ -7,6 +7,7 @@ import io.agentscope.harness.agent.IsolationScope;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
 import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
+import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
@@ -146,15 +147,23 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private Function<String, AbstractFilesystem> storeBackend(String principal) {
-        Path userRoot = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getDataDir(), AgentSandboxLayout.segment(principal))
+        Path userRoot = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir(), AgentSandboxLayout.segment(principal))
                 .toAbsolutePath()
                 .normalize();
         return dir -> sourceOfTruthFilesystem(userRoot.resolve(dir));
     }
 
     private AbstractSandboxFilesystem sourceOfTruthFilesystem(Path root) {
-        return switch (aiAppConfig.getSourceOfTruth().getType()) {
-            case LOCAL -> new LocalFilesystemWithShell(root, true, 60, 100_000, null, false, null);
+        AiAppConfig.SourceOfTruth sourceOfTruth = aiAppConfig.getSourceOfTruth();
+        return switch (sourceOfTruth.getType()) {
+            case LOCAL -> new LocalFilesystemWithShell(
+                    root,
+                    true,
+                    sourceOfTruth.getExecuteTimeoutSeconds(),
+                    sourceOfTruth.getMaxOutputBytes(),
+                    null,
+                    false,
+                    null);
             case MINIO -> throw new SystemException("MinIO 存储后端待接入（MinioBaseStore → RemoteFilesystem）");
         };
     }
@@ -206,6 +215,6 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private Path recordDirectory() {
-        return Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getDataDir()).toAbsolutePath().normalize();
+        return Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir()).toAbsolutePath().normalize();
     }
 }

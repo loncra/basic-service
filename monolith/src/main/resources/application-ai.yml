@@ -2,14 +2,16 @@ loncra:
   basic-service:
     ai:
       app:
-        data-dir: ".loncra-admin"
         store-max-file-size-mb: 10
         source-of-truth:
           type: LOCAL
-          path: "E:/"
+          path: "./"
+          data-dir: ".loncra-admin"
+          execute-timeout-seconds: 120
+          max-output-bytes: 100000
         workspace:
           sandbox-type: DIRECTORY
-          path: "E:/loncra-agent"
+          path: "./.loncra-agent-workspace"
 
 ---
 spring:
