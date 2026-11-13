@@ -164,7 +164,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .model(modelResolverMetadata.getModel())
                 .toolkit(modelResolverMetadata.getToolkit())
                 .enableMetaTool(true)
-                .stateStore(resolveStateStore(execution))
+                .stateStore(openStateStore(execution))
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(workspacePath)
@@ -202,11 +202,9 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         return builder.build();
     }
 
-    protected abstract AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution);
-
     @Override
     public AgentStateStore openStateStore(BasicAgentExecutionMetadata execution) {
-        return resolveStateStore(execution);
+        return new SandboxFileAgentStateStore(openRecords(execution.getDeviceIdentified()), recordHome());
     }
 
     protected String createEnvironmentMemory(
@@ -221,7 +219,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             BasicAgentExecutionMetadata basic,
             AuditAuthenticationToken token
     ) {
-        AgentState state = resolveStateStore(basic)
+        AgentState state = openStateStore(basic)
                 .get(
                         AgentMessageEntity.obtainUserId(token.getName()),
                         basic.getClientConversationId(),
@@ -458,8 +456,8 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         BasicAgentExecutionMetadata basic = new BasicAgentExecutionMetadata();
         basic.setChannel(getChannel());
         basic.setDeviceIdentified(deviceIdentified);
-        basic.setClientConversationId(deviceIdentified);
-        resolveStateStore(basic).delete(AgentMessageEntity.obtainUserId(conversation.getPrincipal()), conversation.getId());
+        basic.setClientConversationId(conversation.getId());
+        openStateStore(basic).delete(AgentMessageEntity.obtainUserId(conversation.getPrincipal()), conversation.getId());
 
         agentSseStreamPublishResolver.remove(conversation.getId());
     }

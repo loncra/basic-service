@@ -1,12 +1,14 @@
 package io.github.loncra.basic.service.ai.server.resolver.channel;
 
 import io.agentscope.core.skill.repository.FileSystemSkillRepository;
-import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.IsolationScope;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
-import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
+import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
+import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
@@ -14,25 +16,18 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
-import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
-import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
-import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentUserPluginToolkitService;
 import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
-import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemProperties;
 import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
@@ -164,8 +159,13 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
                     null,
                     false,
                     null);
-            case MINIO -> throw new SystemException("MinIO 存储后端待接入（MinioBaseStore → RemoteFilesystem）");
+            case ResourceServer -> throw new SystemException("MinIO 存储后端待接入（MinioBaseStore → RemoteFilesystem）");
         };
+    }
+
+    private String cloudWorkspaceDir(AgentConversationEntity workspace) {
+        return AgentSandboxLayout.workspaceDirectory(
+                Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString();
     }
 
     private String resolveWorkspacePath(AgentConversationEntity workspace) {
@@ -173,8 +173,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
         if (roots instanceof List<?> list && !list.isEmpty()) {
             return String.valueOf(list.getFirst());
         }
-        return AgentSandboxLayout.workspaceDirectory(
-                Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString();
+        return cloudWorkspaceDir(workspace);
     }
 
     @Override
@@ -183,10 +182,10 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        workspace.getMetadata().put(
-                WORKSPACE_ROOTS_METADATA_KEY,
-                List.of(AgentSandboxLayout.workspaceDirectory(
-                        Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString()));
+        if (workspace.getMetadata().containsKey(WORKSPACE_ROOTS_METADATA_KEY)) {
+            return;
+        }
+        workspace.getMetadata().put(WORKSPACE_ROOTS_METADATA_KEY, List.of(cloudWorkspaceDir(workspace)));
     }
 
     @Override
@@ -200,21 +199,15 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    protected AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution) {
-        return new SandboxFileAgentStateStore(openRecords(execution.getDeviceIdentified()), recordHome());
-    }
-
-    @Override
     protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
-        return new LocalFilesystemWithShell(recordDirectory());
+        return new LocalFilesystemWithShell(recordHome());
     }
 
     @Override
     protected String recordHome() {
-        return recordDirectory().toString();
-    }
-
-    private Path recordDirectory() {
-        return Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir()).toAbsolutePath().normalize();
+        return Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir())
+                .toAbsolutePath()
+                .normalize()
+                .toString();
     }
 }

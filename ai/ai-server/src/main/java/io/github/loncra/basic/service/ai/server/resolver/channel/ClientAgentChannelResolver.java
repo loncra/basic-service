@@ -1,6 +1,5 @@
 package io.github.loncra.basic.service.ai.server.resolver.channel;
 
-import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
@@ -14,26 +13,23 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.ClientRpcSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.sandbox.RpcFilesystemScope;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import lombok.RequiredArgsConstructor;
 import nl.basjes.parse.useragent.UserAgent;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -90,7 +86,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        if (AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(workspace.getType())) {
+        if (!AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(workspace.getType())) {
             return ;
         }
 
@@ -155,11 +151,6 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 new RpcFilesystemScope.Store(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, storeBase, dir))
         );
         return builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)));
-    }
-
-    @Override
-    protected AgentStateStore resolveStateStore(BasicAgentExecutionMetadata execution) {
-        return new SandboxFileAgentStateStore(openRecords(execution.getDeviceIdentified()), recordHome());
     }
 
     @Override
