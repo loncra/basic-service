@@ -272,7 +272,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                             || AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE.equals(conversation.getType()),
                     () -> new ServiceException("只能绑定工作空间，不能绑定会话")
             );
-            workspaces.add(IdNameMetadata.of(conversation.getId().toString(), conversation.getName()));
+            workspaces.add(IdNameMetadata.of(conversation.getId(), conversation.getName()));
         }
         return workspaces;
     }

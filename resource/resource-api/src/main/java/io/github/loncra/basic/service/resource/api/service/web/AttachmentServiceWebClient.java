@@ -127,6 +127,25 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
             @PathVariable
             String type,
             @RequestParam
+            String objectName,
+            @RequestParam
+            boolean ifNoSuchReturnEmptyResponse
+    );
+
+    /**
+     * 判断文件是否存在
+     *
+     * @param type 桶类型
+     * @param objectName 对象名称
+     *
+     * @return 存在返回 true
+     */
+    @Override
+    @GetExchange("{type}/exist")
+    boolean attachmentFileExist(
+            @PathVariable
+            String type,
+            @RequestParam
             String objectName
     );
 

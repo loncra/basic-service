@@ -582,10 +582,11 @@ public class AttachmentService implements InitializingBean {
 
     public ResponseEntity<byte[]> getObjectResponseEntity(
             FileObject fileObject,
+            boolean ifNoSuchReturnEmptyResponse,
             Map<String, Object> appendParam
     ) throws Exception {
 
-        GetObjectResponse is = minioAsyncTemplate.getObject(fileObject)
+        GetObjectResponse is = minioAsyncTemplate.getObject(fileObject, ifNoSuchReturnEmptyResponse)
                 .get();
 
         HttpHeaders headers = new HttpHeaders();
@@ -666,6 +667,7 @@ public class AttachmentService implements InitializingBean {
      */
     public ResponseEntity<byte[]> getObject(
             FileObject fileObject,
+            boolean ifNoSuchReturnEmptyResponse,
             AuditAuthenticationToken token,
             Map<String, Object> appendParam
     ) throws Exception {
@@ -690,10 +692,23 @@ public class AttachmentService implements InitializingBean {
             throw new ServiceException(message);
         }
 
-        ResponseEntity<byte[]> response = getObjectResponseEntity(fileObject, appendParam);
+        ResponseEntity<byte[]> response = getObjectResponseEntity(fileObject, ifNoSuchReturnEmptyResponse, appendParam);
         executeVoidAttachmentResolver(fileObject, r -> r.postGetObject(fileObject, response, token, result, appendParam));
 
         return response;
+    }
+
+    /**
+     * 判断文件是否存在
+     *
+     * @param type 桶类型
+     * @param objectName 对象名称
+     *
+     * @return 存在返回 true
+     */
+    public boolean attachmentFileExist(String type, String objectName) {
+        FileObject fileObject = getFileObject(type, objectName);
+        return minioAsyncTemplate.objectExists(fileObject);
     }
 
     public String getCleanUtf8(String input) {

@@ -413,7 +413,7 @@ public class AttachmentController {
         }
 
         if (list.size() == 1) {
-            return attachmentService.getObject(list.getFirst(), token, new LinkedHashMap<>());
+            return attachmentService.getObject(list.getFirst(), false, token, new LinkedHashMap<>());
         }
 
         ByteArrayOutputStream responseData = new ByteArrayOutputStream();
@@ -466,6 +466,8 @@ public class AttachmentController {
             String type,
             @RequestParam
             String objectName,
+            @RequestParam(defaultValue = "false")
+            boolean ifNoSuchReturnEmptyResponse,
             @RequestParam(required = false, defaultValue = "false")
             boolean base64,
             @CurrentSecurityContext
@@ -480,13 +482,31 @@ public class AttachmentController {
 
         FileObject fileObject = attachmentService.getFileObject(type, objectName);
 
-        ResponseEntity<byte[]> response = attachmentService.getObject(fileObject, token, appendParam);
+        ResponseEntity<byte[]> response = attachmentService.getObject(fileObject, ifNoSuchReturnEmptyResponse, token, appendParam);
 
         if (!base64) {
             return response;
         } else {
             return RestResult.ofSuccess(Base64.encodeToString(Objects.requireNonNull(response.getBody())));
         }
+    }
+
+    /**
+     * 判断文件是否存在
+     *
+     * @param type 桶名称
+     * @param objectName 文件名称
+     *
+     * @return 存在返回 true
+     */
+    @GetMapping("{type}/exist")
+    public boolean attachmentFileExist(
+            @PathVariable
+            String type,
+            @RequestParam
+            String objectName
+    ) {
+        return attachmentService.attachmentFileExist(type, objectName);
     }
 
     /**

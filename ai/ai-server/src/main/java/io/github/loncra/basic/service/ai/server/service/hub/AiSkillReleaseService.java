@@ -188,7 +188,7 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
             if (!resolved.startsWith(absoluteTarget)) {
                 continue;
             }
-            byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, file.getObjectName());
+            byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, file.getObjectName(), true);
             if (bytes == null) {
                 continue;
             }

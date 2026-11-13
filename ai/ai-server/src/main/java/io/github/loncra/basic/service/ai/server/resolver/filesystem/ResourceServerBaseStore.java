@@ -43,7 +43,7 @@ public class ResourceServerBaseStore implements BaseStore {
 
     @Override
     public StoreItem get(List<String> namespace, String key) {
-        byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, objectKey(namespace, key));
+        byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, objectKey(namespace, key), true);
         if (bytes == null || bytes.length == 0) {
             return null;
         }
@@ -87,7 +87,7 @@ public class ResourceServerBaseStore implements BaseStore {
             if (objectName == null || !objectName.startsWith(prefix)) {
                 continue;
             }
-            byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, objectName);
+            byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, objectName, true);
             if (bytes == null || bytes.length == 0) {
                 continue;
             }

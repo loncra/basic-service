@@ -131,7 +131,7 @@ public class EmailMessageSenderResolver extends AbstractBatchMessageSenderResolv
 
                 for (ObjectWriteResult fileObject : entity.getAttachmentList()) {
                     // FIXME 这里每次获取同名称的文件效率很低
-                    byte[] file = attachmentServiceClient.getAttachmentFile(fileObject.getBucketName(), fileObject.getObjectName());
+                    byte[] file = attachmentServiceClient.getAttachmentFile(fileObject.getBucketName(), fileObject.getObjectName(), false);
                     InputStreamSource iss = new ByteArrayResource(file);
 
                     helper.addAttachment(fileObject.getObjectName(), iss);

@@ -205,6 +205,20 @@ public interface AttachmentServiceClient {
      */
     byte[] getAttachmentFile(
             String type,
+            String objectName,
+            boolean ifNoSuchReturnEmptyResponse
+    );
+
+    /**
+     * 判断文件是否存在
+     *
+     * @param type 桶类型
+     * @param objectName 对象名称
+     *
+     * @return 存在返回 true
+     */
+    boolean attachmentFileExist(
+            String type,
             String objectName
     );
 

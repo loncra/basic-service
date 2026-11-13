@@ -126,6 +126,25 @@ public interface AttachmentServiceFeignClient extends AttachmentServiceClient {
             @PathVariable
             String bucketName,
             @PathVariable
+            String objectName,
+            @RequestParam
+            boolean ifNoSuchReturnEmptyResponse
+    );
+
+    /**
+     * 判断文件是否存在
+     *
+     * @param type 桶名称
+     * @param objectName 对象名称
+     *
+     * @return 存在返回 true
+     */
+    @Override
+    @GetMapping("{type}/exist")
+    boolean attachmentFileExist(
+            @PathVariable
+            String type,
+            @RequestParam
             String objectName
     );
 
