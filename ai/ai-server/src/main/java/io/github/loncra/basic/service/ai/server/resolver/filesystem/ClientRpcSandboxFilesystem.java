@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.resolver.sandbox;
+package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.agentscope.core.agent.RuntimeContext;

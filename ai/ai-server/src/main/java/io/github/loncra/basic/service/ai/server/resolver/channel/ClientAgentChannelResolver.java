@@ -16,9 +16,9 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.ClientRpcSandboxFilesystem;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.RpcFilesystemScope;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.ClientRpcSandboxFilesystem;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
@@ -144,7 +144,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 workspaceScope
         );
 
-        String storeBase = AgentSandboxLayout.storePrincipal(aiAppConfig.getSourceOfTruth().getDataDir(), AgentSandboxLayout.segment(principal));
+        String storeBase = FilesystemLayout.storePrincipal(aiAppConfig.getSourceOfTruth().getDataDir(), FilesystemLayout.segment(principal));
         Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
@@ -155,12 +155,11 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
-        return new ClientRpcSandboxFilesystem(socketServiceClient, deviceIdentified, new RpcFilesystemScope.Store(""));
-    }
-
-    @Override
-    protected String recordHome() {
-        return aiAppConfig.getSourceOfTruth().getDataDir();
+        return new ClientRpcSandboxFilesystem(
+                socketServiceClient,
+                deviceIdentified,
+                new RpcFilesystemScope.Store(aiAppConfig.getSourceOfTruth().getDataDir())
+        );
     }
 
     private RpcFilesystemScope resolveWorkspaceScope(

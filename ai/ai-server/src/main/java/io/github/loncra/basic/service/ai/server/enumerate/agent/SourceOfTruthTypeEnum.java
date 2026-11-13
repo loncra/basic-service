@@ -11,7 +11,7 @@ public enum SourceOfTruthTypeEnum implements NameValueEnum<String> {
 
     LOCAL("local", "本机文件落地"),
 
-    ResourceServer("resourceServer", "资源服务对象存储");
+    RESOURCE_SERVER("resourceServer", "资源服务对象存储");
 
     private final String value;
 

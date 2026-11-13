@@ -1,26 +1,25 @@
-package io.github.loncra.basic.service.ai.server.resolver.sandbox;
+package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import cn.hutool.core.text.AntPathMatcher;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.model.LsResult;
 import io.agentscope.harness.agent.filesystem.model.ReadResult;
 import io.agentscope.harness.agent.filesystem.model.WriteResult;
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.framework.commons.exception.SystemException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.message.TokenParser;
 
 import java.util.List;
 
-public final class SandboxFileOptions {
+public final class FilesystemOptions {
 
     private static final String EMPTY_FILE = "System reminder: File exists but has empty contents";
 
-    private SandboxFileOptions() {
+    private FilesystemOptions() {
     }
 
-    public static void writeText(AbstractSandboxFilesystem filesystem, String path, String content) {
+    public static void writeText(AbstractFilesystem filesystem, String path, String content) {
         RuntimeContext context = RuntimeContext.empty();
         if (filesystem.exists(context, path)) {
             deleteFile(filesystem, path);
@@ -31,14 +30,14 @@ public final class SandboxFileOptions {
         }
     }
 
-    public static void deleteFile(AbstractSandboxFilesystem filesystem, String path) {
+    public static void deleteFile(AbstractFilesystem filesystem, String path) {
         WriteResult deleted = filesystem.delete(RuntimeContext.empty(), path);
         if (!deleted.isSuccess()) {
             throw new SystemException("删除沙箱文件 [" + path + "] 失败: " + deleted.error());
         }
     }
 
-    public static String readText(AbstractSandboxFilesystem filesystem, String path) {
+    public static String readText(AbstractFilesystem filesystem, String path) {
         ReadResult result = filesystem.read(RuntimeContext.empty(), path, 0, 0);
         if (!result.isSuccess() || result.fileData() == null || result.fileData().content() == null) {
             return null;
@@ -50,7 +49,7 @@ public final class SandboxFileOptions {
         return content;
     }
 
-    public static List<String> listNames(AbstractSandboxFilesystem filesystem, String directory) {
+    public static List<String> listNames(AbstractFilesystem filesystem, String directory) {
         LsResult result = filesystem.ls(RuntimeContext.empty(), directory);
         if (!result.isSuccess() || result.entries() == null) {
             return List.of();

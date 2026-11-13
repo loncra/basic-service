@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.server.resolver.sandbox;
+package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import io.github.loncra.basic.service.ai.server.resolver.channel.AbstractAgentChannelResolver;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;

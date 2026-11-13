@@ -1,13 +1,14 @@
-package io.github.loncra.basic.service.ai.server.resolver.sandbox;
+package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import cn.hutool.core.text.AntPathMatcher;
 import io.agentscope.harness.agent.workspace.WorkspaceConstants;
 import io.github.loncra.framework.commons.CastUtils;
+import org.apache.commons.io.IOUtils;
 
 import java.nio.file.Path;
 import java.util.List;
 
-public final class AgentSandboxLayout {
+public final class FilesystemLayout {
 
     public static final String BUS_DIR = "bus";
 
@@ -29,7 +30,7 @@ public final class AgentSandboxLayout {
 
     public static final String PRINCIPAL_UNSAFE_PATTERN = "[^a-zA-Z0-9_\\-.]";
 
-    private AgentSandboxLayout() {
+    private FilesystemLayout() {
     }
 
     public static String segment(String principal) {
@@ -52,40 +53,40 @@ public final class AgentSandboxLayout {
         return join(home, segment(principal));
     }
 
-    public static String conversationFile(String home, String principal, String conversationId) {
-        return join(storePrincipal(home, principal), CONVERSATIONS_DIR, conversationId + JSON_SUFFIX);
+    public static String conversationFile(String principal, String conversationId) {
+        return join(segment(principal), CONVERSATIONS_DIR, conversationId + JSON_SUFFIX);
     }
 
-    public static String conversationsDir(String home, String principal) {
-        return join(storePrincipal(home, principal), CONVERSATIONS_DIR);
+    public static String conversationsDir(String principal) {
+        return join(segment(principal), CONVERSATIONS_DIR);
     }
 
-    public static String messageFile(String home, String principal, String messageId) {
-        return join(storePrincipal(home, principal), MESSAGES_DIR, messageId + JSON_SUFFIX);
+    public static String messageFile(String principal, String messageId) {
+        return join(segment(principal), MESSAGES_DIR, messageId + JSON_SUFFIX);
     }
 
-    public static String messageIndexFile(String home, String principal, String conversationId) {
-        return join(storePrincipal(home, principal), INDEXES_DIR, conversationId + JSON_SUFFIX);
+    public static String messageIndexFile(String principal, String conversationId) {
+        return join(segment(principal), INDEXES_DIR, conversationId + JSON_SUFFIX);
     }
 
-    public static String stateSession(String home, String principal, String sessionId) {
-        return join(storePrincipal(home, principal), STATE_DIR, segment(sessionId));
+    public static String stateSession(String principal, String sessionId) {
+        return join(segment(principal), STATE_DIR, segment(sessionId));
     }
 
-    public static String stateDir(String home, String principal) {
-        return join(storePrincipal(home, principal), STATE_DIR);
+    public static String stateDir(String principal) {
+        return join(segment(principal), STATE_DIR);
     }
 
-    public static String stateFile(String home, String principal, String sessionId, String key) {
-        return join(stateSession(home, principal, sessionId), key + JSON_SUFFIX);
+    public static String stateFile(String principal, String sessionId, String key) {
+        return join(stateSession(principal, sessionId), key + JSON_SUFFIX);
     }
 
-    public static String transcriptsDir(String home, String principal) {
-        return join(storePrincipal(home, principal), TRANSCRIPTS_DIR);
+    public static String transcriptsDir(String principal) {
+        return join(segment(principal), TRANSCRIPTS_DIR);
     }
 
-    public static String stateListFile(String home, String principal, String sessionId, String key) {
-        return join(stateSession(home, principal, sessionId), key + JSONL_SUFFIX);
+    public static String stateListFile(String principal, String sessionId, String key) {
+        return join(stateSession(principal, sessionId), key + JSONL_SUFFIX);
     }
 
     public static Path workspaceDirectory(Path workspacePath, String workspaceId) {
@@ -93,7 +94,7 @@ public final class AgentSandboxLayout {
     }
 
     private static String join(String root, String... parts) {
-        StringBuilder path = new StringBuilder(root.replace('\\', AntPathMatcher.DEFAULT_PATH_SEPARATOR.charAt(0)));
+        StringBuilder path = new StringBuilder(root.replace(IOUtils.DIR_SEPARATOR_WINDOWS, AntPathMatcher.DEFAULT_PATH_SEPARATOR.charAt(0)));
         while (path.length() > 1 && path.charAt(path.length() - 1) == AntPathMatcher.DEFAULT_PATH_SEPARATOR.charAt(0)) {
             path.setLength(path.length() - 1);
         }

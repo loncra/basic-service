@@ -11,7 +11,6 @@ import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
@@ -35,9 +34,9 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRole
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxAgentRecordStore;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.SandboxFileAgentStateStore;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAgentRecordStore;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAgentStateStore;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
@@ -58,12 +57,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MultiValueMap;
 
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 
 @Setter(onMethod_ = {@Autowired})
@@ -168,7 +162,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(workspacePath)
-                .transcriptTenant(AgentSandboxLayout.TRANSCRIPTS_DIR)
+                .transcriptTenant(FilesystemLayout.TRANSCRIPTS_DIR)
                 .middlewares(middlewares);
         return attachFilesystem(builder, execution, workspacePath);
     }
@@ -181,7 +175,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
     protected Map<String, AbstractFilesystem> userLevelRouteMap(Function<String, AbstractFilesystem> storeBackend) {
         Map<String, AbstractFilesystem> routes = new LinkedHashMap<>();
-        for (AgentSandboxLayout.UserLevelRoute route : AgentSandboxLayout.USER_LEVEL_ROUTES) {
+        for (FilesystemLayout.UserLevelRoute route : FilesystemLayout.USER_LEVEL_ROUTES) {
             routes.put(route.prefix(), storeBackend.apply(route.dir()));
         }
         return routes;
@@ -204,7 +198,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
     @Override
     public AgentStateStore openStateStore(BasicAgentExecutionMetadata execution) {
-        return new SandboxFileAgentStateStore(openRecords(execution.getDeviceIdentified()), recordHome());
+        return new FilesystemAgentStateStore(openRecords(execution.getDeviceIdentified()));
     }
 
     protected String createEnvironmentMemory(
@@ -223,7 +217,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .get(
                         AgentMessageEntity.obtainUserId(token.getName()),
                         basic.getClientConversationId(),
-                        SandboxFileAgentStateStore.AGENT_STATE_KEY,
+                        FilesystemAgentStateStore.AGENT_STATE_KEY,
                         AgentState.class
                 )
                 .orElseThrow(() -> new SystemException("找不到会话 [" + basic.getClientConversationId() + "] 的执行状态，无法恢复确认"));
@@ -475,13 +469,11 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .forEach(item -> deleteConversation(item.getId(), token, deviceIdentified));
     }
 
-    protected abstract AbstractSandboxFilesystem openRecords(String deviceIdentified);
-
-    protected abstract String recordHome();
+    protected abstract AbstractFilesystem openRecords(String deviceIdentified);
 
     @Override
     public AgentRecordStore getAgentRecordStore() {
-        return new SandboxAgentRecordStore(this::openRecords, this::recordHome);
+        return new FilesystemAgentRecordStore(this::openRecords);
     }
 
     @Override

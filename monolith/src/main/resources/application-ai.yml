@@ -12,6 +12,23 @@ loncra:
         workspace:
           sandbox-type: DIRECTORY
           path: "./.loncra-agent-workspace"
+---
+spring:
+  config:
+    activate:
+      on-profile: resource-server-source-of-truth
+
+loncra:
+  basic-service:
+    ai:
+      app:
+        store-max-file-size-mb: 10
+        source-of-truth:
+          type: RESOURCE_SERVER
+          path: "loncra/agent/data/"
+        workspace:
+          sandbox-type: DIRECTORY
+          path: "./.loncra-agent-workspace"
 
 ---
 spring:

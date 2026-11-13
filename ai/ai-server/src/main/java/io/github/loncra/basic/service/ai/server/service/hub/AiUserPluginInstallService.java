@@ -1,20 +1,20 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
+import io.agentscope.harness.agent.filesystem.model.ReadResult;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.McpUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.SkillUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.*;
+import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiUserPluginInstallDao;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
-import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
-import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
-import io.agentscope.harness.agent.filesystem.model.ReadResult;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.*;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -247,10 +247,12 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
             Set<String> ids
     ) {
         List<IdNameMetadata> workspaces = new LinkedList<>();
-        Path home = Path.of(aiAppConfig.getWorkspace().getPath()).toAbsolutePath().normalize();
+        Path home = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir())
+                .toAbsolutePath()
+                .normalize();
         LocalFilesystemWithShell filesystem = new LocalFilesystemWithShell(home);
         for (String workspaceId : ids) {
-            String path = AgentSandboxLayout.conversationFile(home.toString(), token.getName(), workspaceId);
+            String path = FilesystemLayout.conversationFile(token.getName(), workspaceId);
             ReadResult result = filesystem.read(RuntimeContext.empty(), path, 0, 0);
             String json = result.isSuccess() && result.fileData() != null ? result.fileData().content() : null;
             if (json != null && (json.isBlank() || json.startsWith("System reminder: File exists but has empty contents"))) {

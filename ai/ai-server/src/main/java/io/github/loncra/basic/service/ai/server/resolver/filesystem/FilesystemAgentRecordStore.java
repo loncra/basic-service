@@ -1,6 +1,6 @@
-package io.github.loncra.basic.service.ai.server.resolver.sandbox;
+package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
@@ -15,25 +15,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public final class SandboxAgentRecordStore implements AgentRecordStore {
+public final class FilesystemAgentRecordStore implements AgentRecordStore {
 
-    private final Function<String, AbstractSandboxFilesystem> records;
+    private final Function<String, AbstractFilesystem> records;
 
-    private final Supplier<String> home;
-
-    public SandboxAgentRecordStore(Function<String, AbstractSandboxFilesystem> records, Supplier<String> home) {
+    public FilesystemAgentRecordStore(Function<String, AbstractFilesystem> records) {
         this.records = records;
-        this.home = home;
     }
 
     @Override
     public void updateConversation(AgentConversationEntity conversation, String deviceIdentified) {
-        SandboxFileOptions.writeText(
+        FilesystemOptions.writeText(
                 records.apply(deviceIdentified),
-                AgentSandboxLayout.conversationFile(home.get(), conversation.getPrincipal(), conversation.getId()),
+                FilesystemLayout.conversationFile(conversation.getPrincipal(), conversation.getId()),
                 toJson(conversation)
         );
     }
@@ -46,7 +42,7 @@ public final class SandboxAgentRecordStore implements AgentRecordStore {
     @Override
     public AgentConversationEntity getConversation(String principal, String conversationId, String deviceIdentified) {
         return fromJson(
-                SandboxFileOptions.readText(records.apply(deviceIdentified), AgentSandboxLayout.conversationFile(home.get(), principal, conversationId)),
+                FilesystemOptions.readText(records.apply(deviceIdentified), FilesystemLayout.conversationFile(principal, conversationId)),
                 AgentConversationEntity.class
         );
     }
@@ -54,14 +50,14 @@ public final class SandboxAgentRecordStore implements AgentRecordStore {
     @Override
     public void saveMessage(AgentMessageEntity message, String deviceIdentified) {
         String principal = message.getPrincipal();
-        AbstractSandboxFilesystem store = records.apply(deviceIdentified);
-        SandboxFileOptions.writeText(store, AgentSandboxLayout.messageFile(home.get(), principal, message.getId()), toJson(message));
+        AbstractFilesystem store = records.apply(deviceIdentified);
+        FilesystemOptions.writeText(store, FilesystemLayout.messageFile(principal, message.getId()), toJson(message));
         List<String> messageIds = readMessageIds(store, principal, message.getAgentConversationId());
         if (!messageIds.contains(message.getId())) {
             messageIds.add(message.getId());
-            SandboxFileOptions.writeText(
+            FilesystemOptions.writeText(
                     store,
-                    AgentSandboxLayout.messageIndexFile(home.get(), principal, message.getAgentConversationId()),
+                    FilesystemLayout.messageIndexFile(principal, message.getAgentConversationId()),
                     toJson(messageIds)
             );
         }
@@ -70,7 +66,7 @@ public final class SandboxAgentRecordStore implements AgentRecordStore {
     @Override
     public AgentMessageEntity getMessage(String principal, String messageId, String deviceIdentified) {
         return fromJson(
-                SandboxFileOptions.readText(records.apply(deviceIdentified), AgentSandboxLayout.messageFile(home.get(), principal, messageId)),
+                FilesystemOptions.readText(records.apply(deviceIdentified), FilesystemLayout.messageFile(principal, messageId)),
                 AgentMessageEntity.class
         );
     }
@@ -93,11 +89,11 @@ public final class SandboxAgentRecordStore implements AgentRecordStore {
 
     @Override
     public List<AgentConversationEntity> listConversations(String principal, String deviceIdentified) {
-        AbstractSandboxFilesystem store = records.apply(deviceIdentified);
-        return SandboxFileOptions.listNames(store, AgentSandboxLayout.conversationsDir(home.get(), principal)).stream()
-                .filter(name -> name.endsWith(AgentSandboxLayout.JSON_SUFFIX))
-                .map(name -> name.substring(0, name.length() - AgentSandboxLayout.JSON_SUFFIX.length()))
-                .map(id -> fromJson(SandboxFileOptions.readText(store, AgentSandboxLayout.conversationFile(home.get(), principal, id)), AgentConversationEntity.class))
+        AbstractFilesystem store = records.apply(deviceIdentified);
+        return FilesystemOptions.listNames(store, FilesystemLayout.conversationsDir(principal)).stream()
+                .filter(name -> name.endsWith(FilesystemLayout.JSON_SUFFIX))
+                .map(name -> name.substring(0, name.length() - FilesystemLayout.JSON_SUFFIX.length()))
+                .map(id -> fromJson(FilesystemOptions.readText(store, FilesystemLayout.conversationFile(principal, id)), AgentConversationEntity.class))
                 .filter(Objects::nonNull)
                 .toList();
     }
@@ -105,12 +101,12 @@ public final class SandboxAgentRecordStore implements AgentRecordStore {
     @Override
     public void deleteConversationFiles(AgentConversationEntity conversation, String deviceIdentified) {
         String principal = conversation.getPrincipal();
-        AbstractSandboxFilesystem store = records.apply(deviceIdentified);
+        AbstractFilesystem store = records.apply(deviceIdentified);
         for (String messageId : readMessageIds(store, principal, conversation.getId())) {
-            SandboxFileOptions.deleteFile(store, AgentSandboxLayout.messageFile(home.get(), principal, messageId));
+            FilesystemOptions.deleteFile(store, FilesystemLayout.messageFile(principal, messageId));
         }
-        SandboxFileOptions.deleteFile(store, AgentSandboxLayout.messageIndexFile(home.get(), principal, conversation.getId()));
-        SandboxFileOptions.deleteFile(store, AgentSandboxLayout.conversationFile(home.get(), principal, conversation.getId()));
+        FilesystemOptions.deleteFile(store, FilesystemLayout.messageIndexFile(principal, conversation.getId()));
+        FilesystemOptions.deleteFile(store, FilesystemLayout.conversationFile(principal, conversation.getId()));
     }
 
     @Override
@@ -143,8 +139,8 @@ public final class SandboxAgentRecordStore implements AgentRecordStore {
         updateConversation(conversation, execution.getDeviceIdentified());
     }
 
-    private List<String> readMessageIds(AbstractSandboxFilesystem store, String principal, String conversationId) {
-        String json = SandboxFileOptions.readText(store, AgentSandboxLayout.messageIndexFile(home.get(), principal, conversationId));
+    private List<String> readMessageIds(AbstractFilesystem store, String principal, String conversationId) {
+        String json = FilesystemOptions.readText(store, FilesystemLayout.messageIndexFile(principal, conversationId));
         if (Objects.isNull(json) || json.isBlank()) {
             return new LinkedList<>();
         }

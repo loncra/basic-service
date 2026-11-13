@@ -6,6 +6,8 @@ import io.agentscope.harness.agent.IsolationScope;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.agentscope.harness.agent.filesystem.RoutedSandboxFilesystem;
 import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
+import io.agentscope.harness.agent.filesystem.remote.RemoteFilesystem;
+import io.agentscope.harness.agent.filesystem.remote.store.BaseStore;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
@@ -20,10 +22,14 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResol
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
-import io.github.loncra.basic.service.ai.server.resolver.sandbox.AgentSandboxLayout;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.SourceOfTruthTypeEnum;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.ResourceServerBaseStore;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentUserPluginToolkitService;
 import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
+import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
+import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -31,17 +37,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemProperties;
 import org.apache.commons.lang3.SystemUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
 public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     private final AgentUserPluginToolkitService agentUserPluginToolkitService;
+
+    private final AttachmentServiceClient attachmentServiceClient;
 
     private final AgentHubSkillService agentHubSkillService;
 
@@ -119,15 +127,16 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             AgentExecutionMetadata execution,
             String workspacePath
     ) {
-        Function<String, AbstractFilesystem> storeBackend = storeBackend(execution.getAssistantMessage().getPrincipal());
+        String principalSegment = FilesystemLayout.segment(execution.getAssistantMessage().getPrincipal());
         if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getWorkspace().getSandboxType())) {
-            userLevelRouteMap(storeBackend).forEach(builder::filesystemRoute);
+            userLevelRouteMap(dir -> sourceOfTruthFilesystem(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, principalSegment, dir)))
+                    .forEach(builder::filesystemRoute);
             return builder.filesystem(aiAppConfig.getDocker().toSpec());
         }
         Path directory = Path.of(workspacePath);
         return builder.abstractFilesystem(new RoutedSandboxFilesystem(
                 primaryFilesystem(directory, directory),
-                userLevelRouteMap(storeBackend)
+                userLevelRouteMap(dir -> sourceOfTruthFilesystem(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, principalSegment, dir)))
         ));
     }
 
@@ -141,30 +150,33 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
         throw new SystemException("本地文件系统规格未产出沙箱文件系统: " + filesystem.getClass().getName());
     }
 
-    private Function<String, AbstractFilesystem> storeBackend(String principal) {
-        Path userRoot = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir(), AgentSandboxLayout.segment(principal))
-                .toAbsolutePath()
-                .normalize();
-        return dir -> sourceOfTruthFilesystem(userRoot.resolve(dir));
-    }
-
-    private AbstractSandboxFilesystem sourceOfTruthFilesystem(Path root) {
+    private AbstractFilesystem sourceOfTruthFilesystem(String relativePath) {
         AiAppConfig.SourceOfTruth sourceOfTruth = aiAppConfig.getSourceOfTruth();
-        return switch (sourceOfTruth.getType()) {
-            case LOCAL -> new LocalFilesystemWithShell(
-                    root,
-                    true,
-                    sourceOfTruth.getExecuteTimeoutSeconds(),
-                    sourceOfTruth.getMaxOutputBytes(),
-                    null,
-                    false,
-                    null);
-            case ResourceServer -> throw new SystemException("MinIO 存储后端待接入（MinioBaseStore → RemoteFilesystem）");
-        };
+        if (SourceOfTruthTypeEnum.RESOURCE_SERVER.equals(sourceOfTruth.getType())) {
+            BaseStore store = new ResourceServerBaseStore(
+                    attachmentServiceClient,
+                    AttachmentTypeEnum.SYSTEM_FILE.getValue(),
+                    sourceOfTruth.getPath()
+            );
+            List<String> namespace = relativePath.isBlank()
+                    ? List.of(sourceOfTruth.getDataDir())
+                    : List.of(sourceOfTruth.getDataDir(), relativePath);
+            return new RemoteFilesystem(store, namespace);
+        }
+        Path dataRoot = Path.of(sourceOfTruth.getPath(), sourceOfTruth.getDataDir()).toAbsolutePath().normalize();
+        return new LocalFilesystemWithShell(
+                relativePath.isBlank() ? dataRoot : dataRoot.resolve(relativePath).normalize(),
+                true,
+                sourceOfTruth.getExecuteTimeoutSeconds(),
+                sourceOfTruth.getMaxOutputBytes(),
+                null,
+                false,
+                null
+        );
     }
 
     private String cloudWorkspaceDir(AgentConversationEntity workspace) {
-        return AgentSandboxLayout.workspaceDirectory(
+        return FilesystemLayout.workspaceDirectory(
                 Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString();
     }
 
@@ -199,15 +211,8 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
-        return new LocalFilesystemWithShell(recordHome());
+    protected AbstractFilesystem openRecords(String deviceIdentified) {
+        return sourceOfTruthFilesystem(StringUtils.EMPTY);
     }
 
-    @Override
-    protected String recordHome() {
-        return Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir())
-                .toAbsolutePath()
-                .normalize()
-                .toString();
-    }
 }
