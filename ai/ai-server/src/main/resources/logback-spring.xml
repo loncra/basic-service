@@ -14,6 +14,8 @@
 
     <logger name="io.github.loncra.basic.service.commons" level="DEBUG"/>
     <logger name="io.github.loncra.basic.service.ai.server" level="DEBUG"/>
+    <!-- MCP 客户端传输重试噪音压制（SSE 405 等，升级/切换 transport 后可移除） -->
+    <logger name="io.modelcontextprotocol.client" level="ERROR"/>
 
     <springProfile name="default">
         <root level="INFO">
