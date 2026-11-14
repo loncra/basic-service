@@ -243,12 +243,13 @@ public interface AttachmentServiceClient {
      *
      * @param fileObjects 文件对象集合
      * @param appendParam 附加参数内容
-     *
+     * @param async true 时不等待删除完成；false 时等待删除落定后返回
      * @return rest 结果集
      */
     RestResult<Object> deleteAttachment(
             List<FileObject> fileObjects,
-            Map<String, Object> appendParam
+            Map<String, Object> appendParam,
+            boolean async
     );
 
 

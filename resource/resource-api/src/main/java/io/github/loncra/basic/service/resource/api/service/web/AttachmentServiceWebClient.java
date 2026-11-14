@@ -202,7 +202,9 @@ public interface AttachmentServiceWebClient extends AttachmentServiceClient {
             @RequestBody
             List<FileObject> fileObjects,
             @RequestParam
-            Map<String, Object> appendParam
+            Map<String, Object> appendParam,
+            @RequestParam
+            boolean async
     );
 
 

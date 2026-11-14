@@ -266,6 +266,6 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
 
     private void deleteObjectPrefix(String prefix) {
         FileObject fileObject = FileObject.of(AttachmentTypeEnum.SYSTEM_FILE.getValue(), prefix);
-        attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of());
+        attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of(), false);
     }
 }

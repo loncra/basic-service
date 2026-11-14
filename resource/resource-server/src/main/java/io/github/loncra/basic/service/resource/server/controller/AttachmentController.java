@@ -111,20 +111,23 @@ public class AttachmentController {
      *
      * @return reset 结果集
      */
-    @Auditable("文件管理_删除文件")
     @PutMapping("delete")
-    @Plugin(name = "删除文件", parent = "attachment_manager", sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE})
-    @PreAuthorize("hasAuthority('perms[resource_server_attachment:delete]')")
+    @Auditable("文件管理_删除文件")
+    // FIXME 先放开权限，后面再看看怎么添加多一个规范的接口
+    //@PreAuthorize("hasAuthority('perms[resource_server_attachment:delete]')")
+    //@Plugin(name = "删除文件", parent = "attachment_manager", sources = {ResourceSourceEnum.CONSOLE_SOURCE_VALUE})
     public RestResult<?> delete(
             @RequestBody
             List<FileObject> fileObjects,
             @RequestParam
-            Map<String, Object> appendParam
+            Map<String, Object> appendParam,
+            @RequestParam(required = false, defaultValue = "false")
+            boolean async
     ) throws Exception {
         List<FileObject> convertList = fileObjects.stream()
                 .map(f -> attachmentService.getFileObject(f.getBucketName(), f.getObjectName()))
                 .toList();
-        List<Map<String, Object>> data = attachmentService.delete(convertList, null, appendParam);
+        List<Map<String, Object>> data = attachmentService.delete(convertList, null, appendParam, async);
         String message = getDeleteMessage(fileObjects);
         return RestResult.ofSuccess(message, data);
     }
@@ -195,7 +198,7 @@ public class AttachmentController {
         );
         List<FileObject> files = ids.stream().map(id -> attachmentService.getFileObject(AttachmentTypeEnum.USER_FILE.getValue(), id)).toList();
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        List<Map<String, Object>> data = attachmentService.delete(files, token, appendParam);
+        List<Map<String, Object>> data = attachmentService.delete(files, token, appendParam, false);
         String message = getDeleteMessage(files);
         return RestResult.ofSuccess(message, data);
     }

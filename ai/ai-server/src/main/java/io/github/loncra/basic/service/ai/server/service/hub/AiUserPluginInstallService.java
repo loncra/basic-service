@@ -250,7 +250,14 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         Path home = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir())
                 .toAbsolutePath()
                 .normalize();
-        LocalFilesystemWithShell filesystem = new LocalFilesystemWithShell(home);
+        LocalFilesystemWithShell filesystem = new LocalFilesystemWithShell(
+                home,
+                true,
+                aiAppConfig.getSourceOfTruth().getExecuteTimeoutSeconds(),
+                aiAppConfig.getSourceOfTruth().getMaxOutputBytes(),
+                null,
+                false,
+                null);
         for (String workspaceId : ids) {
             String path = FilesystemLayout.conversationFile(token.getName(), workspaceId);
             ReadResult result = filesystem.read(RuntimeContext.empty(), path, 0, 0);

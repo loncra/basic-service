@@ -59,7 +59,7 @@ public class EmailMessageService extends BasicService<EmailMessageDao, EmailMess
 
     @Override
     public int deleteByEntity(EmailMessageEntity entity) {
-        attachmentServiceClient.deleteAttachment(new LinkedList<>(entity.getAttachmentList()), new LinkedHashMap<>());
+        attachmentServiceClient.deleteAttachment(new LinkedList<>(entity.getAttachmentList()), new LinkedHashMap<>(), true);
         return super.deleteByEntity(entity);
     }
 }

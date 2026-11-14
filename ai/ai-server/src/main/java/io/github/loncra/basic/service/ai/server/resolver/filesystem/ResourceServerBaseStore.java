@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.agentscope.harness.agent.filesystem.remote.store.BaseStore;
 import io.agentscope.harness.agent.filesystem.remote.store.StoreItem;
+import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
 import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.CastUtils;
@@ -107,7 +107,8 @@ public class ResourceServerBaseStore implements BaseStore {
     public void delete(List<String> namespace, String key) {
         attachmentServiceClient.deleteAttachment(
                 List.of(FileObject.of(bucket, objectKey(namespace, key))),
-                Map.of()
+                Map.of(),
+                false
         );
     }
 
@@ -135,7 +136,10 @@ public class ResourceServerBaseStore implements BaseStore {
             attachmentServiceClient.uploadAttachmentFile(
                     new MultipartUploadFile(objectName, objectName, MediaType.APPLICATION_JSON_VALUE, bytes),
                     bucket,
-                    Map.of()
+                    Map.of(
+                            SystemConstants.RANDOM_NAME_KEY,
+                            Boolean.FALSE.toString()
+                    )
             );
         } catch (Exception e) {
             throw new IllegalStateException("写入资源服务对象失败: " + objectName, e);
@@ -146,8 +150,7 @@ public class ResourceServerBaseStore implements BaseStore {
         try {
             JsonNode node = CastUtils.getObjectMapper().readTree(bytes);
             long version = node.path("version").asLong(0L);
-            Map<String, Object> value = CastUtils.convertValue(node.path("value"), new TypeReference<Map<String, Object>>() {
-            });
+            Map<String, Object> value = CastUtils.convertValue(node.path("value"), CastUtils.MAP_TYPE_REFERENCE);
             return new StoreItem(key, value, version);
         } catch (Exception e) {
             return null;

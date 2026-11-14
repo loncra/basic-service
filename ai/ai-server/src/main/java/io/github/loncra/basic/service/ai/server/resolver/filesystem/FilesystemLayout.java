@@ -50,7 +50,10 @@ public final class FilesystemLayout {
     );
 
     public static String storePrincipal(String home, String principal) {
-        return join(home, segment(principal));
+        String path = join(home, segment(principal));
+        return path.startsWith(AntPathMatcher.DEFAULT_PATH_SEPARATOR)
+                ? path.substring(1)
+                : path;
     }
 
     public static String conversationFile(String principal, String conversationId) {
@@ -100,6 +103,9 @@ public final class FilesystemLayout {
         }
         for (String part : parts) {
             path.append(AntPathMatcher.DEFAULT_PATH_SEPARATOR).append(part);
+        }
+        if (path.charAt(0) != AntPathMatcher.DEFAULT_PATH_SEPARATOR.charAt(0)) {
+            path.insert(0, AntPathMatcher.DEFAULT_PATH_SEPARATOR);
         }
         return path.toString();
     }

@@ -150,7 +150,7 @@ public class SiteMessageService extends BasicService<SiteMessageDao, SiteMessage
     @Override
     public int deleteByEntity(SiteMessageEntity entity) {
         if (CollectionUtils.isNotEmpty(entity.getAttachmentList())) {
-            attachmentServiceClient.deleteAttachment(new LinkedList<>(entity.getAttachmentList()), new LinkedHashMap<>());
+            attachmentServiceClient.deleteAttachment(new LinkedList<>(entity.getAttachmentList()), new LinkedHashMap<>(), true);
         }
         return super.deleteByEntity(entity);
     }

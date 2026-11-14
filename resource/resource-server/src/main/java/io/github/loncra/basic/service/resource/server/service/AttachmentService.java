@@ -390,7 +390,7 @@ public class AttachmentService implements InitializingBean {
         FileObject source = object.getSource();
         if (Strings.CS.endsWith(source.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
             copyObject(object);
-            delete(List.of(source), null, Map.of());
+            delete(List.of(source), null, Map.of(), false);
         } else {
             minioAsyncTemplate.moveObject(object)
                     .get();
@@ -536,7 +536,8 @@ public class AttachmentService implements InitializingBean {
     public List<Map<String, Object>> delete(
             List<FileObject> fileObjects,
             AuditAuthenticationToken token,
-            Map<String, Object> appendParam
+            Map<String, Object> appendParam,
+            boolean async
     ) throws Exception {
         List<Map<String, Object>> result = new LinkedList<>();
 
@@ -547,7 +548,7 @@ public class AttachmentService implements InitializingBean {
                 List<FileObject> fileObjectList = listFile.stream()
                         .map(f -> FileObject.of(object.getBucketName(), f.getObjectName()))
                         .collect(Collectors.toList());
-                result.addAll(delete(fileObjectList, token, appendParam));
+                result.addAll(delete(fileObjectList, token, appendParam, async));
             } else {
                 StatObjectArgs args = StatObjectArgs.builder()
                         .bucket(object.getBucketName())
@@ -568,7 +569,12 @@ public class AttachmentService implements InitializingBean {
                     continue;
                 }
 
-                minioAsyncTemplate.deleteObject(object, false);
+                if (async) {
+                    minioAsyncTemplate.deleteObject(object, false);
+                } else {
+                    minioAsyncTemplate.deleteObject(object, false)
+                            .get();
+                }
 
                 executeVoidAttachmentResolver(object, r -> r.postDelete(object, appendParam));
                 if (MapUtils.isNotEmpty(item)) {

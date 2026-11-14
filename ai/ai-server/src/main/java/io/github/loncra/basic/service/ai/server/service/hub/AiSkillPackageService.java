@@ -177,7 +177,7 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
                 AttachmentTypeEnum.SYSTEM_FILE.getValue(),
                 SKILL_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR
         );
-        attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of());
+        attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of(), false);
         return result;
     }
 
