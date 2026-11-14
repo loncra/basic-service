@@ -67,7 +67,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
         AgentChatBasicResponseBody responseBody = super.resume(body, token, deviceIdentified);
         agentSseStreamPublishResolver.sendExecuteMessage(
                 AgentExecuteMessageMetadata.of(getChannel(), responseBody.getAssistantMessageId(), deviceIdentified),
-                true
+                false
         );
         return responseBody;
     }
