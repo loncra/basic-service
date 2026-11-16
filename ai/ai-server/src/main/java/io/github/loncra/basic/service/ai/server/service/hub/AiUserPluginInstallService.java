@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.McpUserPlu
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.SkillUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.*;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
+import io.github.loncra.basic.service.ai.server.config.SourceOfTruthConfig;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiUserPluginInstallDao;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
@@ -61,7 +62,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
 
     private final AiMcpPackageService aiMcpPackageService;
 
-    private final AiAppConfig aiAppConfig;
+    private final SourceOfTruthConfig sourceOfTruthConfig;
 
     @Transactional(rollbackFor = Exception.class)
     @Concurrent(value = "installPlugin:[#token.name]:[#body.targetType]:[#body.packageId]")
@@ -247,14 +248,14 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
             Set<String> ids
     ) {
         List<IdNameMetadata> workspaces = new LinkedList<>();
-        Path home = Path.of(aiAppConfig.getSourceOfTruth().getPath(), aiAppConfig.getSourceOfTruth().getDataDir())
+        Path home = Path.of(sourceOfTruthConfig.getPath(), sourceOfTruthConfig.getDataDir())
                 .toAbsolutePath()
                 .normalize();
         LocalFilesystemWithShell filesystem = new LocalFilesystemWithShell(
                 home,
                 true,
-                aiAppConfig.getSourceOfTruth().getExecuteTimeoutSeconds(),
-                aiAppConfig.getSourceOfTruth().getMaxOutputBytes(),
+                sourceOfTruthConfig.getExecuteTimeoutSeconds(),
+                sourceOfTruthConfig.getMaxOutputBytes(),
                 null,
                 false,
                 null);

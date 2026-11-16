@@ -5,13 +5,8 @@ loncra:
         store-max-file-size-mb: 10
         source-of-truth:
           type: LOCAL
-          path: "./"
-          data-dir: ".loncra-admin"
           execute-timeout-seconds: 120
           max-output-bytes: 100000
-        workspace:
-          sandbox-type: DIRECTORY
-          path: "./.loncra-agent-workspace"
 ---
 spring:
   config:
@@ -25,10 +20,7 @@ loncra:
         store-max-file-size-mb: 10
         source-of-truth:
           type: RESOURCE_SERVER
-          path: "loncra/agent/data/"
-        workspace:
-          sandbox-type: DIRECTORY
-          path: "./.loncra-agent-workspace"
+          path: "ai/"
 
 ---
 spring:

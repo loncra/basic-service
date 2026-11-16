@@ -128,6 +128,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             String workspacePath
     ) {
         String principalSegment = FilesystemLayout.segment(execution.getAssistantMessage().getPrincipal());
+
         if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getWorkspace().getSandboxType())) {
             userLevelRouteMap(dir -> sourceOfTruthFilesystem(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, principalSegment, dir)))
                     .forEach(builder::filesystemRoute);
@@ -151,24 +152,23 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private AbstractFilesystem sourceOfTruthFilesystem(String relativePath) {
-        AiAppConfig.SourceOfTruth sourceOfTruth = aiAppConfig.getSourceOfTruth();
-        if (SourceOfTruthTypeEnum.RESOURCE_SERVER.equals(sourceOfTruth.getType())) {
+        if (SourceOfTruthTypeEnum.RESOURCE_SERVER.equals(sourceOfTruthConfig.getType())) {
             BaseStore store = new ResourceServerBaseStore(
                     attachmentServiceClient,
                     AttachmentTypeEnum.SYSTEM_FILE.getValue(),
-                    sourceOfTruth.getPath()
+                    sourceOfTruthConfig.getPath()
             );
             List<String> namespace = relativePath.isBlank()
-                    ? List.of(sourceOfTruth.getDataDir())
-                    : List.of(sourceOfTruth.getDataDir(), relativePath);
+                    ? List.of(sourceOfTruthConfig.getDataDir())
+                    : List.of(sourceOfTruthConfig.getDataDir(), relativePath);
             return new RemoteFilesystem(store, namespace);
         }
-        Path dataRoot = Path.of(sourceOfTruth.getPath(), sourceOfTruth.getDataDir()).toAbsolutePath().normalize();
+        Path dataRoot = Path.of(sourceOfTruthConfig.getPath(), sourceOfTruthConfig.getDataDir()).toAbsolutePath().normalize();
         return new LocalFilesystemWithShell(
                 relativePath.isBlank() ? dataRoot : dataRoot.resolve(relativePath).normalize(),
                 true,
-                sourceOfTruth.getExecuteTimeoutSeconds(),
-                sourceOfTruth.getMaxOutputBytes(),
+                sourceOfTruthConfig.getExecuteTimeoutSeconds(),
+                sourceOfTruthConfig.getMaxOutputBytes(),
                 null,
                 false,
                 null

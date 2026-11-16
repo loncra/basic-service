@@ -9,6 +9,7 @@ import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClie
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.commons.minio.ObjectWriteResult;
+import lombok.Getter;
 import org.springframework.http.MediaType;
 import org.springframework.util.AntPathMatcher;
 
@@ -27,8 +28,10 @@ public class ResourceServerBaseStore implements BaseStore {
 
     private final AttachmentServiceClient attachmentServiceClient;
 
+    @Getter
     private final String bucket;
 
+    @Getter
     private final String objectPrefix;
 
     public ResourceServerBaseStore(

@@ -36,8 +36,6 @@ public class AiAppConfig {
 
     private int defaultMaxClarifyRounds = 5;
 
-    private SourceOfTruth sourceOfTruth = new SourceOfTruth();
-
     private Workspace workspace = new Workspace();
 
     private int storeMaxFileSizeMb = 10;
@@ -203,18 +201,9 @@ public class AiAppConfig {
     // ═══════════════════════════════════════════════════════
 
     @Data
-    public static class SourceOfTruth {
-        private SourceOfTruthTypeEnum type = SourceOfTruthTypeEnum.LOCAL;
-        private String path = "./";
-        private String dataDir = ".loncra-admin";
-        private int executeTimeoutSeconds = LocalFilesystemWithShell.DEFAULT_EXECUTE_TIMEOUT;
-        private int maxOutputBytes = 100_000;
-    }
-
-    @Data
     public static class Workspace {
         private SandboxTypeEnum sandboxType = SandboxTypeEnum.DIRECTORY;
-        private String path = "./";
+        private String path = "./.loncra-agent-workspace";
     }
 
     @Data

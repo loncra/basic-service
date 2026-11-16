@@ -16,7 +16,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.ClientRpcSandboxFilesystem;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.support.ClientRpcSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
@@ -144,7 +144,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 workspaceScope
         );
 
-        String storeBase = FilesystemLayout.storePrincipal(aiAppConfig.getSourceOfTruth().getDataDir(), FilesystemLayout.segment(principal));
+        String storeBase = FilesystemLayout.storePrincipal(sourceOfTruthConfig.getDataDir(), FilesystemLayout.segment(principal));
         Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
@@ -158,7 +158,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
         return new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 deviceIdentified,
-                new RpcFilesystemScope.Store(aiAppConfig.getSourceOfTruth().getDataDir())
+                new RpcFilesystemScope.Store(sourceOfTruthConfig.getDataDir())
         );
     }
 

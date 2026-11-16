@@ -15,6 +15,7 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadat
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
+import io.github.loncra.basic.service.ai.server.config.SourceOfTruthConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -74,6 +75,8 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
     protected AiAppConfig aiAppConfig;
 
     protected SkillConfig skillConfig;
+
+    protected SourceOfTruthConfig sourceOfTruthConfig;
 
     protected List<MiddlewareBase> middlewares;
 
