@@ -2,26 +2,32 @@ package io.github.loncra.basic.service.ai.server.service.skill;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.model.FileInfo;
+import io.agentscope.harness.agent.filesystem.model.LsResult;
+import io.agentscope.harness.agent.filesystem.model.WriteResult;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.metadata.McpSkillGenerateMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.RegExUtils;
+import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+import org.springframework.util.AntPathMatcher;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.List;
@@ -35,12 +41,15 @@ import java.util.stream.Collectors;
 public class McpSkillSyncRunner implements ApplicationRunner {
 
     private final AiMcpPackageService aiMcpPackageService;
+
     private final SkillConfig skillConfig;
+
+    private final SourceOfTruthFileSystemFactory sourceOfTruthFileSystemFactory;
 
     @Async
     @Override
     public void run(ApplicationArguments args) {
-        Path root = Path.of(skillConfig.getPath());
+        AbstractFilesystem filesystem = sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(skillConfig.getMcp().getAssociatedPath());
         List<NoCloseMcpClientWrapper> mcpPackages = aiMcpPackageService.getMcpClientCache()
                 .values()
                 .stream()
@@ -50,7 +59,7 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 .toList();
         for (NoCloseMcpClientWrapper wrapper : mcpPackages) {
             try {
-                List<McpSchema.Tool> tools = wrapper.listTools().block(skillConfig.getTimeout().toDuration());
+                List<McpSchema.Tool> tools = wrapper.listTools().block(skillConfig.getMcp().getTimeout().toDuration());
 
                 McpSkillGenerateMetadata model = CastUtils.of(wrapper.getMetadata(), McpSkillGenerateMetadata.class);
                 model.setId(wrapper.getName());
@@ -79,53 +88,22 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 );
 
                 String fullContent = FreeMarkerTemplateUtils.processTemplateIntoString(template, model);
-
-                Path dir = root.resolve(wrapper.getName());
-                Files.createDirectories(dir);
-                Files.writeString(dir.resolve(skillConfig.getFilename()), fullContent, StandardCharsets.UTF_8);
+                String filePath = wrapper.getName() + AntPathMatcher.DEFAULT_PATH_SEPARATOR + skillConfig.getFilename();
+                WriteResult writeResult = filesystem.write(RuntimeContext.empty(), filePath, fullContent);
+                if (!writeResult.isSuccess()) {
+                    throw new SystemException(writeResult.error());
+                }
             } catch (Exception e) {
-                // 失败保留旧 SKILL.md，打日志，不要拖死启动
                 log.warn("MCP {} skill 同步失败", wrapper.getName(), e);
             }
         }
         Set<String> activeNames = mcpPackages.stream()
                 .map(NoCloseMcpClientWrapper::getName)
                 .collect(Collectors.toSet());
-        cleanObsoleteSkillDirs(root, activeNames);
-    }
-
-    /**
-     * 删除 root 下不在 activeNames 中的 MCP skill 子目录。
-     */
-    private void cleanObsoleteSkillDirs(Path root, Set<String> activeNames) {
-        if (!Files.isDirectory(root)) {
-            return;
-        }
-        try (var dirs = Files.list(root)) {
-            dirs.filter(Files::isDirectory)
-                    .filter(dir -> !activeNames.contains(dir.getFileName().toString()))
-                    .forEach(this::deleteQuietly);
-        } catch (IOException e) {
-            log.warn("扫描 skill 目录失败，跳过清理", e);
-        }
-    }
-
-    /**
-     * 递归删除目录，不抛异常。
-     */
-    private void deleteQuietly(Path dir) {
-        try (var walk = Files.walk(dir)) {
-            walk.sorted(java.util.Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.deleteIfExists(path);
-                        } catch (IOException e) {
-                            log.warn("删除文件失败: {}", path, e);
-                        }
-                    });
-            log.info("已清理禁用的 MCP skill 目录: {}", dir.getFileName());
-        } catch (IOException e) {
-            log.warn("清理目录失败: {}", dir, e);
-        }
+        LsResult root = filesystem.ls(RuntimeContext.empty(), StringUtils.EMPTY);
+        root.entries().stream()
+                .filter(FileInfo::isDirectory)
+                .filter(s -> !activeNames.contains(RegExUtils.replaceAll(s.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR, StringUtils.EMPTY)))
+                .forEach(s -> filesystem.delete(RuntimeContext.empty(), s.path()));
     }
 }

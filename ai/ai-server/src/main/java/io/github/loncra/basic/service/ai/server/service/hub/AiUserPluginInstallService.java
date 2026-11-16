@@ -7,7 +7,6 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMe
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.McpUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.SkillUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.*;
-import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.SourceOfTruthConfig;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiUserPluginInstallDao;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
@@ -15,7 +14,7 @@ import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRes
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.*;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -260,7 +259,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                 false,
                 null);
         for (String workspaceId : ids) {
-            String path = FilesystemLayout.conversationFile(token.getName(), workspaceId);
+            String path = SourceOfTruthFileSystemFactory.conversationFile(token.getName(), workspaceId);
             ReadResult result = filesystem.read(RuntimeContext.empty(), path, 0, 0);
             String json = result.isSuccess() && result.fileData() != null ? result.fileData().content() : null;
             if (json != null && (json.isBlank() || json.startsWith("System reminder: File exists but has empty contents"))) {

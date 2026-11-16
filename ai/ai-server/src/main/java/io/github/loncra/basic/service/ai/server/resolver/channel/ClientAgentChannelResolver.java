@@ -16,9 +16,8 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.support.ClientRpcSandboxFilesystem;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.support.ClientRpcSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
@@ -143,8 +142,8 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 execution.getDeviceIdentified(),
                 workspaceScope
         );
-
-        String storeBase = FilesystemLayout.storePrincipal(sourceOfTruthConfig.getDataDir(), FilesystemLayout.segment(principal));
+        String dataDir = sourceOfTruthFileSystemFactory.getSourceOfTruthConfig().getDataDir();
+        String storeBase = sourceOfTruthFileSystemFactory.storePrincipal(dataDir, sourceOfTruthFileSystemFactory.segment(principal));
         Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
@@ -155,10 +154,11 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected AbstractSandboxFilesystem openRecords(String deviceIdentified) {
+        String dataDir = sourceOfTruthFileSystemFactory.getSourceOfTruthConfig().getDataDir();
         return new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 deviceIdentified,
-                new RpcFilesystemScope.Store(sourceOfTruthConfig.getDataDir())
+                new RpcFilesystemScope.Store(dataDir)
         );
     }
 

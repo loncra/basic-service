@@ -1,39 +1,34 @@
 package io.github.loncra.basic.service.ai.server.resolver.skill;
 
 import cn.hutool.core.io.FileUtil;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.model.FileUploadResponse;
 import io.github.loncra.basic.service.ai.api.domain.metadata.skill.type.GitSkillSourceMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillSourceTypeEnum;
-import io.github.loncra.basic.service.ai.server.config.SkillConfig;
+import io.github.loncra.basic.service.ai.server.config.SkillGitConfig;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.SkillPackageMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.SkillSourceResolver;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
-import io.github.loncra.basic.service.commons.config.AttachmentConfig;
-import io.github.loncra.basic.service.commons.constants.SystemConstants;
-import io.github.loncra.basic.service.resource.api.domain.MultipartUploadFile;
-import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
-import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.TypeIdNameMetadata;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -47,11 +42,9 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
 
     private static final String GIT_DIR = ".git";
 
-    private final SkillConfig skillConfig;
+    private final AiSkillPackageService aiSkillPackageService;
 
-    private final AttachmentConfig attachmentConfig;
-
-    private final AttachmentServiceClient attachmentServiceClient;
+    private final SkillGitConfig skillGitConfig;
 
     @Override
     public boolean isSupport(SkillSourceTypeEnum sourceType) {
@@ -66,17 +59,16 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
         SystemException.isTrue(StringUtils.isNotBlank(source.getUrl()), () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 未填写 Git 地址"));
 
         Path local = SystemException.convertSupplier(
-                () -> Files.createTempDirectory("skill-source-git-"),
-                "[skill] 创建临时目录失败"
+                () -> Files.createTempDirectory(skillGitConfig.getTempPath()),
+                "[git skill ingest] 创建临时目录失败"
         );
         try {
-            int timeoutSeconds = (int) Math.max(1, skillConfig.getTimeout().toSeconds());
             String ref = StringUtils.trimToNull(source.getRef());
             String sha = StringUtils.trimToNull(source.getSha());
             CloneCommand cloneCommand = Git.cloneRepository()
                     .setURI(source.getUrl().trim())
                     .setDirectory(local.toFile())
-                    .setTimeout(timeoutSeconds);
+                    .setTimeout((int)skillGitConfig.getTimeout().toSeconds());
             if (Objects.nonNull(ref)) {
                 cloneCommand.setBranch(ref);
             }
@@ -154,31 +146,23 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
                 },
                 "[skill] 遍历 Git 工作区失败"
         );
-        String prefix = AiSkillPackageService.SKILL_OBJECT_PREFIX + packageId;
-        Map<String, String> requestParam = Map.of(
-                attachmentConfig.getUploadFilePrefixParamName(), prefix,
-                SystemConstants.RANDOM_NAME_KEY, Boolean.FALSE.toString()
-        );
+
+        List<Map.Entry<String, byte[]>> entries = new ArrayList<>(files.size());
         for (Path file : files) {
             String relative = toUnixPath(root.relativize(file));
             byte[] content = SystemException.convertSupplier(
                     () -> Files.readAllBytes(file),
                     "[skill] 读取文件失败: " + relative
             );
-            String contentType = StringUtils.defaultIfBlank(
-                    SystemException.convertSupplier(() -> Files.probeContentType(file), (String) null),
-                    MediaType.APPLICATION_OCTET_STREAM_VALUE
-            );
-            MultipartUploadFile uploadFile = new MultipartUploadFile(
-                    MultipartUploadFile.DEFAULT_FILE_NAME,
-                    relative,
-                    contentType,
-                    content
-            );
-            attachmentServiceClient.uploadAttachmentFile(
-                    uploadFile,
-                    AttachmentTypeEnum.SYSTEM_FILE.getValue(),
-                    requestParam
+            entries.add(Map.entry(packageId + AntPathMatcher.DEFAULT_PATH_SEPARATOR + relative, content));
+        }
+
+        AbstractFilesystem filesystem = aiSkillPackageService.getSourceOfTruthFileSystem();
+        List<FileUploadResponse> responses = filesystem.uploadFiles(RuntimeContext.empty(), entries);
+        for (FileUploadResponse response : responses) {
+            SystemException.isTrue(
+                    response.isSuccess(),
+                    () -> new ServiceException("[skill] 文件上传失败 [" + response.path() + "]: " + response.error())
             );
         }
     }
@@ -193,6 +177,6 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
     }
 
     private String toUnixPath(Path relative) {
-        return Strings.CS.replace(relative.toString(), "\\", AntPathMatcher.DEFAULT_PATH_SEPARATOR);
+        return Strings.CS.replace(relative.toString(), String.valueOf(IOUtils.DIR_SEPARATOR_WINDOWS), AntPathMatcher.DEFAULT_PATH_SEPARATOR);
     }
 }

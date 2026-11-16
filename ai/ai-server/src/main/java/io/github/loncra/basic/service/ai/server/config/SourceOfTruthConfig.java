@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("loncra.basic-service.ai.app.source-of-truth")
 public class SourceOfTruthConfig {
     private SourceOfTruthTypeEnum type = SourceOfTruthTypeEnum.LOCAL;
-    private String path = "./ai";
+    private String path = "./ai-source-of-truth";
     private String dataDir = ".loncra-admin";
     private int executeTimeoutSeconds = LocalFilesystemWithShell.DEFAULT_EXECUTE_TIMEOUT;
     private int maxOutputBytes = 100_000;

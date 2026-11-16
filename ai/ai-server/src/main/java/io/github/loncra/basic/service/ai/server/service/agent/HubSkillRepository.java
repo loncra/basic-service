@@ -14,6 +14,7 @@ import java.util.*;
  * 只读 Hub Skill 仓：对外 id 为 {@code packageKey}，目录来自 {@code .skill-hub} 本机缓存。
  */
 @Slf4j
+@Deprecated
 public class HubSkillRepository implements AgentSkillRepository {
 
     public static final String SOURCE = "hub-minio-cache";

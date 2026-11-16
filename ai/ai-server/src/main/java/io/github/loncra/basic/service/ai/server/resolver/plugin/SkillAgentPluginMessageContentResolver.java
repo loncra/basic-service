@@ -13,27 +13,27 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.skill.runtime.HarnessSkillEntry;
 import io.agentscope.harness.agent.skill.runtime.SkillCatalog;
 import io.agentscope.harness.agent.skill.runtime.SkillLoadTool;
-import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
-import io.github.loncra.basic.service.ai.server.resolver.AgentPluginMessageContentResolver;
+import io.github.loncra.basic.service.ai.server.resolver.AbstractAgentPluginMessageContentResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SkillAgentPluginMessageContentResolver implements AgentPluginMessageContentResolver {
+public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginMessageContentResolver {
 
     public static final String PREFIX = "/skill";
 
@@ -42,13 +42,8 @@ public class SkillAgentPluginMessageContentResolver implements AgentPluginMessag
     private final AiSkillPackageService aiSkillPackageService;
 
     @Override
-    public List<InstructionMessageMetadata> getHits(AgentMessageEntity userMessage) {
-        if (userMessage == null) {
-            return List.of();
-        }
-        return InstructionMessageMetadata.ofList(userMessage.getContent()).stream()
-                .filter(s -> Objects.equals(PREFIX, s.getPrefix()))
-                .toList();
+    protected String getPrefix() {
+        return PREFIX;
     }
 
     @Override
@@ -69,13 +64,7 @@ public class SkillAgentPluginMessageContentResolver implements AgentPluginMessag
             log.warn("点名 Skill 找不到 Hub 仓，跳过");
             return;
         }
-        Set<Long> packageIds = new LinkedHashSet<>();
-        for (InstructionMessageMetadata hit : hits) {
-            Long packageId = parsePackageId(hit);
-            if (packageId != null) {
-                packageIds.add(packageId);
-            }
-        }
+        Set<Long> packageIds = getPackageIds(hits);
         List<String> loadedNames = new LinkedList<>();
         for (Long packageId : packageIds) {
             try {
@@ -174,21 +163,5 @@ public class SkillAgentPluginMessageContentResolver implements AgentPluginMessag
             }
         }
         return null;
-    }
-
-    private Long parsePackageId(InstructionMessageMetadata hit) {
-        if (hit == null) {
-            return null;
-        }
-        IdValueMetadata<String, String> value = hit.getValue();
-        if (value == null || StringUtils.isBlank(value.getId())) {
-            return null;
-        }
-        String id = value.getId().trim();
-        if (!NumberUtils.isDigits(id)) {
-            return null;
-        }
-        long packageId = NumberUtils.toLong(id);
-        return packageId > 0 ? packageId : null;
     }
 }

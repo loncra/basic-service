@@ -29,7 +29,7 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
     public void updateConversation(AgentConversationEntity conversation, String deviceIdentified) {
         FilesystemOptions.writeText(
                 records.apply(deviceIdentified),
-                FilesystemLayout.conversationFile(conversation.getPrincipal(), conversation.getId()),
+                SourceOfTruthFileSystemFactory.conversationFile(conversation.getPrincipal(), conversation.getId()),
                 toJson(conversation)
         );
     }
@@ -42,7 +42,7 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
     @Override
     public AgentConversationEntity getConversation(String principal, String conversationId, String deviceIdentified) {
         return fromJson(
-                FilesystemOptions.readText(records.apply(deviceIdentified), FilesystemLayout.conversationFile(principal, conversationId)),
+                FilesystemOptions.readText(records.apply(deviceIdentified), SourceOfTruthFileSystemFactory.conversationFile(principal, conversationId)),
                 AgentConversationEntity.class
         );
     }
@@ -51,13 +51,13 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
     public void saveMessage(AgentMessageEntity message, String deviceIdentified) {
         String principal = message.getPrincipal();
         AbstractFilesystem store = records.apply(deviceIdentified);
-        FilesystemOptions.writeText(store, FilesystemLayout.messageFile(principal, message.getId()), toJson(message));
+        FilesystemOptions.writeText(store, SourceOfTruthFileSystemFactory.messageFile(principal, message.getId()), toJson(message));
         List<String> messageIds = readMessageIds(store, principal, message.getAgentConversationId());
         if (!messageIds.contains(message.getId())) {
             messageIds.add(message.getId());
             FilesystemOptions.writeText(
                     store,
-                    FilesystemLayout.messageIndexFile(principal, message.getAgentConversationId()),
+                    SourceOfTruthFileSystemFactory.messageIndexFile(principal, message.getAgentConversationId()),
                     toJson(messageIds)
             );
         }
@@ -66,7 +66,7 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
     @Override
     public AgentMessageEntity getMessage(String principal, String messageId, String deviceIdentified) {
         return fromJson(
-                FilesystemOptions.readText(records.apply(deviceIdentified), FilesystemLayout.messageFile(principal, messageId)),
+                FilesystemOptions.readText(records.apply(deviceIdentified), SourceOfTruthFileSystemFactory.messageFile(principal, messageId)),
                 AgentMessageEntity.class
         );
     }
@@ -90,10 +90,10 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
     @Override
     public List<AgentConversationEntity> listConversations(String principal, String deviceIdentified) {
         AbstractFilesystem store = records.apply(deviceIdentified);
-        return FilesystemOptions.listNames(store, FilesystemLayout.conversationsDir(principal)).stream()
-                .filter(name -> name.endsWith(FilesystemLayout.JSON_SUFFIX))
-                .map(name -> name.substring(0, name.length() - FilesystemLayout.JSON_SUFFIX.length()))
-                .map(id -> fromJson(FilesystemOptions.readText(store, FilesystemLayout.conversationFile(principal, id)), AgentConversationEntity.class))
+        return FilesystemOptions.listNames(store, SourceOfTruthFileSystemFactory.conversationsDir(principal)).stream()
+                .filter(name -> name.endsWith(SourceOfTruthFileSystemFactory.JSON_SUFFIX))
+                .map(name -> name.substring(0, name.length() - SourceOfTruthFileSystemFactory.JSON_SUFFIX.length()))
+                .map(id -> fromJson(FilesystemOptions.readText(store, SourceOfTruthFileSystemFactory.conversationFile(principal, id)), AgentConversationEntity.class))
                 .filter(Objects::nonNull)
                 .toList();
     }
@@ -103,10 +103,10 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
         String principal = conversation.getPrincipal();
         AbstractFilesystem store = records.apply(deviceIdentified);
         for (String messageId : readMessageIds(store, principal, conversation.getId())) {
-            FilesystemOptions.deleteFile(store, FilesystemLayout.messageFile(principal, messageId));
+            FilesystemOptions.deleteFile(store, SourceOfTruthFileSystemFactory.messageFile(principal, messageId));
         }
-        FilesystemOptions.deleteFile(store, FilesystemLayout.messageIndexFile(principal, conversation.getId()));
-        FilesystemOptions.deleteFile(store, FilesystemLayout.conversationFile(principal, conversation.getId()));
+        FilesystemOptions.deleteFile(store, SourceOfTruthFileSystemFactory.messageIndexFile(principal, conversation.getId()));
+        FilesystemOptions.deleteFile(store, SourceOfTruthFileSystemFactory.conversationFile(principal, conversation.getId()));
     }
 
     @Override
@@ -140,7 +140,7 @@ public final class FilesystemAgentRecordStore implements AgentRecordStore {
     }
 
     private List<String> readMessageIds(AbstractFilesystem store, String principal, String conversationId) {
-        String json = FilesystemOptions.readText(store, FilesystemLayout.messageIndexFile(principal, conversationId));
+        String json = FilesystemOptions.readText(store, SourceOfTruthFileSystemFactory.messageIndexFile(principal, conversationId));
         if (Objects.isNull(json) || json.isBlank()) {
             return new LinkedList<>();
         }

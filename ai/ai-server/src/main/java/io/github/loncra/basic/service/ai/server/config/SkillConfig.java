@@ -23,16 +23,15 @@ import java.util.concurrent.TimeUnit;
 @ConfigurationProperties("loncra.basic-service.ai.app.skill")
 public class SkillConfig {
 
-    /**
-     * 项目级别的技能文件夹路径
-     */
-    private String path = "./.skill/";
+    private String repositoryPath = "./.skill/repository";
+
+    private String releasePath = "./.skill/release/";
+
+    private McpConfig mcp = new McpConfig();
 
     private boolean autoReload = true;
 
     private String filename = "SKILL.md";
-
-    private TimeProperties timeout = new TimeProperties(1, TimeUnit.MINUTES);
 
     private String clarification = """
             ## Clarify before controlled tools
@@ -75,4 +74,10 @@ public class SkillConfig {
             """;
 
     private Map<String, List<IdValueMetadata<String, String>>> descriptionMap = new LinkedHashMap<>();
+
+    @Data
+    public static class McpConfig {
+        private String associatedPath = "./.skill/mcp/";
+        private TimeProperties timeout = new TimeProperties(3, TimeUnit.MINUTES);
+    }
 }

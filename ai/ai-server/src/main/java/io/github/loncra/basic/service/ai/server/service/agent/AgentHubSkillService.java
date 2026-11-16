@@ -1,27 +1,13 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
-import io.agentscope.core.skill.repository.AgentSkillRepository;
-import io.agentscope.core.skill.repository.FileSystemSkillRepository;
-import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
-import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
-import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
-import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillReleaseService;
 import io.github.loncra.basic.service.ai.server.service.hub.AiUserPluginInstallService;
-import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 将当前工作空间已激活的 Hub Skill 缓存到 {@code .skill-hub}，并返回第三仓。
@@ -41,7 +27,8 @@ public class AgentHubSkillService {
 
     private final SkillConfig skillConfig;
 
-    public HubSkillRepository ensureCached(String principal, String workspaceId) {
+
+    /*public HubSkillRepository ensureCached(String principal, String workspaceId) {
         Map<String, Path> dirs = new LinkedHashMap<>();
         if (StringUtils.isBlank(principal) || workspaceId == null) {
             return new HubSkillRepository(dirs);
@@ -64,9 +51,9 @@ public class AgentHubSkillService {
             }
         }
         return new HubSkillRepository(dirs);
-    }
+    }*/
 
-    private void cacheOne(
+    /*private void cacheOne(
             AgentSkillRepository systemRepo,
             AiSkillPackageEntity skillPackage,
             String workspaceId,
@@ -124,7 +111,7 @@ public class AgentHubSkillService {
     }
 
     private AgentSkillRepository openSystemRepository() {
-        Path systemPath = Path.of(skillConfig.getPath());
+        Path systemPath = Path.of(skillConfig.getRepositoryPath());
         if (!Files.isDirectory(systemPath)) {
             return null;
         }
@@ -143,9 +130,9 @@ public class AgentHubSkillService {
                 .distinct()
                 .toList();
         return findSkillPackagesByIds(ids);
-    }
+    }*/
 
-    private Map<Long, AiSkillPackageEntity> findSkillPackagesByIds(Collection<Long> ids) {
+    /*private Map<Long, AiSkillPackageEntity> findSkillPackagesByIds(Collection<Long> ids) {
         if (CollectionUtils.isEmpty(ids)) {
             return Map.of();
         }
@@ -155,5 +142,5 @@ public class AgentHubSkillService {
                 .stream()
                 .filter(item -> Objects.nonNull(item.getId()))
                 .collect(Collectors.toMap(AiSkillPackageEntity::getId, item -> item, (left, right) -> left));
-    }
+    }*/
 }

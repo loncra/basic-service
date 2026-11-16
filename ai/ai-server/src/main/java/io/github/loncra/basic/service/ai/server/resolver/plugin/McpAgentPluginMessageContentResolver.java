@@ -7,11 +7,9 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPlugi
 import io.github.loncra.basic.service.ai.server.resolver.AbstractAgentPluginMessageContentResolver;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
-import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashSet;
@@ -89,21 +87,5 @@ public class McpAgentPluginMessageContentResolver extends AbstractAgentPluginMes
         toolkit.updateToolGroups(List.of(packageKey), true);
         log.info("activate mentioned user mcp groups=[{}]", packageKey);
         return StringUtils.defaultIfBlank(mcpPackage.getName(), packageKey);
-    }
-
-    private Long parsePackageId(InstructionMessageMetadata hit) {
-        if (hit == null) {
-            return null;
-        }
-        IdValueMetadata<String, String> value = hit.getValue();
-        if (value == null || StringUtils.isBlank(value.getId())) {
-            return null;
-        }
-        String id = value.getId().trim();
-        if (!NumberUtils.isDigits(id)) {
-            return null;
-        }
-        long packageId = NumberUtils.toLong(id);
-        return packageId > 0 ? packageId : null;
     }
 }

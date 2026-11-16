@@ -6,7 +6,6 @@ import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.middleware.MiddlewareBase;
-import io.agentscope.core.skill.repository.FileSystemSkillRepository;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.harness.agent.HarnessAgent;
@@ -14,8 +13,6 @@ import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
 import io.github.loncra.basic.service.ai.server.config.AiAppConfig;
 import io.github.loncra.basic.service.ai.server.config.ConversationConfig;
-import io.github.loncra.basic.service.ai.server.config.SkillConfig;
-import io.github.loncra.basic.service.ai.server.config.SourceOfTruthConfig;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
@@ -37,7 +34,7 @@ import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAgentStateStore;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemLayout;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
@@ -57,7 +54,6 @@ import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MultiValueMap;
 
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 
@@ -74,9 +70,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
     protected AiAppConfig aiAppConfig;
 
-    protected SkillConfig skillConfig;
-
-    protected SourceOfTruthConfig sourceOfTruthConfig;
+    protected SourceOfTruthFileSystemFactory sourceOfTruthFileSystemFactory;
 
     protected List<MiddlewareBase> middlewares;
 
@@ -162,10 +156,9 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .toolkit(modelResolverMetadata.getToolkit())
                 .enableMetaTool(true)
                 .stateStore(openStateStore(execution))
-                .skillRepository(new FileSystemSkillRepository(Path.of(skillConfig.getPath())))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(workspacePath)
-                .transcriptTenant(FilesystemLayout.TRANSCRIPTS_DIR)
+                .transcriptTenant(SourceOfTruthFileSystemFactory.TRANSCRIPTS_DIR)
                 .middlewares(middlewares);
         return attachFilesystem(builder, execution, workspacePath);
     }
@@ -178,7 +171,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
     protected Map<String, AbstractFilesystem> userLevelRouteMap(Function<String, AbstractFilesystem> storeBackend) {
         Map<String, AbstractFilesystem> routes = new LinkedHashMap<>();
-        for (FilesystemLayout.UserLevelRoute route : FilesystemLayout.USER_LEVEL_ROUTES) {
+        for (SourceOfTruthFileSystemFactory.UserLevelRoute route : SourceOfTruthFileSystemFactory.USER_LEVEL_ROUTES) {
             routes.put(route.prefix(), storeBackend.apply(route.dir()));
         }
         return routes;

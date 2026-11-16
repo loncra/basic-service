@@ -25,7 +25,7 @@ public class FilesystemAgentStateStore implements AgentStateStore {
     @Override
     public void save(String userId, String sessionId, String key, State value) {
         String json = JsonUtils.getJsonCodec().toPrettyJson(value);
-        FilesystemOptions.writeText(filesystem, FilesystemLayout.stateFile(owner(userId), sessionId, key), json);
+        FilesystemOptions.writeText(filesystem, SourceOfTruthFileSystemFactory.stateFile(owner(userId), sessionId, key), json);
     }
 
     @Override
@@ -34,12 +34,12 @@ public class FilesystemAgentStateStore implements AgentStateStore {
                 .map(item -> JsonUtils.getJsonCodec().toJson(item))
                 .reduce((left, right) -> left + System.lineSeparator() + right)
                 .orElse("");
-        FilesystemOptions.writeText(filesystem, FilesystemLayout.stateListFile(owner(userId), sessionId, key), content);
+        FilesystemOptions.writeText(filesystem, SourceOfTruthFileSystemFactory.stateListFile(owner(userId), sessionId, key), content);
     }
 
     @Override
     public <T extends State> Optional<T> get(String userId, String sessionId, String key, Class<T> type) {
-        String json = FilesystemOptions.readText(filesystem, FilesystemLayout.stateFile(owner(userId), sessionId, key));
+        String json = FilesystemOptions.readText(filesystem, SourceOfTruthFileSystemFactory.stateFile(owner(userId), sessionId, key));
         if (Objects.isNull(json) || json.isBlank()) {
             return Optional.empty();
         }
@@ -48,7 +48,7 @@ public class FilesystemAgentStateStore implements AgentStateStore {
 
     @Override
     public <T extends State> List<T> getList(String userId, String sessionId, String key, Class<T> itemType) {
-        String content = FilesystemOptions.readText(filesystem, FilesystemLayout.stateListFile(owner(userId), sessionId, key));
+        String content = FilesystemOptions.readText(filesystem, SourceOfTruthFileSystemFactory.stateListFile(owner(userId), sessionId, key));
         if (Objects.isNull(content) || content.isBlank()) {
             return List.of();
         }
@@ -60,26 +60,26 @@ public class FilesystemAgentStateStore implements AgentStateStore {
 
     @Override
     public boolean exists(String userId, String sessionId) {
-        return filesystem.exists(RuntimeContext.empty(), FilesystemLayout.stateSession(owner(userId), sessionId));
+        return filesystem.exists(RuntimeContext.empty(), SourceOfTruthFileSystemFactory.stateSession(owner(userId), sessionId));
     }
 
     @Override
     public void delete(String userId, String sessionId) {
-        WriteResult deleted = filesystem.delete(RuntimeContext.empty(), FilesystemLayout.stateSession(owner(userId), sessionId));
+        WriteResult deleted = filesystem.delete(RuntimeContext.empty(), SourceOfTruthFileSystemFactory.stateSession(owner(userId), sessionId));
         if (!deleted.isSuccess()) {
-            throw new SystemException("删除沙箱目录 [" + FilesystemLayout.stateSession(owner(userId), sessionId) + "] 失败: " + deleted.error());
+            throw new SystemException("删除沙箱目录 [" + SourceOfTruthFileSystemFactory.stateSession(owner(userId), sessionId) + "] 失败: " + deleted.error());
         }
     }
 
     @Override
     public void delete(String userId, String sessionId, String key) {
-        FilesystemOptions.deleteFile(filesystem, FilesystemLayout.stateFile(owner(userId), sessionId, key));
-        FilesystemOptions.deleteFile(filesystem, FilesystemLayout.stateListFile(owner(userId), sessionId, key));
+        FilesystemOptions.deleteFile(filesystem, SourceOfTruthFileSystemFactory.stateFile(owner(userId), sessionId, key));
+        FilesystemOptions.deleteFile(filesystem, SourceOfTruthFileSystemFactory.stateListFile(owner(userId), sessionId, key));
     }
 
     @Override
     public Set<String> listSessionIds(String userId) {
-        return new LinkedHashSet<>(FilesystemOptions.listNames(filesystem, FilesystemLayout.stateDir(owner(userId))));
+        return new LinkedHashSet<>(FilesystemOptions.listNames(filesystem, SourceOfTruthFileSystemFactory.stateDir(owner(userId))));
     }
 
     private static String owner(String userId) {

@@ -1,11 +1,18 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
 import com.fasterxml.jackson.core.util.VersionUtil;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.model.FileInfo;
+import io.agentscope.harness.agent.filesystem.model.GlobResult;
+import io.agentscope.harness.agent.filesystem.model.ReadResult;
 import io.github.loncra.basic.service.ai.api.constants.AiConstants;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiSkillPackageDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
@@ -13,6 +20,7 @@ import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClie
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +34,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.AntPathMatcher;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  *
@@ -45,13 +50,19 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSkillPackageEntity> {
 
-    public static final String SKILL_OBJECT_PREFIX = "ai/skill/";
+    private final SkillConfig skillConfig;
+
+    private final SourceOfTruthFileSystemFactory sourceOfTruthFileSystemFactory;
 
     private final AiSkillReleaseService aiSkillReleaseService;
 
     private final AmqpTemplate amqpTemplate;
 
     private final AttachmentServiceClient attachmentServiceClient;
+
+    public AbstractFilesystem getSourceOfTruthFileSystem() {
+        return sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(skillConfig.getRepositoryPath());
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public void release(List<Long> ids) {
@@ -99,7 +110,22 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
                 ExecuteStatus.Success.equals(entity.getExecuteStatus()),
                 () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 尚未摄取成功，不能打包")
         );
-        Long releaseId = aiSkillReleaseService.snapshot(entity, version, changelog);
+        AbstractFilesystem filesystem = getSourceOfTruthFileSystem();
+        GlobResult globResult = filesystem.glob(
+                RuntimeContext.empty(),
+                DesensitizeSerializer.DEFAULT_DESENSITIZE_SYMBOL,
+                packageId + AntPathMatcher.DEFAULT_PATH_SEPARATOR
+        );
+        List<AiSkillReleaseService.PathedFileData> fileData = new LinkedList<>();
+        for (FileInfo fileInfo : globResult.matches()) {
+            ReadResult read = filesystem.read(RuntimeContext.empty(), fileInfo.path(), 0,0);
+            if (!read.isSuccess()) {
+                continue;
+            }
+            fileData.add(new AiSkillReleaseService.PathedFileData(fileInfo.path(), read.fileData()));
+        }
+
+        Long releaseId = aiSkillReleaseService.snapshot(entity.getId(), version, fileData, changelog);
         lambdaUpdate()
                 .set(AiSkillPackageEntity::getLatestVersion, version)
                 .eq(PluginPackageMetadata::getId, packageId)
@@ -175,7 +201,7 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
         }
         FileObject fileObject = FileObject.of(
                 AttachmentTypeEnum.SYSTEM_FILE.getValue(),
-                SKILL_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR
+                skillConfig.getRepositoryPath() + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR
         );
         attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of(), false);
         return result;

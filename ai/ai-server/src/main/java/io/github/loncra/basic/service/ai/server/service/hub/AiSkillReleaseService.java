@@ -1,36 +1,34 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.model.FileData;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiSkillReleaseDao;
-import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
-import io.github.loncra.basic.service.resource.api.enumerate.AttachmentTypeEnum;
-import io.github.loncra.basic.service.resource.api.service.AttachmentServiceClient;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
-import io.github.loncra.framework.commons.minio.CopyFileObject;
-import io.github.loncra.framework.commons.minio.FileObject;
-import io.github.loncra.framework.commons.minio.ObjectWriteResult;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.AntPathMatcher;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  *
@@ -46,11 +44,13 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSkillReleaseEntity> {
 
-    public static final String SKILL_RELEASE_OBJECT_PREFIX = "ai/skill/release/";
-
-    private final AttachmentServiceClient attachmentServiceClient;
+    private final SourceOfTruthFileSystemFactory sourceOfTruthFileSystemFactory;
 
     private final SkillConfig skillConfig;
+
+    public AbstractFilesystem getSourceOfTruthFileSystem() {
+        return sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(skillConfig.getReleasePath());
+    }
 
     public List<AiSkillReleaseEntity> findEnabledByPackageId(Long packageId) {
         return lambdaQuery()
@@ -60,6 +60,11 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
                 .list();
     }
 
+    public record PathedFileData(String path, FileData fileData) {
+        public String content()  { return fileData.content(); }
+        public String encoding() { return fileData.encoding(); }
+    }
+
     /**
      * 将目录工作区拷贝为一条不可变版本。
      *
@@ -67,47 +72,37 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
      */
     @Transactional(rollbackFor = Exception.class)
     public Long snapshot(
-            AiSkillPackageEntity entity,
+            Long packageId,
             String version,
+            List<PathedFileData> fileData,
             String changelog
     ) {
         boolean duplicated = lambdaQuery()
-                .eq(AiSkillReleaseEntity::getAiSkillPackageId, entity.getId())
+                .eq(AiSkillReleaseEntity::getAiSkillPackageId, packageId)
                 .eq(AiSkillReleaseEntity::getReleaseVersion, version)
                 .exists();
         SystemException.isTrue(!duplicated, () -> new ServiceException("版本 [" + version + "] 已存在"));
 
-        String workPrefix = AiSkillPackageService.SKILL_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
-        List<ObjectWriteResult> files = listWorkspaceFiles(workPrefix);
-        SystemException.isTrue(CollectionUtils.isNotEmpty(files), () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 工作区为空"));
-        boolean hasSkillMd = files.stream()
-                .map(file -> relativeObjectName(workPrefix, file.getObjectName()))
+        SystemException.isTrue(CollectionUtils.isNotEmpty(fileData), () -> new ServiceException("ID 为 [" + packageId + "] Skill 目录为空"));
+        boolean hasSkillMd = fileData.stream()
+                .map(file -> Stream.of(StringUtils.split(file.path, AntPathMatcher.DEFAULT_PATH_SEPARATOR)).toList().getLast())
                 .anyMatch(relative -> skillConfig.getFilename().equals(relative));
-        SystemException.isTrue(hasSkillMd, () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 缺少 " + skillConfig.getFilename()));
+        SystemException.isTrue(hasSkillMd, () -> new ServiceException("ID 为 [" + packageId + "] 缺少 " + skillConfig.getFilename()));
 
         AiSkillReleaseEntity release = new AiSkillReleaseEntity();
-        release.setAiSkillPackageId(entity.getId());
+        release.setAiSkillPackageId(packageId);
         release.setReleaseVersion(version);
         release.setChangelog(changelog);
         release.setReleaseTime(Instant.now());
         release.setEnabled(YesOrNo.Yes);
         insert(release);
         SystemException.isTrue(Objects.nonNull(release.getId()), () -> new ServiceException("写入 Skill 版本失败"));
-
-        String releasePrefix = SKILL_RELEASE_OBJECT_PREFIX + release.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
-        try {
-            String bucket = AttachmentTypeEnum.SYSTEM_FILE.getValue();
-            attachmentServiceClient.copyAttachment(new CopyFileObject(
-                    FileObject.of(bucket, workPrefix),
-                    FileObject.of(bucket, releasePrefix)
-            ));
-            release.setContentHash(hashWorkspaceFiles(files, workPrefix));
-            updateById(release);
-            return release.getId();
-        } catch (RuntimeException e) {
-            deleteObjectPrefix(releasePrefix);
-            throw e;
+        for (PathedFileData file : fileData) {
+            getSourceOfTruthFileSystem().write(RuntimeContext.empty(), file.path(), file.content());
         }
+        release.setContentHash(hashWorkspaceFiles(fileData, release.getId()));
+        updateById(release);
+        return release.getId();
     }
 
     @Override
@@ -152,78 +147,13 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
     @Transactional(rollbackFor = Exception.class)
     public int deleteByEntity(AiSkillReleaseEntity entity) {
         int result = super.deleteByEntity(entity);
-        deleteObjectPrefix(SKILL_RELEASE_OBJECT_PREFIX + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR);
+        getSourceOfTruthFileSystem().delete(RuntimeContext.empty(), entity.getId().toString());
+        //deleteObjectPrefix(skillConfig.getReleasePath() + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR);
         return result;
     }
 
-    /**
-     * 将指定 release 的整棵对象树落到 {@code targetDir}。相对路径非法则跳过该文件。
-     * 写完后必须存在 {@link SkillConfig#getFilename()}。
-     */
-    public void materialize(AiSkillReleaseEntity release, Path targetDir) {
-        if (release == null || release.getId() == null) {
-            throw new IllegalArgumentException("Skill release 为空");
-        }
-        if (targetDir == null) {
-            throw new IllegalArgumentException("Skill 缓存目录为空");
-        }
-        String releasePrefix = SKILL_RELEASE_OBJECT_PREFIX + release.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR;
-        List<ObjectWriteResult> files = listWorkspaceFiles(releasePrefix);
-        if (CollectionUtils.isEmpty(files)) {
-            throw new IllegalStateException("Skill release [" + release.getId() + "] 对象为空");
-        }
-        Path absoluteTarget = targetDir.toAbsolutePath().normalize();
-        try {
-            Files.createDirectories(absoluteTarget);
-        } catch (IOException e) {
-            throw new IllegalStateException("创建 Skill 缓存目录失败: " + absoluteTarget, e);
-        }
-        String bucket = AttachmentTypeEnum.SYSTEM_FILE.getValue();
-        for (ObjectWriteResult file : files) {
-            String relative = relativeObjectName(releasePrefix, file.getObjectName());
-            if (!isSafeRelative(relative)) {
-                continue;
-            }
-            Path resolved = absoluteTarget.resolve(relative).normalize();
-            if (!resolved.startsWith(absoluteTarget)) {
-                continue;
-            }
-            byte[] bytes = attachmentServiceClient.getAttachmentFile(bucket, file.getObjectName(), true);
-            if (bytes == null) {
-                continue;
-            }
-            try {
-                Path parent = resolved.getParent();
-                if (parent != null) {
-                    Files.createDirectories(parent);
-                }
-                Files.write(resolved, bytes);
-            } catch (IOException e) {
-                throw new IllegalStateException("写入 Skill 缓存失败: " + resolved, e);
-            }
-        }
-        Path skillFile = absoluteTarget.resolve(skillConfig.getFilename());
-        if (!Files.isRegularFile(skillFile)) {
-            throw new IllegalStateException("Skill 缓存缺少 " + skillConfig.getFilename() + ": " + absoluteTarget);
-        }
-    }
-
-    private boolean isSafeRelative(String relative) {
-        if (StringUtils.isBlank(relative)) {
-            return false;
-        }
-        if (relative.contains("..")) {
-            return false;
-        }
-        Path relativePath = Path.of(relative);
-        if (relativePath.isAbsolute()) {
-            return false;
-        }
-        return !relative.startsWith("/") && !relative.startsWith("\\");
-    }
-
-    private List<ObjectWriteResult> listWorkspaceFiles(String workPrefix) {
-        List<ObjectWriteResult> items = attachmentServiceClient.findAttachment(
+    /*private List<ObjectWriteResult> listWorkspaceFiles(String workPrefix) {
+        List<ObjectWriteResult> items = getReleaseSourceOfTruthFileSystem().ls(
                 AttachmentTypeEnum.SYSTEM_FILE.getValue(),
                 workPrefix,
                 true,
@@ -238,34 +168,34 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
                 .filter(item -> !Strings.CS.endsWith(item.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR))
                 .filter(item -> StringUtils.isNotBlank(relativeObjectName(workPrefix, item.getObjectName())))
                 .toList();
-    }
+    }*/
 
     private String hashWorkspaceFiles(
-            List<ObjectWriteResult> files,
-            String workPrefix
+            List<PathedFileData> files,
+            Long releaseId
     ) {
         MessageDigest digest = DigestUtils.getSha256Digest();
         files.stream()
-                .sorted(Comparator.comparing(file -> relativeObjectName(workPrefix, file.getObjectName())))
+                .sorted(Comparator.comparing(PathedFileData::path))
                 .forEach(file -> {
-                    String relative = relativeObjectName(workPrefix, file.getObjectName());
+                    String relative = file.path();
                     digest.update(relative.getBytes(StandardCharsets.UTF_8));
                     digest.update((byte) 0);
-                    digest.update(StringUtils.defaultString(file.getEtag()).getBytes(StandardCharsets.UTF_8));
+                    digest.update(StringUtils.defaultString(releaseId.toString()).getBytes(StandardCharsets.UTF_8));
                     digest.update((byte) 0);
                 });
         return Hex.encodeHexString(digest.digest());
     }
 
-    private String relativeObjectName(
+    /*private String relativeObjectName(
             String workPrefix,
             String objectName
     ) {
         return Strings.CS.removeStart(objectName, workPrefix);
-    }
+    }*/
 
-    private void deleteObjectPrefix(String prefix) {
+    /*private void deleteObjectPrefix(String prefix) {
         FileObject fileObject = FileObject.of(AttachmentTypeEnum.SYSTEM_FILE.getValue(), prefix);
         attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of(), false);
-    }
+    }*/
 }
