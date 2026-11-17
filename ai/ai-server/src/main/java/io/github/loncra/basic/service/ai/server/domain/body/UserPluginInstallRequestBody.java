@@ -1,5 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.body;
 
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallUserScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspaceScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,8 @@ public class UserPluginInstallRequestBody implements Serializable {
 
     @NotNull
     private PluginInstallWorkspaceScopeEnum workspaceScope;
+
+    private PluginInstallUserScopeEnum scope = PluginInstallUserScopeEnum.USER;
 
     /**
      * 指定工作空间时必填；全部范围忽略。

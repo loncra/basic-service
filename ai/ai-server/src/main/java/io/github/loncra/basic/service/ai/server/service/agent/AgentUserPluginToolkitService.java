@@ -22,6 +22,7 @@ import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,9 +60,9 @@ public class AgentUserPluginToolkitService implements DisposableBean {
 
     private final Map<String, McpClientWrapper> userMcpClientCache = new ConcurrentHashMap<>();
 
-    public Path registerUserMcp(
+    /*public Path registerUserMcp(
             Toolkit toolkit,
-            String principal,
+            AuditAuthenticationToken principal,
             String workspaceId
     ) {
         Path userSkillDir = resolveUserSkillDir(workspaceId);
@@ -74,10 +75,8 @@ public class AgentUserPluginToolkitService implements DisposableBean {
         if (toolkit == null || StringUtils.isBlank(principal) || workspaceId == null) {
             return userSkillDir;
         }
-        List<AiUserPluginInstallEntity> installs = aiUserPluginInstallService.findActivatedInstalls(principal, workspaceId)
-                .stream()
-                .filter(install -> PluginTargetTypeEnum.MCP.equals(install.getTargetType()))
-                .toList();
+        List<AiUserPluginInstallEntity> installs = aiUserPluginInstallService.findActivatedInstalls(workspaceId, PluginTargetTypeEnum.MCP, principal);
+
         if (CollectionUtils.isEmpty(installs)) {
             return userSkillDir;
         }
@@ -91,7 +90,7 @@ public class AgentUserPluginToolkitService implements DisposableBean {
             }
         }
         return userSkillDir;
-    }
+    }*/
 
     private String registerOne(
             Toolkit toolkit,

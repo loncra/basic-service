@@ -11,7 +11,7 @@ public enum PluginInstallUserScopeEnum implements NameValueEnum<Integer> {
 
     USER("个人用户", 10),
 
-    ORG("企业用户", 20),
+    ENTERPRISE("企业用户", 20),
 
     ;
 

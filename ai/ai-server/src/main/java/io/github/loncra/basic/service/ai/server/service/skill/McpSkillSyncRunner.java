@@ -3,10 +3,10 @@ package io.github.loncra.basic.service.ai.server.service.skill;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.skill.AgentSkill;
+import io.agentscope.core.skill.util.SkillUtil;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
-import io.agentscope.harness.agent.filesystem.model.FileInfo;
-import io.agentscope.harness.agent.filesystem.model.LsResult;
-import io.agentscope.harness.agent.filesystem.model.WriteResult;
+import io.agentscope.harness.agent.filesystem.model.*;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
 import io.github.loncra.basic.service.ai.server.domain.metadata.McpSkillGenerateMetadata;
@@ -30,15 +30,15 @@ import org.springframework.util.AntPathMatcher;
 
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class McpSkillSyncRunner implements ApplicationRunner {
+
+    public static final String SOURCE_PREFIX = "mcpAssociated";
 
     private final AiMcpPackageService aiMcpPackageService;
 
@@ -89,6 +89,9 @@ public class McpSkillSyncRunner implements ApplicationRunner {
 
                 String fullContent = FreeMarkerTemplateUtils.processTemplateIntoString(template, model);
                 String filePath = wrapper.getName() + AntPathMatcher.DEFAULT_PATH_SEPARATOR + skillConfig.getFilename();
+                if (filesystem.exists(RuntimeContext.empty(), filePath)) {
+                    filesystem.delete(RuntimeContext.empty(), filePath);
+                }
                 WriteResult writeResult = filesystem.write(RuntimeContext.empty(), filePath, fullContent);
                 if (!writeResult.isSuccess()) {
                     throw new SystemException(writeResult.error());
@@ -105,5 +108,23 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 .filter(FileInfo::isDirectory)
                 .filter(s -> !activeNames.contains(RegExUtils.replaceAll(s.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR, StringUtils.EMPTY)))
                 .forEach(s -> filesystem.delete(RuntimeContext.empty(), s.path()));
+    }
+
+    public List<AgentSkill> loadAssociatedSkills() {
+        AbstractFilesystem filesystem = sourceOfTruthFileSystemFactory
+                .getSourceOfTruthFileSystem(skillConfig.getMcp().getAssociatedPath());
+        GlobResult glob = filesystem.glob(RuntimeContext.empty(), skillConfig.getFilename(), StringUtils.EMPTY);
+        if (!glob.isSuccess()) {
+            return List.of();
+        }
+        List<AgentSkill> skills = new ArrayList<>();
+        for (FileInfo file : glob.matches()) {
+            ReadResult read = filesystem.read(RuntimeContext.empty(), file.path(), 0, 0);
+            if (!read.isSuccess() || Objects.isNull(read.fileData())) {
+                continue;
+            }
+            skills.add(SkillUtil.createFrom(read.fileData().content(), Map.of(), SOURCE_PREFIX));
+        }
+        return skills;
     }
 }

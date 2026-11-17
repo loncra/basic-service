@@ -116,13 +116,13 @@ public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSki
                 DesensitizeSerializer.DEFAULT_DESENSITIZE_SYMBOL,
                 packageId + AntPathMatcher.DEFAULT_PATH_SEPARATOR
         );
-        List<AiSkillReleaseService.PathedFileData> fileData = new LinkedList<>();
+        List<SourceOfTruthFileSystemFactory.PathFileData> fileData = new LinkedList<>();
         for (FileInfo fileInfo : globResult.matches()) {
             ReadResult read = filesystem.read(RuntimeContext.empty(), fileInfo.path(), 0,0);
             if (!read.isSuccess()) {
                 continue;
             }
-            fileData.add(new AiSkillReleaseService.PathedFileData(fileInfo.path(), read.fileData()));
+            fileData.add(new SourceOfTruthFileSystemFactory.PathFileData(fileInfo.path(), read.fileData()));
         }
 
         Long releaseId = aiSkillReleaseService.snapshot(entity.getId(), version, fileData, changelog);

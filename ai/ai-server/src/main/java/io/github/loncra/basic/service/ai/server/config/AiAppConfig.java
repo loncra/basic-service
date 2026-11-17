@@ -1,9 +1,7 @@
 package io.github.loncra.basic.service.ai.server.config;
 
-import io.agentscope.harness.agent.filesystem.local.LocalFilesystemWithShell;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.SourceOfTruthTypeEnum;
 import io.github.loncra.framework.commons.generator.twitter.BasicSnowflakeProperties;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

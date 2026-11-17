@@ -59,7 +59,7 @@ public class GitSkillSourceResolver implements SkillSourceResolver {
         SystemException.isTrue(StringUtils.isNotBlank(source.getUrl()), () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 未填写 Git 地址"));
 
         Path local = SystemException.convertSupplier(
-                () -> Files.createTempDirectory(skillGitConfig.getTempPath()),
+                () -> Files.createTempDirectory(skillGitConfig.getCloneTempDirectory()),
                 "[git skill ingest] 创建临时目录失败"
         );
         try {

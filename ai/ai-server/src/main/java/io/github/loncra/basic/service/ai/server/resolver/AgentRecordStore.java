@@ -4,7 +4,6 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 
 import java.util.List;

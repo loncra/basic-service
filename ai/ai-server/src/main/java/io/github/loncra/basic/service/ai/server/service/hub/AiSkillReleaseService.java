@@ -1,8 +1,11 @@
 package io.github.loncra.basic.service.ai.server.service.hub;
 
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.skill.util.SkillUtil;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
-import io.agentscope.harness.agent.filesystem.model.FileData;
+import io.agentscope.harness.agent.filesystem.model.FileInfo;
+import io.agentscope.harness.agent.filesystem.model.GlobResult;
+import io.agentscope.harness.agent.filesystem.model.ReadResult;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiSkillReleaseDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
@@ -10,12 +13,15 @@ import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTrut
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
+import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.AntPathMatcher;
@@ -24,10 +30,7 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -64,9 +67,56 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
         return skillConfig.getReleasePath();
     }
 
-    public record PathedFileData(String path, FileData fileData) {
-        public String content()  { return fileData.content(); }
-        public String encoding() { return fileData.encoding(); }
+    /**
+     * 按 release 主键读取快照内容，构造 agentScope 技能。
+     *
+     * <p>落盘布局：{@code <releasePath>/<packageId>/<version>/<相对路径>}（版本号取自
+     * release 实体的 {@code releaseVersion}）；SKILL.md 的 YAML frontmatter
+     * （name/description 必填）由 {@link SkillUtil#createFrom} 解析，其余文件作为技能资源内嵌。
+     *
+     * @param releaseId 版本主键
+     * @return 构造完成的技能
+     */
+    public IdValueMetadata<Long, String> loadSkill(Long releaseId) {
+        AiSkillReleaseEntity release = get(releaseId);
+        SystemException.isTrue(Objects.nonNull(release), () -> new ServiceException("Skill 版本不存在: " + releaseId));
+        SystemException.isTrue(YesOrNo.Yes.equals(release.getEnabled()), () -> new ServiceException("Skill 版本已停用: " + releaseId));
+
+        AbstractFilesystem filesystem = getSourceOfTruthFileSystem();
+        String releasePrefix = String.join(
+                AntPathMatcher.DEFAULT_PATH_SEPARATOR,
+                release.getAiSkillPackageId().toString(),
+                release.getReleaseVersion(),
+                StringUtils.EMPTY
+        );
+
+        GlobResult glob = filesystem.glob(RuntimeContext.empty(), DesensitizeSerializer.DEFAULT_DESENSITIZE_SYMBOL, releasePrefix);
+        SystemException.isTrue(glob.isSuccess(), () -> new ServiceException("Skill 版本文件列举失败: " + glob.error()));
+
+        Map<String, Object> resources = new LinkedHashMap<>();
+        String skillContent = null;
+        for (FileInfo file : glob.matches()) {
+            if (Strings.CS.endsWith(file.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)) {
+                continue;
+            }
+            ReadResult read = filesystem.read(RuntimeContext.empty(), file.path(), 0, 0);
+            if (!read.isSuccess() || Objects.isNull(read.fileData())) {
+                continue;
+            }
+            String relative = Strings.CS.removeStart(file.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR + releasePrefix);
+            if (skillConfig.getFilename().equals(relative)) {
+                skillContent = read.fileData().content();
+            } else {
+                resources.put(relative, read.fileData().content());
+            }
+        }
+        SystemException.isTrue(
+                StringUtils.isNotBlank(skillContent),
+                () -> new ServiceException("Skill 版本缺少 " + skillConfig.getFilename() + ": " + releaseId)
+        );
+        IdValueMetadata<Long, String> metadata = IdValueMetadata.of(releaseId, skillContent);
+        metadata.setMetadata(resources);
+        return metadata;
     }
 
     /**
@@ -78,7 +128,7 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
     public Long snapshot(
             Long packageId,
             String version,
-            List<PathedFileData> fileData,
+            List<SourceOfTruthFileSystemFactory.PathFileData> fileData,
             String changelog
     ) {
         boolean duplicated = lambdaQuery()
@@ -89,7 +139,7 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
 
         SystemException.isTrue(CollectionUtils.isNotEmpty(fileData), () -> new ServiceException("ID 为 [" + packageId + "] Skill 目录为空"));
         boolean hasSkillMd = fileData.stream()
-                .map(file -> Stream.of(StringUtils.split(file.path, AntPathMatcher.DEFAULT_PATH_SEPARATOR)).toList().getLast())
+                .map(file -> Stream.of(StringUtils.split(file.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR)).toList().getLast())
                 .anyMatch(relative -> skillConfig.getFilename().equals(relative));
         SystemException.isTrue(hasSkillMd, () -> new ServiceException("ID 为 [" + packageId + "] 缺少 " + skillConfig.getFilename()));
 
@@ -101,8 +151,10 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
         release.setEnabled(YesOrNo.Yes);
         insert(release);
         SystemException.isTrue(Objects.nonNull(release.getId()), () -> new ServiceException("写入 Skill 版本失败"));
-        for (PathedFileData file : fileData) {
-            getSourceOfTruthFileSystem().write(RuntimeContext.empty(), file.path(), file.content());
+        for (SourceOfTruthFileSystemFactory.PathFileData file : fileData) {
+            String relativePath = Strings.CS.removeStart(file.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR + packageId + AntPathMatcher.DEFAULT_PATH_SEPARATOR);
+            String releasePath = String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, packageId.toString(), version, relativePath);
+            getSourceOfTruthFileSystem().write(RuntimeContext.empty(), releasePath, file.content());
         }
         release.setContentHash(hashWorkspaceFiles(fileData, release.getId()));
         updateById(release);
@@ -152,35 +204,16 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
     public int deleteByEntity(AiSkillReleaseEntity entity) {
         int result = super.deleteByEntity(entity);
         getSourceOfTruthFileSystem().delete(RuntimeContext.empty(), entity.getId().toString());
-        //deleteObjectPrefix(skillConfig.getReleasePath() + entity.getId() + AntPathMatcher.DEFAULT_PATH_SEPARATOR);
         return result;
     }
 
-    /*private List<ObjectWriteResult> listWorkspaceFiles(String workPrefix) {
-        List<ObjectWriteResult> items = getReleaseSourceOfTruthFileSystem().ls(
-                AttachmentTypeEnum.SYSTEM_FILE.getValue(),
-                workPrefix,
-                true,
-                true
-        );
-        if (CollectionUtils.isEmpty(items)) {
-            return List.of();
-        }
-        return items.stream()
-                .filter(item -> StringUtils.isNotBlank(item.getObjectName()))
-                .filter(item -> Strings.CS.startsWith(item.getObjectName(), workPrefix))
-                .filter(item -> !Strings.CS.endsWith(item.getObjectName(), AntPathMatcher.DEFAULT_PATH_SEPARATOR))
-                .filter(item -> StringUtils.isNotBlank(relativeObjectName(workPrefix, item.getObjectName())))
-                .toList();
-    }*/
-
     private String hashWorkspaceFiles(
-            List<PathedFileData> files,
+            List<SourceOfTruthFileSystemFactory.PathFileData> files,
             Long releaseId
     ) {
         MessageDigest digest = DigestUtils.getSha256Digest();
         files.stream()
-                .sorted(Comparator.comparing(PathedFileData::path))
+                .sorted(Comparator.comparing(SourceOfTruthFileSystemFactory.PathFileData::path))
                 .forEach(file -> {
                     String relative = file.path();
                     digest.update(relative.getBytes(StandardCharsets.UTF_8));
@@ -190,16 +223,5 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
                 });
         return Hex.encodeHexString(digest.digest());
     }
-
-    /*private String relativeObjectName(
-            String workPrefix,
-            String objectName
-    ) {
-        return Strings.CS.removeStart(objectName, workPrefix);
-    }*/
-
-    /*private void deleteObjectPrefix(String prefix) {
-        FileObject fileObject = FileObject.of(AttachmentTypeEnum.SYSTEM_FILE.getValue(), prefix);
-        attachmentServiceClient.deleteAttachment(List.of(fileObject), Map.of(), false);
-    }*/
 }
+

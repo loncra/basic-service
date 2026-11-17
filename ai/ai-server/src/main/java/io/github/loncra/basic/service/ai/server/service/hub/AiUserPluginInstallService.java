@@ -15,7 +15,9 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConvers
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.*;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
+import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
 import io.github.loncra.framework.commons.exception.ServiceException;
@@ -26,6 +28,7 @@ import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,10 +46,8 @@ import java.util.stream.Collectors;
  *
  * <p>Table: tb_ai_user_plugin_install - 用户广场插件统一安装关联</p>
  *
- * @see AiUserPluginInstallEntity
- *
  * @author maurice.chen
- *
+ * @see AiUserPluginInstallEntity
  * @since 2026-08-04 09:21:08
  */
 @Service
@@ -85,15 +86,23 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         AiUserPluginInstallEntity entity = new AiUserPluginInstallEntity();
         entity.setTargetType(body.getTargetType());
         entity.setPackageId(body.getPackageId());
-        entity.setScope(PluginInstallUserScopeEnum.USER);
-        entity.setPrincipal(token.getName());
-        entity.setTenantId(currentTenantId());
+        entity.setScope(body.getScope());
+
         entity.setWorkspaceScope(body.getWorkspaceScope());
         entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
         entity.setMetadata(CastUtils.convertValue(createMetadata(body.getTargetType(), body.getPackageId()), CastUtils.MAP_TYPE_REFERENCE));
+
+        if (ResourceSourceEnum.CONSOLE_SOURCE_VALUE.equals(token.getType())) {
+            entity.setPrincipal(token.getName());
+            entity.setTenantId(token.getName());
+        }
+
         insert(entity);
+
         SystemException.isTrue(Objects.nonNull(entity.getId()), () -> new ServiceException("写入插件安装失败"));
-        replaceSpecific(entity.getId(), workspace);
+        if (PluginInstallUserScopeEnum.USER.equals(entity.getScope())) {
+            replaceSpecific(entity.getId(), workspace);
+        }
         return toResult(entity, workspace);
     }
 
@@ -224,11 +233,11 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
             UserPluginInstallRequestBody body,
             AuditAuthenticationToken token
     ) {
-        if (PluginInstallWorkspaceScopeEnum.USER.equals(body.getWorkspaceScope())) {
+        if (PluginInstallWorkspaceScopeEnum.ALL.equals(body.getWorkspaceScope())) {
             return List.of();
         }
         SystemException.isTrue(
-                PluginInstallWorkspaceScopeEnum.ORG.equals(body.getWorkspaceScope()),
+                PluginInstallWorkspaceScopeEnum.SPECIFIED.equals(body.getWorkspaceScope()),
                 () -> new ServiceException("不支持的工作空间范围")
         );
         Set<String> ids = new LinkedHashSet<>();
@@ -257,7 +266,8 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
                 sourceOfTruthConfig.getMaxOutputBytes(),
                 null,
                 false,
-                null);
+                null
+        );
         for (String workspaceId : ids) {
             String path = SourceOfTruthFileSystemFactory.conversationFile(token.getName(), workspaceId);
             ReadResult result = filesystem.read(RuntimeContext.empty(), path, 0, 0);
@@ -304,14 +314,6 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         aiUserPluginInstallSpecificService.lambdaUpdate()
                 .eq(AiUserPluginInstallSpecificEntity::getAiUserPluginInstallId, installId)
                 .remove();
-    }
-
-    private String currentTenantId() {
-        TenantContext tenantContext = TenantContextHolder.get();
-        if (Objects.isNull(tenantContext) || Objects.isNull(tenantContext.getId())) {
-            return null;
-        }
-        return tenantContext.getId().toString();
     }
 
     private Map<Long, AiSkillPackageEntity> findSkillPackages(List<AiUserPluginInstallEntity> installs) {
@@ -391,25 +393,54 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
 
     /**
      * 当前用户在指定工作空间下已激活的 Hub 安装记录。
-     * {@code workspaceId == null} 时只计「所有工作空间」范围的安装。
+     *
+     * @param workspaceId 指定工作空间 ID
      */
-    public List<AiUserPluginInstallEntity> findActivatedInstalls(String principal, String workspaceId) {
-        if (StringUtils.isBlank(principal)) {
-            return List.of();
+    public List<AiUserPluginInstallEntity> findActivatedInstalls(
+            String workspaceId,
+            AuditAuthenticationToken token
+    ) {
+        Map<String, AiUserPluginInstallEntity> effective = new LinkedHashMap<>();
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        String enterpriseId = details.getMetadata()
+                .getOrDefault(PrincipalDetailsConstants.ENTERPRISE_ID_KEY, StringUtils.EMPTY)
+                .toString();
+        if (StringUtils.isNoneEmpty(enterpriseId)) {
+            lambdaQuery()
+                    .eq(AiUserPluginInstallEntity::getStatus, PluginInstallStatusEnum.ACTIVATED)
+                    .eq(AiUserPluginInstallEntity::getTenantId, enterpriseId)
+                    .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.ENTERPRISE)
+                    .list()
+                    .forEach(s -> effective.put(s.getId().toString(), s));
         }
-        List<AiUserPluginInstallEntity> installs = lambdaQuery()
-                .eq(AiUserPluginInstallEntity::getPrincipal, principal)
-                .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
+
+        lambdaQuery()
                 .eq(AiUserPluginInstallEntity::getStatus, PluginInstallStatusEnum.ACTIVATED)
-                .list();
-        if (CollectionUtils.isEmpty(installs)) {
-            return List.of();
-        }
-        Map<Long, List<String>> workspaceIdsByInstall = groupingBySpecific(installs);
-        return installs.stream()
-                .filter(install -> isActivatedInWorkspace(install, workspaceId, workspaceIdsByInstall))
-                .filter(install -> Objects.nonNull(install.getPackageId()))
+                .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
+                .eq(AiUserPluginInstallEntity::getPrincipal, token.getName())
+                .list()
+                .forEach(s -> effective.putIfAbsent(s.getId().toString(), s));
+
+        List<AiUserPluginInstallEntity> installs = effective.values().stream()
                 .toList();
+
+        List<AiUserPluginInstallEntity> result = installs.stream()
+                .filter(s -> PluginInstallWorkspaceScopeEnum.ALL.equals(s.getWorkspaceScope()))
+                .collect(Collectors.toCollection(LinkedList::new));
+
+        if (StringUtils.isNotEmpty(workspaceId)) {
+            List<AiUserPluginInstallEntity> specified = installs.stream()
+                    .filter(s -> PluginInstallWorkspaceScopeEnum.SPECIFIED.equals(s.getWorkspaceScope()))
+                    .toList();
+
+            Map<Long, List<String>> workspaceIdsByInstall = groupingBySpecific(specified);
+            specified.stream()
+                    .filter(install -> isActivatedInWorkspace(install, workspaceId, workspaceIdsByInstall))
+                    .filter(install -> Objects.nonNull(install.getPackageId()))
+                    .forEach(result::add);
+        }
+
+        return result;
     }
 
     private Map<Long, List<String>> groupingBySpecific(List<AiUserPluginInstallEntity> installs) {
@@ -434,12 +465,6 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
             String workspaceId,
             Map<Long, List<String>> workspaceIdsByInstall
     ) {
-        if (PluginInstallWorkspaceScopeEnum.USER.equals(install.getWorkspaceScope())) {
-            return true;
-        }
-        if (!PluginInstallWorkspaceScopeEnum.ORG.equals(install.getWorkspaceScope())) {
-            return false;
-        }
         if (workspaceId == null) {
             return false;
         }

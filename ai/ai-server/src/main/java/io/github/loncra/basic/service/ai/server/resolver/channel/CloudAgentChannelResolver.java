@@ -17,8 +17,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResol
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentHubSkillService;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentUserPluginToolkitService;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -34,10 +32,6 @@ import java.util.Objects;
 @Component
 @RequiredArgsConstructor
 public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
-
-    private final AgentUserPluginToolkitService agentUserPluginToolkitService;
-
-    private final AgentHubSkillService agentHubSkillService;
 
     @Override
     public ExecutionChannelEnum getChannel() {

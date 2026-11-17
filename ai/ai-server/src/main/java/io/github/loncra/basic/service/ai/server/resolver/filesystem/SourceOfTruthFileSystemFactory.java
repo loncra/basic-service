@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import cn.hutool.core.text.AntPathMatcher;
 import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.model.FileData;
 import io.agentscope.harness.agent.workspace.WorkspaceConstants;
 import io.github.loncra.basic.service.ai.server.config.SourceOfTruthConfig;
 import io.github.loncra.framework.commons.CastUtils;
@@ -55,6 +56,11 @@ public class SourceOfTruthFileSystemFactory {
     public record UserLevelRoute(String prefix, String dir) {
     }
 
+    public record PathFileData(String path, FileData fileData) {
+        public String content()  { return fileData.content(); }
+        public String encoding() { return fileData.encoding(); }
+    }
+
     public AbstractFilesystem getUserDataDirFilesystem(
             String principal,
             String dir
@@ -71,7 +77,6 @@ public class SourceOfTruthFileSystemFactory {
                 .orElseThrow(() -> new SystemException("找不到类型为 [" + sourceOfTruthConfig.getType() + "] 的构造器"))
                 .getSourceOfTruthFileSystem(sourceOfTruthConfig, relativePath);
     }
-
 
     public static String segment(String principal) {
         return principal.replaceAll(PRINCIPAL_UNSAFE_PATTERN, CastUtils.UNDERSCORE);

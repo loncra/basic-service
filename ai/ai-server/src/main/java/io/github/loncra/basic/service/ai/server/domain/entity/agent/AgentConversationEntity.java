@@ -1,7 +1,6 @@
 package io.github.loncra.basic.service.ai.server.domain.entity.agent;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadata;
@@ -18,7 +17,6 @@ import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.apache.ibatis.type.Alias;
 
 import java.io.Serial;
 import java.util.LinkedHashMap;

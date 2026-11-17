@@ -8,8 +8,10 @@ import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallUserScop
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspaceScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
 import io.github.loncra.framework.mybatis.plus.baisc.support.LongVersionEntity;
+import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -30,8 +32,8 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 @Alias("aiUserPluginInstall")
-@TableName("tb_ai_user_plugin_install")
 @EqualsAndHashCode(callSuper = true)
+@TableName(value = "tb_ai_user_plugin_install", autoResultMap = true)
 public class AiUserPluginInstallEntity extends LongVersionEntity<Integer> {
 
     @Serial
@@ -48,12 +50,12 @@ public class AiUserPluginInstallEntity extends LongVersionEntity<Integer> {
     private Long packageId;
 
     /**
-     * 作用返回 10.用户,20.机构
+     * 作用返回 10.个人用户,20.企业用户
      */
     private PluginInstallUserScopeEnum scope;
 
     /**
-     * 用户唯一是被
+     * 用户唯一识别
      */
     private String principal;
 

@@ -14,6 +14,6 @@ import java.util.concurrent.TimeUnit;
 @ConfigurationProperties("loncra.basic-service.ai.app.skill.git")
 public class SkillGitConfig {
 
-    private String tempPath = "./.skill/mcp/";
+    private String cloneTempDirectory = "skill-source-git-";
     private TimeProperties timeout = new TimeProperties(3, TimeUnit.MINUTES);
 }
