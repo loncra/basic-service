@@ -8,6 +8,7 @@ import io.agentscope.core.tool.Toolkit;
  *
  * @author maurice.chen
  */
+//FIXME 这个内容感觉可以去掉
 public interface AgentToolkitContributor {
 
     /**

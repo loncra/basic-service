@@ -1,72 +1,66 @@
 package io.github.loncra.basic.service.ai.server.service.agent;
 
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.skill.AgentSkill;
-import io.agentscope.core.skill.repository.AgentSkillRepository;
 import io.agentscope.core.skill.repository.AgentSkillRepositoryInfo;
-import io.agentscope.core.skill.util.SkillFileSystemHelper;
+import io.agentscope.core.skill.repository.RuntimeContextSkillRepository;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
+import io.github.loncra.basic.service.ai.server.service.hub.AiSkillReleaseService;
+import io.github.loncra.basic.service.ai.server.service.hub.AiUserPluginInstallService;
+import io.github.loncra.basic.service.ai.server.service.skill.McpSkillSyncRunner;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
-import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 
-/**
- * 只读 Hub Skill 仓：对外 id 为 {@code packageKey}，目录来自 {@code .skill-hub} 本机缓存。
- */
+
+@Data
 @Slf4j
-@Deprecated
-public class HubSkillRepository implements AgentSkillRepository {
+@Component
+public class HubSkillRepository implements RuntimeContextSkillRepository {
 
-    public static final String SOURCE = "hub-minio-cache";
+    public static final String SOURCE = "hub";
 
-    private final Map<String, Path> dirsByPackageKey;
+    private boolean writeable = true;
 
-    private boolean writeable;
+    private final AiSkillReleaseService aiSkillReleaseService;
 
-    public HubSkillRepository(Map<String, Path> dirsByPackageKey) {
-        this.dirsByPackageKey = dirsByPackageKey == null
-                ? Map.of()
-                : Collections.unmodifiableMap(new LinkedHashMap<>(dirsByPackageKey));
-        this.writeable = false;
+    private final McpSkillSyncRunner mcpSkillSyncRunner;
+
+    private final AiUserPluginInstallService aiUserPluginInstallService;
+
+    @Override
+    public List<AgentSkill> getAllSkills(RuntimeContext context) {
+        AgentExecutionMetadata executionMetadata = context.get(AgentExecutionMetadata.class);
+        if (Objects.isNull(executionMetadata)) {
+            return List.of();
+        }
+
+        return List.of();
     }
 
     @Override
     public AgentSkill getSkill(String name) {
-        if (StringUtils.isBlank(name)) {
-            return null;
-        }
-        Path dir = dirsByPackageKey.get(name);
-        if (dir == null) {
-            return null;
-        }
-        try {
-            return load(name, dir);
-        } catch (RuntimeException e) {
-            log.warn("加载 Hub Skill 失败 packageKey={}", name, e);
-            return null;
-        }
+        return null;
     }
 
     @Override
     public List<String> getAllSkillNames() {
-        return new ArrayList<>(dirsByPackageKey.keySet());
+        return List.of();
     }
 
     @Override
     public List<AgentSkill> getAllSkills() {
-        List<AgentSkill> skills = new ArrayList<>();
-        for (Map.Entry<String, Path> entry : dirsByPackageKey.entrySet()) {
-            try {
-                skills.add(load(entry.getKey(), entry.getValue()));
-            } catch (RuntimeException e) {
-                log.warn("加载 Hub Skill 失败 packageKey={}", entry.getKey(), e);
-            }
-        }
-        return skills;
+        return List.of();
     }
 
     @Override
-    public boolean save(List<AgentSkill> skills, boolean force) {
+    public boolean save(
+            List<AgentSkill> skills,
+            boolean force
+    ) {
         return false;
     }
 
@@ -77,31 +71,20 @@ public class HubSkillRepository implements AgentSkillRepository {
 
     @Override
     public boolean skillExists(String skillName) {
-        return StringUtils.isNotBlank(skillName) && dirsByPackageKey.containsKey(skillName);
+        return false;
     }
 
     @Override
     public AgentSkillRepositoryInfo getRepositoryInfo() {
-        return new AgentSkillRepositoryInfo(SOURCE, SOURCE, false);
+        return new AgentSkillRepositoryInfo(
+                getSource(),
+                aiSkillReleaseService.getStorePath(),
+                writeable
+        );
     }
 
     @Override
     public String getSource() {
         return SOURCE;
-    }
-
-    @Override
-    public void setWriteable(boolean writeable) {
-        this.writeable = false;
-    }
-
-    @Override
-    public boolean isWriteable() {
-        return writeable;
-    }
-
-    private AgentSkill load(String packageKey, Path dir) {
-        AgentSkill loaded = SkillFileSystemHelper.loadSkillFromDirectory(dir, getSource(), false);
-        return loaded.toBuilder().name(packageKey).build();
     }
 }

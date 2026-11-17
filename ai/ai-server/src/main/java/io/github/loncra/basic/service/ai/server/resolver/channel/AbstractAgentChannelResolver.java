@@ -36,6 +36,7 @@ import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAg
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAgentStateStore;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
+import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.framework.commons.CastUtils;
@@ -79,6 +80,8 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
     protected SnowflakeIdGenerateService snowflakeIdGenerateService;
 
     protected ConversationConfig conversationConfig;
+
+    protected HubSkillRepository hubSkillRepository;
 
     protected ModelSettingMetadata resolveModelMetadata(Long modelId) {
         ModelSettingEntity model = Objects.requireNonNull(modelSettingService.get(modelId), "找不到 ID 为 [" + modelId + "] 的模型数据");
@@ -159,6 +162,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .compaction(aiAppConfig.toCompactionConfig())
                 .workspace(workspacePath)
                 .transcriptTenant(SourceOfTruthFileSystemFactory.TRANSCRIPTS_DIR)
+                .skillRepository(hubSkillRepository)
                 .middlewares(middlewares);
         return attachFilesystem(builder, execution, workspacePath);
     }

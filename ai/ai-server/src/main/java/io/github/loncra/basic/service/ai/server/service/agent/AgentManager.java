@@ -2,7 +2,6 @@ package io.github.loncra.basic.service.ai.server.service.agent;
 
 
 import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.ConfirmResult;
@@ -49,8 +48,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Flux;
@@ -311,11 +308,8 @@ public class AgentManager {
         RuntimeContext context = RuntimeContext.builder()
                 .userId(assistantMessage.obtainUserId())
                 .sessionId(String.valueOf(assistantMessage.getAgentConversationId()))
-                .put(SecurityContext.class, SecurityContextHolder.getContext())
-                .put(AgentMessageRoleEnum.ASSISTANT.toString(), assistantMessage)
                 .put(AgentExecutionMetadata.class, execution)
                 .put(AgentChannelResolver.class, resolver)
-                .put(AgentStateStore.class, resolver.openStateStore(execution))
                 .build();
 
         return agent.streamEvents(messages, context)
@@ -379,7 +373,7 @@ public class AgentManager {
             RuntimeContext context
     ) {
 
-        AgentMessageEntity assistant = context.get(AgentMessageRoleEnum.ASSISTANT.toString());
+        AgentMessageEntity assistant = context.get(AgentExecutionMetadata.class).getAssistantMessage();
         publishStreamEvent(message, assistant, context);
     }
 
@@ -483,7 +477,7 @@ public class AgentManager {
             RuntimeContext context
     ) {
 
-        AgentMessageEntity assistant = context.get(AgentMessageRoleEnum.ASSISTANT.toString());
+        AgentMessageEntity assistant = context.get(AgentExecutionMetadata.class).getAssistantMessage();
         if (log.isDebugEnabled()) {
             log.debug("助手消息 [{}] 收到事件 {}", assistant.getId(), CastUtils.convertValue(event, CastUtils.MAP_TYPE_REFERENCE));
         }

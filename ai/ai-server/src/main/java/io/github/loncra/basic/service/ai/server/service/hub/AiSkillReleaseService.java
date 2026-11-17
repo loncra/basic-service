@@ -60,6 +60,10 @@ public class AiSkillReleaseService extends BasicService<AiSkillReleaseDao, AiSki
                 .list();
     }
 
+    public String getStorePath() {
+        return skillConfig.getReleasePath();
+    }
+
     public record PathedFileData(String path, FileData fileData) {
         public String content()  { return fileData.content(); }
         public String encoding() { return fileData.encoding(); }

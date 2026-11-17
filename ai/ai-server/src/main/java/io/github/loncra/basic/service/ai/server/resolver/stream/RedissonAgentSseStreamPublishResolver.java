@@ -10,8 +10,8 @@ import io.github.loncra.basic.service.ai.server.domain.AssistantMessageStopEvent
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -246,7 +246,7 @@ public class RedissonAgentSseStreamPublishResolver extends AbstractAgentSseStrea
         if (!INTERRUPT_TOPIC_STOP_MESSAGE.equals(message)) {
             return ;
         }
-        AgentMessageEntity assistantMessage = ctx.get(AgentMessageRoleEnum.ASSISTANT.toString());
+        AgentMessageEntity assistantMessage = ctx.get(AgentExecutionMetadata.class).getAssistantMessage();
 
         // 先把 StopEvent 塞进 sink，走现有 event resolver（写 STOPPED、推 USER_STOP）
         // 要求：middleware 侧 sink 必须已经有订阅者，否则 unicast 会 FAIL_ZERO_SUBSCRIBER

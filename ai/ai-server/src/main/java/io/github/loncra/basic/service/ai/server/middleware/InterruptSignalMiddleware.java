@@ -17,7 +17,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractBlockDel
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
@@ -70,7 +69,7 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
         // ---------- 开跑前已 interrupt：不跑模型，手工 Stop → End ----------
         if (agentSseStreamPublishResolver.isStreamBeforeInterrupt(ctx)) {
             String replyId = AiConstants.newReplyId();
-            AgentMessageEntity message = ctx.get(AgentMessageRoleEnum.ASSISTANT.toString());
+            AgentMessageEntity message = ctx.get(AgentExecutionMetadata.class).getAssistantMessage();
             AssistantMessageStopEvent stopEvent = new AssistantMessageStopEvent(message.getId(), replyId);
             // 与你现有构造方式保持一致
             AgentEndEvent agentEndEvent = new AgentEndEvent(replyId);
@@ -100,7 +99,7 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
         if (!AssistantMessageStopEvent.class.isAssignableFrom(currentEvent.getClass())) {
             return Flux.just(currentEvent);
         }
-        AgentMessageEntity assistantMessage = ctx.get(AgentMessageRoleEnum.ASSISTANT.toString());
+        AgentMessageEntity assistantMessage = ctx.get(AgentExecutionMetadata.class).getAssistantMessage();
         if (assistantMessage.getMetadata().containsKey(TOKEN_USAGE_KEY)) {
             return Flux.just(currentEvent);
         }
@@ -156,7 +155,7 @@ public class InterruptSignalMiddleware implements MiddlewareBase {
             if (!(event instanceof AllToolsDeniedEvent)) {
                 return Flux.just(event);
             }
-            AgentMessageEntity assistant = ctx.get(AgentMessageRoleEnum.ASSISTANT.toString());
+            AgentMessageEntity assistant = ctx.get(AgentExecutionMetadata.class).getAssistantMessage();
 
             if (assistant == null || !AgentChatStatusEnum.REJECT_ALL.equals(assistant.getStatus())) {
                 return Flux.just(event);

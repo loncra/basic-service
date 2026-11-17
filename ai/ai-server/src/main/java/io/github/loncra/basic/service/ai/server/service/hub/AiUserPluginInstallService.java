@@ -100,7 +100,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
     public List<UserPluginInstallResult> find(AuditAuthenticationToken token) {
         List<AiUserPluginInstallEntity> installs = lambdaQuery()
                 .eq(AiUserPluginInstallEntity::getPrincipal, token.getName())
-                .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
+                //.eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
                 .orderByDesc(AiUserPluginInstallEntity::getId)
                 .list();
         Map<Long, List<String>> workspaceIdsByInstall = groupingBySpecific(installs);

@@ -17,7 +17,9 @@ import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.ToolResultMessageBuilder;
 import io.github.loncra.basic.service.ai.api.enumerate.ClarifyModeStatusEnum;
 import io.github.loncra.basic.service.ai.server.domain.ClarifyModeContextState;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
+import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.service.ClarifyModeManager;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import lombok.RequiredArgsConstructor;
@@ -59,8 +61,8 @@ public class ClarifyModelMiddleware implements MiddlewareBase {
         if (CollectionUtils.isEmpty(policies)) {
             return next.apply(input);
         }
-
-        AgentStateStore agentStateStore = ctx.get(AgentStateStore.class);
+        AgentExecutionMetadata execution = ctx.get(AgentExecutionMetadata.class);
+        AgentStateStore agentStateStore = ctx.get(AgentChannelResolver.class).openStateStore(execution);
         ClarifyModeContextState clarifyModeContextState = manager.getOrCreateClarifyModeContextState(
                 ctx.getUserId(),
                 ctx.getSessionId(),
