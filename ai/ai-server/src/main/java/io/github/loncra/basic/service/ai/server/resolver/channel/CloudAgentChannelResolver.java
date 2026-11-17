@@ -10,13 +10,11 @@ import io.agentscope.harness.agent.skill.runtime.ShellPathPolicy;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatBasicResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
-import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -53,70 +51,37 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    public HarnessAgent createHarnessAgent(AgentExecutionMetadata execution) {
-        AgentMessageEntity assistant = execution.getAssistantMessage();
-        AgentConversationEntity conversation = Objects.requireNonNull(
-                execution.getConversation(),
-                "找不到 ID 为 [" + assistant.getAgentConversationId() + "] 的会话内容"
-        );
-        SystemException.isTrue(
-                AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(conversation.getType()),
-                "当前会话类型不支持执行 agent"
-        );
-
-        AgentConversationEntity workspace = Objects.requireNonNull(
-                getAgentRecordStore().getConversation(assistant.getPrincipal(), conversation.getParentId(), execution.getDeviceIdentified()),
-                "找不到 ID 为 [" + conversation.getParentId() + "] 的工作空间"
-        );
-        SystemException.isTrue(
-                !AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(workspace.getType()),
-                "当前会话类型不支持执行 agent"
-        );
-
-        AgentMessageEntity userMessage = Objects.requireNonNull(
-                execution.getUserMessage(),
-                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
-        );
-
-        ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(
-                assistant.getModel(),
-                userMessage.getMetadata()
-        );
-        /*Path userSkillDir = agentUserPluginToolkitService.registerUserMcp(
-                modelResolverMetadata.getToolkit(),
-                assistant.getPrincipal(),
-                workspace.getId()
-        );*/
-        /*HubSkillRepository hubSkillRepository = agentHubSkillService.ensureCached(
-                assistant.getPrincipal(),
-                workspace.getId()
-        );*/
-
-        String workspacePath = resolveWorkspacePath(workspace);
-
-        HarnessAgent.Builder builder = baseBuilder(execution, modelResolverMetadata, workspacePath);
-                /*.skillRepository(new FileSystemSkillRepository(userSkillDir))
-                .skillRepository(hubSkillRepository);*/
-
-        return finishAgent(builder, execution);
-    }/**/
-
-    @Override
-    protected HarnessAgent.Builder attachFilesystem(
+    protected HarnessAgent definitionHarnessAgent(
             HarnessAgent.Builder builder,
-            AgentExecutionMetadata execution,
-            String workspacePath
+            AgentExecutionMetadata execution
     ) {
         if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getWorkspace().getSandboxType())) {
             userLevelRouteMap(dir -> sourceOfTruthFileSystemFactory.getUserDataDirFilesystem(execution.getAssistantMessage().getPrincipal(), dir))
                     .forEach(builder::filesystemRoute);
-            return builder.filesystem(aiAppConfig.getDocker().toSpec());
+
+            String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ShellPathPolicy.SANDBOX_WORKSPACE_PREFIX);
+
+            builder.filesystem(aiAppConfig.getDocker().toSpec())
+                    .environmentMemory("云端环境：Docker 容器，执行命令的终端为 bash，工作区根为 " + root + "。执行命令时请使用 bash 语法。");
+
+        } else {
+            AgentConversationEntity workspace = Objects.requireNonNull(
+                    getAgentRecordStore().getConversation(execution.getToken().getName(), execution.getConversation().getParentId(), execution.getDeviceIdentified()),
+                    "找不到 ID 为 [" + execution.getConversation().getParentId() + "] 的工作空间"
+            );
+
+            String workspacePath = resolveWorkspacePath(workspace);
+            Path directory = Path.of(workspacePath);
+            builder.abstractFilesystem(new RoutedSandboxFilesystem(
+                    primaryFilesystem(directory, directory),
+                    userLevelRouteMap(dir -> sourceOfTruthFileSystemFactory.getUserDataDirFilesystem(execution.getAssistantMessage().getPrincipal(), dir))
+            ));
+
+            String shell = SystemUtils.IS_OS_WINDOWS ? "cmd.exe /c" : "sh -c";
+            builder.environmentMemory("云端环境：操作系统 " + SystemProperties.getOsName() + "，执行命令的终端为 " + shell + "，工作区是服务器本机目录。文件工具不经过终端。执行命令时请使用与 " + shell + " 匹配的语法。");
         }
-        Path directory = Path.of(workspacePath);
-        return builder.abstractFilesystem(new RoutedSandboxFilesystem(
-                primaryFilesystem(directory, directory),
-                userLevelRouteMap(dir -> sourceOfTruthFileSystemFactory.getUserDataDirFilesystem(execution.getAssistantMessage().getPrincipal(), dir))
-        ));
+
+        return builder.build();
     }
 
     private AbstractSandboxFilesystem primaryFilesystem(Path workspace, Path project) {
@@ -130,7 +95,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private String cloudWorkspaceDir(AgentConversationEntity workspace) {
-        return sourceOfTruthFileSystemFactory.workspaceDirectory(
+        return SourceOfTruthFileSystemFactory.workspaceDirectory(
                 Path.of(aiAppConfig.getWorkspace().getPath()), workspace.getId()).toString();
     }
 
@@ -152,16 +117,6 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
             return;
         }
         workspace.getMetadata().put(WORKSPACE_ROOTS_METADATA_KEY, List.of(cloudWorkspaceDir(workspace)));
-    }
-
-    @Override
-    protected String createEnvironmentMemory(String deviceIdentified, String principal) {
-        if (SandboxTypeEnum.DOCKER.equals(aiAppConfig.getWorkspace().getSandboxType())) {
-            String root = StringUtils.defaultIfBlank(aiAppConfig.getDocker().getWorkspaceRoot(), ShellPathPolicy.SANDBOX_WORKSPACE_PREFIX);
-            return "云端环境：Docker 容器，执行命令的终端为 bash，工作区根为 " + root + "。执行命令时请使用 bash 语法。";
-        }
-        String shell = SystemUtils.IS_OS_WINDOWS ? "cmd.exe /c" : "sh -c";
-        return "云端环境：操作系统 " + SystemProperties.getOsName() + "，执行命令的终端为 " + shell + "，工作区是服务器本机目录。文件工具不经过终端。执行命令时请使用与 " + shell + " 匹配的语法。";
     }
 
     @Override

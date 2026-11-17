@@ -147,11 +147,14 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         return responseBody;
     }
 
-    protected HarnessAgent.Builder baseBuilder(
-            AgentExecutionMetadata execution,
-            ModelResolverMetadata modelResolverMetadata,
-            String workspacePath
-    ) {
+    @Override
+    public HarnessAgent createHarnessAgent(AgentExecutionMetadata execution) {
+
+        ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(
+                execution.getAssistantMessage().getModel(),
+                execution.getUserMessage().getMetadata()
+        );
+
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(AiAppConfig.DEFAULT_AGENT_NAME)
                 .sysPrompt(aiAppConfig.getSystemPrompt())
@@ -160,17 +163,21 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .enableMetaTool(true)
                 .stateStore(openStateStore(execution))
                 .compaction(aiAppConfig.toCompactionConfig())
-                .workspace(workspacePath)
                 .transcriptTenant(SourceOfTruthFileSystemFactory.TRANSCRIPTS_DIR)
                 .skillRepository(hubSkillRepository)
                 .middlewares(middlewares);
-        return attachFilesystem(builder, execution, workspacePath);
+        AgentMessageEntity assistant = execution.getAssistantMessage();
+
+        if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
+            builder.enablePlanMode();
+        }
+
+        return definitionHarnessAgent(builder, execution);
     }
 
-    protected abstract HarnessAgent.Builder attachFilesystem(
+    protected abstract HarnessAgent definitionHarnessAgent(
             HarnessAgent.Builder builder,
-            AgentExecutionMetadata execution,
-            String workspacePath
+            AgentExecutionMetadata execution
     );
 
     protected Map<String, AbstractFilesystem> userLevelRouteMap(Function<String, AbstractFilesystem> storeBackend) {
@@ -181,31 +188,9 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         return routes;
     }
 
-    protected HarnessAgent finishAgent(
-            HarnessAgent.Builder builder,
-            AgentExecutionMetadata execution
-    ) {
-        AgentMessageEntity assistant = execution.getAssistantMessage();
-        String environmentMemory = createEnvironmentMemory(execution.getDeviceIdentified(), assistant.getPrincipal());
-        if (Objects.nonNull(environmentMemory)) {
-            builder.environmentMemory(environmentMemory);
-        }
-        if (!AgentChatTypeEnum.ASK.equals(assistant.getType())) {
-            builder.enablePlanMode();
-        }
-        return builder.build();
-    }
-
     @Override
     public AgentStateStore openStateStore(BasicAgentExecutionMetadata execution) {
         return new FilesystemAgentStateStore(openRecords(execution.getDeviceIdentified()));
-    }
-
-    protected String createEnvironmentMemory(
-            String deviceIdentified,
-            String principal
-    ) {
-        return null;
     }
 
     protected List<ConfirmResult> getResumeConfirmResults(

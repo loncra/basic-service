@@ -10,13 +10,12 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
-import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.model.ModelResolverMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.support.ClientRpcSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
@@ -100,22 +99,6 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
         workspace.getMetadata().put(WORKSPACE_ROOTS_METADATA_KEY, List.of(clientHome));
     }
 
-    @Override
-    public HarnessAgent createHarnessAgent(AgentExecutionMetadata execution) {
-        AgentMessageEntity assistant = execution.getAssistantMessage();
-        AgentMessageEntity userMessage = Objects.requireNonNull(
-                execution.getUserMessage(),
-                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
-        );
-
-        ModelResolverMetadata modelResolverMetadata = modelSettingService.getModelMetadata(
-                assistant.getModel(),
-                userMessage.getMetadata()
-        );
-
-        return finishAgent(baseBuilder(execution, modelResolverMetadata, clientWorkspaceScratch()), execution);
-    }
-
     private String clientWorkspaceScratch() {
         Path scratch = Path.of(aiAppConfig.getWorkspace().getPath(), "client-scratch");
         try {
@@ -127,12 +110,11 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
-    protected HarnessAgent.Builder attachFilesystem(
+    protected HarnessAgent definitionHarnessAgent(
             HarnessAgent.Builder builder,
-            AgentExecutionMetadata execution,
-            String workspacePath
+            AgentExecutionMetadata execution
     ) {
-        String principal = execution.getAssistantMessage().getPrincipal();
+        String principal = execution.getToken().getName();
         AgentConversationEntity conversation = execution.getConversation();
         RpcFilesystemScope workspaceScope = Objects.isNull(conversation)
                 ? new RpcFilesystemScope.DefaultWorkspace()
@@ -143,13 +125,17 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
                 workspaceScope
         );
         String dataDir = sourceOfTruthFileSystemFactory.getSourceOfTruthConfig().getDataDir();
-        String storeBase = sourceOfTruthFileSystemFactory.storePrincipal(dataDir, sourceOfTruthFileSystemFactory.segment(principal));
+        String storeBase = SourceOfTruthFileSystemFactory.storePrincipal(dataDir, SourceOfTruthFileSystemFactory.segment(principal));
         Function<String, AbstractFilesystem> storeBackend = dir -> new ClientRpcSandboxFilesystem(
                 socketServiceClient,
                 execution.getDeviceIdentified(),
                 new RpcFilesystemScope.Store(String.join(AntPathMatcher.DEFAULT_PATH_SEPARATOR, storeBase, dir))
         );
-        return builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)));
+        builder.abstractFilesystem(new RoutedSandboxFilesystem(workspacePipe, userLevelRouteMap(storeBackend)))
+                .workspace(clientWorkspaceScratch())
+                .environmentMemory(createEnvironmentMemory(execution.getDeviceIdentified(), principal));
+
+        return builder.build();
     }
 
     @Override
@@ -183,8 +169,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
         return resolveWorkspaceScope(parent, principal, deviceIdentified);
     }
 
-    @Override
-    protected String createEnvironmentMemory(String deviceIdentified, String principal) {
+    private String createEnvironmentMemory(String deviceIdentified, String principal) {
         SocketSessionMetadata session = agentSocketSessionResolver.getSession(principal, deviceIdentified);
         if (Objects.isNull(session)) {
             return null;
