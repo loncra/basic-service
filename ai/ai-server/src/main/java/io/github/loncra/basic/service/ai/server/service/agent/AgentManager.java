@@ -29,6 +29,7 @@ import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
+import io.github.loncra.basic.service.ai.server.resolver.channel.AgentChannelResolverFactory;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
@@ -74,8 +75,6 @@ public class AgentManager {
 
     private final StreamConfig streamConfig;
 
-    /*private final List<AgentPluginMessageContentResolver> pluginMessageContentResolvers;*/
-
     private final List<AgentChannelResolver> channelResolvers;
 
     public AgentChannelResolver getChannelResolver(
@@ -87,6 +86,7 @@ public class AgentManager {
                 .findFirst()
                 .orElseThrow(() -> new SystemException("找不到通道 [" + channel + "] 的解析器"));
     }
+    
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.channel]:[#body.agentConversationId]",

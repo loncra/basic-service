@@ -1,8 +1,8 @@
-package io.github.loncra.basic.service.ai.server.controller.hub;
+package io.github.loncra.basic.service.ai.server.controller.agent;
 
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
-import io.github.loncra.basic.service.ai.server.service.hub.AiUserPluginInstallService;
+import io.github.loncra.basic.service.ai.server.service.agent.AgentHubService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
@@ -24,10 +24,10 @@ import java.util.List;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("ai/user/plugin/install")
-public class AiUserPluginInstallController {
+@RequestMapping("agent/hub")
+public class AgentHubController {
 
-    private final AiUserPluginInstallService aiUserPluginInstallService;
+    private final AgentHubService agentHubService;
 
     @PostMapping
     @OperationDataTrace("安装广场插件")
@@ -42,7 +42,7 @@ public class AiUserPluginInstallController {
             String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return RestResult.ofSuccess("安装成功", aiUserPluginInstallService.install(body, token, deviceIdentified));
+        return RestResult.ofSuccess("安装成功", agentHubService.install(body, token, deviceIdentified));
     }
 
     @PostMapping("my")
@@ -54,7 +54,7 @@ public class AiUserPluginInstallController {
             String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return aiUserPluginInstallService.find(token, deviceIdentified);
+        return agentHubService.find(token, deviceIdentified);
     }
 
     @DeleteMapping("/{id:\\d+}")
@@ -67,7 +67,7 @@ public class AiUserPluginInstallController {
             SecurityContext securityContext
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        aiUserPluginInstallService.uninstall(id, token);
+        agentHubService.uninstall(id, token);
         return RestResult.of("卸载成功");
     }
 }
