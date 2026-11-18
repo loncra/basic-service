@@ -8,7 +8,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistan
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentTokenUsageMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.framework.commons.CastUtils;
@@ -22,12 +21,6 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class ModelCallEndEventResolver implements AgentEventResolver {
-
-    private final List<AgentChannelResolver> channelResolvers;
-
-    private AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel);
-    }
 
     @Override
     public boolean isSupport(AgentEvent event) {
@@ -53,7 +46,9 @@ public class ModelCallEndEventResolver implements AgentEventResolver {
         }
         assistant.saveAgentTokenUsageMetadata(usage);
         AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
-        channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
+
+        AgentChannelResolver agentChannelResolver = context.get(AgentChannelResolver.class);
+        agentChannelResolver.getAgentRecordStore().saveAssistant(execution, assistant);
 
         usage.setAssistantMessageId(assistant.getId());
 

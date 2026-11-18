@@ -4,6 +4,7 @@ import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +28,9 @@ public class SkillConfig {
 
     private String releasePath = "./.skill/release/";
 
-    private McpConfig mcp = new McpConfig();
+    /*private McpAssociatedConfig systemMcpAssociated = McpAssociatedConfig.of("./.skill/mcp-associated/system");
+
+    private McpAssociatedConfig hubMcpAssociated = McpAssociatedConfig.of("./.skill/mcp-associated/hub");*/
 
     private boolean autoReload = true;
 
@@ -76,8 +79,11 @@ public class SkillConfig {
     private Map<String, List<IdValueMetadata<String, String>>> descriptionMap = new LinkedHashMap<>();
 
     @Data
-    public static class McpConfig {
-        private String associatedPath = "./.skill/mcp/";
+    @RequiredArgsConstructor(staticName = "of")
+    public static class McpAssociatedConfig {
+
+        private final String path;
+
         private TimeProperties timeout = new TimeProperties(3, TimeUnit.MINUTES);
     }
 }

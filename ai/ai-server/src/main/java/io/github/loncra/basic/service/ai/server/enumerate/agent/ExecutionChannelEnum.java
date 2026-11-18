@@ -5,7 +5,11 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * @deprecated 使用 {@link TerminalTypeEnum} 替换
+ */
 @Getter
+@Deprecated
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum ExecutionChannelEnum implements NameValueEnum<String> {
 

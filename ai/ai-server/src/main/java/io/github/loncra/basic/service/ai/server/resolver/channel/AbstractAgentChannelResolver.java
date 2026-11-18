@@ -36,7 +36,7 @@ import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAg
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.FilesystemAgentStateStore;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
-import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
+import io.github.loncra.basic.service.ai.server.service.agent.UserPluginRuntimeContextSkillRepository;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.framework.commons.CastUtils;
@@ -81,7 +81,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
     protected ConversationConfig conversationConfig;
 
-    protected HubSkillRepository hubSkillRepository;
+    protected UserPluginRuntimeContextSkillRepository userPluginRuntimeContextSkillRepository;
 
     protected ModelSettingMetadata resolveModelMetadata(Long modelId) {
         ModelSettingEntity model = Objects.requireNonNull(modelSettingService.get(modelId), "找不到 ID 为 [" + modelId + "] 的模型数据");
@@ -164,7 +164,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .stateStore(openStateStore(execution))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .transcriptTenant(SourceOfTruthFileSystemFactory.TRANSCRIPTS_DIR)
-                .skillRepository(hubSkillRepository)
+                .skillRepository(userPluginRuntimeContextSkillRepository)
                 .middlewares(middlewares);
         AgentMessageEntity assistant = execution.getAssistantMessage();
 
@@ -486,7 +486,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         return totalPage ? new TotalPage<>(request, elements, messages.size()) : new Page<>(request, elements);
     }
 
-    @Override
+    /*@Override
     public AgentExecutionMetadata getAgentExecutionMetadata(
             AgentExecuteMessageMetadata message,
             AuditAuthenticationToken token
@@ -514,5 +514,5 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         execution.setUserMessage(userMessage);
         execution.setAssistantMessage(assistant);
         return execution;
-    }
+    }*/
 }

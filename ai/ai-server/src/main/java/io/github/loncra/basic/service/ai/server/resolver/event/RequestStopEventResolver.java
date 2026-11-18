@@ -8,6 +8,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
+import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -47,7 +48,8 @@ public class RequestStopEventResolver extends AbstractAgentEventResolver<Customi
     ) {
         assistant.setStatus(AgentChatStatusEnum.REQUEST_STOP);
         AgentExecutionMetadata execution = Objects.requireNonNull(context.get(AgentExecutionMetadata.class), "找不到执行元数据");
-        channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
+        AgentChannelResolver agentChannelResolver = context.get(AgentChannelResolver.class);
+        agentChannelResolver.getAgentRecordStore().saveAssistant(execution, assistant);
         return true;
     }
 

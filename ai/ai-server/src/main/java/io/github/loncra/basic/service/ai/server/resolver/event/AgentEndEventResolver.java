@@ -10,7 +10,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentSta
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -25,12 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AgentEndEventResolver implements AgentEventResolver {
 
-    private final List<AgentChannelResolver> channelResolvers;
-
-    private AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel);
-    }
-
     @Override
     public boolean isSupport(AgentEvent event) {
         return AgentEndEvent.class.isAssignableFrom(event.getClass());
@@ -44,9 +37,11 @@ public class AgentEndEventResolver implements AgentEventResolver {
     ) {
         List<AbstractAssistantMessageContentMetadata> result = new LinkedList<>();
         AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
+        AgentChannelResolver agentChannelResolver = context.get(AgentChannelResolver.class);
         if (assistant.getStatus() == AgentChatStatusEnum.RUNNING) {
             assistant.setStatus(AgentChatStatusEnum.COMPLETED);
-            channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
+
+            agentChannelResolver.getAgentRecordStore().saveAssistant(execution, assistant);
             AgentEndEvent endEvent = CastUtils.cast(event);
 
             CustomizeMetadata metadata = new CustomizeMetadata();
@@ -56,10 +51,10 @@ public class AgentEndEventResolver implements AgentEventResolver {
             metadata.getMetadata().put(SystemConstants.STATUS_TABLE_FIELD_NAME, assistant.getStatus());
             result.add(metadata);
         }
-        channelResolver(execution.getChannel()).getAgentRecordStore().saveConversationStatus(execution, assistant.getStatus());
+        agentChannelResolver.getAgentRecordStore().saveConversationStatus(execution, assistant.getStatus());
 
         AgentStatusContentMetadata metadata = new AgentStatusContentMetadata();
-        metadata.setId(assistant.getAgentConversationId().toString());
+        metadata.setId(assistant.getAgentConversationId());
         metadata.setStatus(assistant.getStatus());
         metadata.setAssistantMessageId(assistant.getId());
 

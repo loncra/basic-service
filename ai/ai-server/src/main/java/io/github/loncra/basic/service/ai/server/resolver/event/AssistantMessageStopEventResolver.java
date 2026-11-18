@@ -9,7 +9,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.CustomizeMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageContentTypeEnum;
-import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
@@ -23,12 +22,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AssistantMessageStopEventResolver implements AgentEventResolver {
 
-    private final List<AgentChannelResolver> channelResolvers;
-
-    private AgentChannelResolver channelResolver(ExecutionChannelEnum channel) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel);
-    }
-
     @Override
     public boolean isSupport(AgentEvent event) {
         return AssistantMessageStopEvent.class.isAssignableFrom(event.getClass());
@@ -40,10 +33,12 @@ public class AssistantMessageStopEventResolver implements AgentEventResolver {
             AgentEvent event,
             RuntimeContext context
     ) {
+        AgentChannelResolver agentChannelResolver = context.get(AgentChannelResolver.class);
+
         AssistantMessageStopEvent stopEvent = CastUtils.cast(event);
         assistant.setStatus(AgentChatStatusEnum.STOPPED);
         AgentExecutionMetadata execution = context.get(AgentExecutionMetadata.class);
-        channelResolver(execution.getChannel()).getAgentRecordStore().saveAssistant(execution, assistant);
+        agentChannelResolver.getAgentRecordStore().saveAssistant(execution, assistant);
 
         CustomizeMetadata metadata = new CustomizeMetadata();
         metadata.setId(stopEvent.getId());

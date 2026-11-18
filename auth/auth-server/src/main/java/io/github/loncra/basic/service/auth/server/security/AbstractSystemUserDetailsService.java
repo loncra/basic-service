@@ -1,11 +1,13 @@
 package io.github.loncra.basic.service.auth.server.security;
 
 import io.github.loncra.basic.service.auth.api.domain.AbstractBasicSystemUser;
+import io.github.loncra.basic.service.auth.api.enumerate.TerminalTypeEnum;
 import io.github.loncra.basic.service.auth.server.domain.entity.ResourceEntity;
 import io.github.loncra.basic.service.auth.server.domain.entity.RoleEntity;
 import io.github.loncra.basic.service.auth.server.service.merchant.OpenPlatformMerchantService;
 import io.github.loncra.basic.service.auth.server.service.resource.plugin.PluginResourceService;
 import io.github.loncra.basic.service.auth.server.service.role.RoleService;
+import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CacheProperties;
@@ -22,6 +24,7 @@ import io.github.loncra.framework.spring.security.core.authentication.AbstractTy
 import io.github.loncra.framework.spring.security.core.authentication.config.AuthenticationProperties;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.security.core.authentication.token.TypeAuthenticationToken;
+import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationDetails;
 import io.github.loncra.framework.spring.security.core.entity.AuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.security.core.entity.support.AccessTokenAuditAuthenticationSuccessDetails;
 import io.github.loncra.framework.spring.security.core.plugin.PluginEndpoint;
@@ -51,6 +54,7 @@ import java.util.*;
 @Setter(onMethod_ = @Autowired)
 @EqualsAndHashCode(callSuper = true)
 public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSystemUser> extends AbstractTypeSecurityPrincipalService {
+
 
     private PluginResourceService pluginResourceService;
 
@@ -162,6 +166,10 @@ public abstract class AbstractSystemUserDetailsService<T extends AbstractBasicSy
         AuditAuthenticationSuccessDetails details = super.getPrincipalDetails(principal, token, successToken, grantedAuthorities);
 
         preGetPrincipalDetails(details, principal, successToken);
+        if (token.getDetails() instanceof AuditAuthenticationDetails authDetails) {
+            String terminal = authDetails.getRequestParameters().getFirst(PrincipalDetailsConstants.TERMINAL_KEY);
+            details.getMetadata().put(PrincipalDetailsConstants.TERMINAL_KEY, StringUtils.defaultIfEmpty(terminal, TerminalTypeEnum.BROWSER.toString()));
+        }
 
         AccessToken accessToken = openPlatformMerchantService.createInternalAccessToken(successToken);
         if (Objects.isNull(accessToken)) {

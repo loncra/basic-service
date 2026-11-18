@@ -17,6 +17,7 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBo
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.AbstractAssistantMessageContentMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecuteMessageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
 import io.github.loncra.basic.service.ai.server.domain.metadata.content.AgentStatusContentMetadata;
@@ -26,13 +27,12 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.*;
 import io.github.loncra.basic.service.ai.server.interceptor.AgentStreamEventInterceptor;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentEventResolver;
-import io.github.loncra.basic.service.ai.server.resolver.AgentPluginMessageContentResolver;
+import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.AgentSseStreamPublishResolver;
 import io.github.loncra.basic.service.ai.server.resolver.event.AbstractAgentEventResolver;
 import io.github.loncra.basic.service.ai.server.utils.ReactorContextUtils;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
-import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -43,7 +43,6 @@ import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -75,10 +74,19 @@ public class AgentManager {
 
     private final StreamConfig streamConfig;
 
-    private final List<AgentPluginMessageContentResolver> pluginMessageContentResolvers;
+    /*private final List<AgentPluginMessageContentResolver> pluginMessageContentResolvers;*/
 
-    @Getter
     private final List<AgentChannelResolver> channelResolvers;
+
+    public AgentChannelResolver getChannelResolver(
+            ExecutionChannelEnum channel
+    ) {
+        Objects.requireNonNull(channel, "执行通道不能为空");
+        return channelResolvers.stream()
+                .filter(s -> s.getChannel().equals(channel))
+                .findFirst()
+                .orElseThrow(() -> new SystemException("找不到通道 [" + channel + "] 的解析器"));
+    }
 
     @Concurrent(
             value = CONCURRENT_PREFIX + "[#body.channel]:[#body.agentConversationId]",
@@ -89,8 +97,11 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return AgentChannelResolver.channelResolver(channelResolvers, body.getChannel())
-                .chat(body, token, deviceIdentified);
+        return getChannelResolver(body.getChannel()).chat(
+                body,
+                token,
+                deviceIdentified
+        );
     }
 
     public Flux<ServerSentEvent<String>> stream(
@@ -101,7 +112,7 @@ public class AgentManager {
             String deviceIdentified
     ) {
         AgentMessageEntity assistant = Objects.requireNonNull(
-                AgentChannelResolver.channelResolver(channelResolvers, channel).getAgentRecordStore().getMessage(token.getName(), assistantMessageId, deviceIdentified),
+                getChannelResolver(channel).getAgentRecordStore().getMessage(token.getName(), assistantMessageId, deviceIdentified),
                 "执行 [" + assistantMessageId + "] 不存在或已结束"
         );
         SystemException.isTrue(AgentMessageRoleEnum.ASSISTANT.equals(assistant.getRole()), "ID 为 [" + assistantMessageId + "] 的消息记录非助手消息");
@@ -117,7 +128,10 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel).findConversations(token, deviceIdentified);
+        return getChannelResolver(channel).findConversations(
+                token,
+                deviceIdentified
+        );
     }
 
     public String saveWorkspace(
@@ -126,9 +140,12 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentConversationEntity entity = AgentChannelResolver.channelResolver(channelResolvers, channel)
-                .saveWorkspace(body, token, deviceIdentified, AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE);
-
+        AgentConversationEntity entity = getChannelResolver(channel).saveWorkspace(
+                body,
+                token,
+                deviceIdentified,
+                AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE
+        );
         return entity.getId();
     }
 
@@ -141,7 +158,14 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel).histories(request, filter, conversationId, totalPage, token, deviceIdentified);
+        return getChannelResolver(channel).histories(
+                request,
+                filter,
+                conversationId,
+                totalPage,
+                token,
+                deviceIdentified
+        );
     }
 
     public int positioningMessagePageNumber(
@@ -152,8 +176,7 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return AgentChannelResolver.channelResolver(channelResolvers, channel)
-                .getAgentRecordStore()
+        return getChannelResolver(channel).getAgentRecordStore()
                 .positioningMessagePageNumber(
                         token.getName(),
                         conversationId,
@@ -166,7 +189,7 @@ public class AgentManager {
     public void execute(AgentExecutionMetadata execution) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
         ExecutionChannelEnum channel = execution.getChannel();
-        AgentChannelResolver resolver = AgentChannelResolver.channelResolver(channelResolvers,channel);
+        AgentChannelResolver resolver = getChannelResolver(channel);
 
         Flux<AbstractAssistantMessageContentMetadata> flux;
         if (AgentChatStatusEnum.REQUEST_STOP.equals(assistant.getStatus())) {
@@ -241,14 +264,18 @@ public class AgentManager {
 
         ReactorContextUtils.captureContext(flux)
                 .subscribe(
-                        s -> {},
+                        s -> {
+                        },
                         error -> onError(error, execution)
                                 .doOnNext(s -> publishStreamEvent(s, assistant, null))
                                 .subscribe()
                 );
     }
 
-    private AgentExecutionMetadata rejectExecution(AgentExecutionMetadata execution, AgentMessageEntity rejectAssistantMessage) {
+    private AgentExecutionMetadata rejectExecution(
+            AgentExecutionMetadata execution,
+            AgentMessageEntity rejectAssistantMessage
+    ) {
         AgentExecutionMetadata rejectExecution = new AgentExecutionMetadata();
         rejectExecution.setChannel(execution.getChannel());
         rejectExecution.setDeviceIdentified(execution.getDeviceIdentified());
@@ -259,11 +286,14 @@ public class AgentManager {
         return rejectExecution;
     }
 
-    private AgentMessageEntity resolveUserMessage(AgentExecutionMetadata execution, AgentMessageEntity assistantMessage) {
+    private AgentMessageEntity resolveUserMessage(
+            AgentExecutionMetadata execution,
+            AgentMessageEntity assistantMessage
+    ) {
         if (Objects.equals(execution.getAssistantMessage().getParentId(), assistantMessage.getParentId())) {
             return execution.getUserMessage();
         }
-        return AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
+        return getChannelResolver(execution.getChannel())
                 .getAgentRecordStore()
                 .getMessage(
                         assistantMessage.getPrincipal(),
@@ -272,7 +302,10 @@ public class AgentManager {
                 );
     }
 
-    private List<ConfirmResult> createRejectConfirmResults(AgentExecutionMetadata execution, AgentMessageEntity assistantMessage) {
+    private List<ConfirmResult> createRejectConfirmResults(
+            AgentExecutionMetadata execution,
+            AgentMessageEntity assistantMessage
+    ) {
         List<ConfirmResult> confirmResults = assistantMessage.obtainMessageContents()
                 .stream()
                 .filter(s -> AgentMessageContentTypeEnum.TOOL_CALL.getValue().equals(s.getType()))
@@ -283,9 +316,11 @@ public class AgentManager {
                 .toList();
 
         assistantMessage.setStatus(AgentChatStatusEnum.REJECT_ALL);
-        AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
-                .getAgentRecordStore()
-                .saveAssistant(execution, assistantMessage);
+        getChannelResolver(execution.getChannel()).getAgentRecordStore()
+                .saveAssistant(
+                        execution,
+                        assistantMessage
+                );
 
         return confirmResults;
     }
@@ -297,7 +332,7 @@ public class AgentManager {
     ) {
         AgentMessageEntity assistantMessage = execution.getAssistantMessage();
         ExecutionChannelEnum channel = execution.getChannel();
-        AgentChannelResolver resolver = AgentChannelResolver.channelResolver(channelResolvers, channel);
+        AgentChannelResolver resolver = getChannelResolver(channel);
         if (!AgentChatStatusEnum.REJECT_ALL.equals(assistantMessage.getStatus())) {
             assistantMessage.setStatus(AgentChatStatusEnum.RUNNING);
             resolver.getAgentRecordStore().saveAssistant(execution, assistantMessage);
@@ -326,8 +361,7 @@ public class AgentManager {
             AgentMessageEntity userMessage
     ) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
-        AgentConversationEntity conversation = AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
-                .getAgentRecordStore()
+        AgentConversationEntity conversation = getChannelResolver(execution.getChannel()).getAgentRecordStore()
                 .getConversation(
                         assistant.getPrincipal(),
                         assistant.getAgentConversationId(),
@@ -338,7 +372,7 @@ public class AgentManager {
         context.setAgent(agent);
         context.setUserMessage(userMessage);
         context.setWorkspaceId(resolveWorkspaceId(conversation));
-        applyPluginInstructions(context);
+        //applyPluginInstructions(context);
         String prompt = TextMessageMetadata.ofString(userMessage.getContent());
         if (CollectionUtils.isNotEmpty(context.getMentionSummaries())) {
             prompt = prompt + "\n\n" + String.join("\n", context.getMentionSummaries());
@@ -349,14 +383,14 @@ public class AgentManager {
                 .build();
     }
 
-    private void applyPluginInstructions(AgentPluginInstructionContext context) {
+    /*private void applyPluginInstructions(AgentPluginInstructionContext context) {
         for (AgentPluginMessageContentResolver resolver : pluginMessageContentResolvers) {
             List<InstructionMessageMetadata> hits = resolver.getHits(context.getUserMessage());
             if (CollectionUtils.isNotEmpty(hits)) {
                 resolver.apply(context, hits);
             }
         }
-    }
+    }*/
 
     private String resolveWorkspaceId(AgentConversationEntity conversation) {
         if (conversation == null) {
@@ -401,7 +435,7 @@ public class AgentManager {
     ) {
         boolean cleanStream = resolver.postPublish(message, assistant, context);
         if (!cleanStream) {
-            return ;
+            return;
         }
         TimeProperties timeProperties = streamConfig.getDelayedExecutorCleanTime();
         if (Objects.nonNull(timeProperties)) {
@@ -419,8 +453,12 @@ public class AgentManager {
             AgentExecutionMetadata execution
     ) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
-        AgentConversationEntity conversation = AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel())
-                .getAgentRecordStore().getConversation(assistant.getPrincipal(), assistant.getAgentConversationId(), execution.getDeviceIdentified());
+        AgentConversationEntity conversation = getChannelResolver(execution.getChannel()).getAgentRecordStore()
+                .getConversation(
+                        assistant.getPrincipal(),
+                        assistant.getAgentConversationId(),
+                        execution.getDeviceIdentified()
+                );
         if (Objects.isNull(conversation) || !AgentChatStatusEnum.STREAM_END_STATUS.contains(conversation.getStatus())) {
             log.warn("会话 [{}] 当前未处于完成状态略过推送 STREAM_END 事件", assistant.getId());
             return Flux.empty();
@@ -445,7 +483,7 @@ public class AgentManager {
     ) {
         AgentMessageEntity assistant = execution.getAssistantMessage();
         log.error("助手消息 [{}] 执行失败", assistant.getId(), t);
-        AgentChannelResolver resolver = AgentChannelResolver.channelResolver(channelResolvers, execution.getChannel());
+        AgentChannelResolver resolver = getChannelResolver(execution.getChannel());
         CustomizeMetadata content = new CustomizeMetadata();
         content.setEventType(AgentMessageContentTypeEnum.ERROR);
         content.setId(assistant.getId());
@@ -499,8 +537,7 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        return AgentChannelResolver.channelResolver(channelResolvers, body.getChannel())
-                .resume(body, token, deviceIdentified);
+        return getChannelResolver(body.getChannel()).resume(body, token, deviceIdentified);
     }
 
     public void deleteConversation(
@@ -509,8 +546,7 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentChannelResolver.channelResolver(channelResolvers, channel)
-                .deleteConversation(ids, token, deviceIdentified);
+        getChannelResolver(channel).deleteConversation(ids, token, deviceIdentified);
     }
 
     public String interrupt(
@@ -519,7 +555,7 @@ public class AgentManager {
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        AgentChannelResolver resolver = AgentChannelResolver.channelResolver(channelResolvers, channel);
+        AgentChannelResolver resolver = getChannelResolver(channel);
 
         AgentMessageEntity assistant = Objects.requireNonNull(
                 resolver.getAgentRecordStore().getMessage(token.getName(), assistantMessageId, deviceIdentified),
@@ -534,5 +570,35 @@ public class AgentManager {
         agentSseStreamPublishResolver.interrupt(assistant);
 
         return assistant.getAgentConversationId();
+    }
+
+    public AgentExecutionMetadata getAgentExecutionMetadata(
+            AgentExecuteMessageMetadata message,
+            AuditAuthenticationToken token
+    ) {
+        AgentChannelResolver channelResolver = getChannelResolver(message.getChannel());
+        AgentRecordStore agentRecordStore = channelResolver.getAgentRecordStore();
+        AgentMessageEntity assistant = agentRecordStore.getMessage(token.getName(), message.getRef(), message.getDeviceIdentified());
+        if (Objects.isNull(assistant)) {
+            return null;
+        }
+
+        AgentMessageEntity userMessage = Objects.requireNonNull(
+                agentRecordStore.getMessage(token.getName(), assistant.getParentId(), message.getDeviceIdentified()),
+                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录"
+        );
+        AgentConversationEntity conversation = Objects.requireNonNull(
+                agentRecordStore.getConversation(token.getName(), assistant.getAgentConversationId(), message.getDeviceIdentified()),
+                "找不到 ID 为 [" + assistant.getAgentConversationId() + "] 的会话内容"
+        );
+
+        AgentExecutionMetadata execution = new AgentExecutionMetadata();
+        execution.setChannel(message.getChannel());
+        execution.setDeviceIdentified(message.getDeviceIdentified());
+        execution.setClientConversationId(assistant.getAgentConversationId());
+        execution.setConversation(conversation);
+        execution.setUserMessage(userMessage);
+        execution.setAssistantMessage(assistant);
+        return execution;
     }
 }

@@ -7,6 +7,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.spring.security.core.audit.OperationDataTrace;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
+import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,20 +37,24 @@ public class AiUserPluginInstallController {
             @RequestBody
             UserPluginInstallRequestBody body,
             @CurrentSecurityContext
-            SecurityContext securityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return RestResult.ofSuccess("安装成功", aiUserPluginInstallService.install(body, token));
+        return RestResult.ofSuccess("安装成功", aiUserPluginInstallService.install(body, token, deviceIdentified));
     }
 
     @PostMapping("my")
     @PreAuthorize("isFullyAuthenticated()")
     public List<UserPluginInstallResult> my(
             @CurrentSecurityContext
-            SecurityContext securityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return aiUserPluginInstallService.find(token);
+        return aiUserPluginInstallService.find(token, deviceIdentified);
     }
 
     @DeleteMapping("/{id:\\d+}")

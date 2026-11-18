@@ -1,41 +1,19 @@
 package io.github.loncra.basic.service.ai.server.service.skill;
 
-import freemarker.template.Configuration;
-import freemarker.template.Template;
-import io.agentscope.core.agent.RuntimeContext;
-import io.agentscope.core.skill.AgentSkill;
-import io.agentscope.core.skill.util.SkillUtil;
-import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
-import io.agentscope.harness.agent.filesystem.model.*;
 import io.github.loncra.basic.service.ai.server.config.SkillConfig;
-import io.github.loncra.basic.service.ai.server.domain.NoCloseMcpClientWrapper;
-import io.github.loncra.basic.service.ai.server.domain.metadata.McpSkillGenerateMetadata;
-import io.github.loncra.basic.service.ai.server.domain.metadata.clarify.McpClarifyToolPolicyMetadata;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
-import io.github.loncra.framework.commons.CastUtils;
-import io.github.loncra.framework.commons.exception.SystemException;
-import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.RegExUtils;
-import nl.basjes.parse.useragent.yauaa.shaded.org.apache.commons.lang3.StringUtils;
-import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
-import org.springframework.util.AntPathMatcher;
-
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Deprecated
 public class McpSkillSyncRunner implements ApplicationRunner {
 
     public static final String SOURCE_PREFIX = "mcpAssociated";
@@ -49,7 +27,7 @@ public class McpSkillSyncRunner implements ApplicationRunner {
     @Async
     @Override
     public void run(ApplicationArguments args) {
-        AbstractFilesystem filesystem = sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(skillConfig.getMcp().getAssociatedPath());
+        /*AbstractFilesystem filesystem = sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(skillConfig.getSystemMcpAssociated().getPath());
         List<NoCloseMcpClientWrapper> mcpPackages = aiMcpPackageService.getMcpClientCache()
                 .values()
                 .stream()
@@ -59,7 +37,7 @@ public class McpSkillSyncRunner implements ApplicationRunner {
                 .toList();
         for (NoCloseMcpClientWrapper wrapper : mcpPackages) {
             try {
-                List<McpSchema.Tool> tools = wrapper.listTools().block(skillConfig.getMcp().getTimeout().toDuration());
+                List<McpSchema.Tool> tools = wrapper.listTools().block(skillConfig.getSystemMcpAssociated().getTimeout().toDuration());
 
                 McpSkillGenerateMetadata model = CastUtils.of(wrapper.getMetadata(), McpSkillGenerateMetadata.class);
                 model.setId(wrapper.getName());
@@ -107,12 +85,12 @@ public class McpSkillSyncRunner implements ApplicationRunner {
         root.entries().stream()
                 .filter(FileInfo::isDirectory)
                 .filter(s -> !activeNames.contains(RegExUtils.replaceAll(s.path(), AntPathMatcher.DEFAULT_PATH_SEPARATOR, StringUtils.EMPTY)))
-                .forEach(s -> filesystem.delete(RuntimeContext.empty(), s.path()));
+                .forEach(s -> filesystem.delete(RuntimeContext.empty(), s.path()));*/
     }
 
-    public List<AgentSkill> loadAssociatedSkills() {
+    /*public List<AgentSkill> loadAssociatedSkills() {
         AbstractFilesystem filesystem = sourceOfTruthFileSystemFactory
-                .getSourceOfTruthFileSystem(skillConfig.getMcp().getAssociatedPath());
+                .getSourceOfTruthFileSystem(skillConfig.getSystemMcpAssociated().getPath());
         GlobResult glob = filesystem.glob(RuntimeContext.empty(), skillConfig.getFilename(), StringUtils.EMPTY);
         if (!glob.isSuccess()) {
             return List.of();
@@ -126,5 +104,5 @@ public class McpSkillSyncRunner implements ApplicationRunner {
             skills.add(SkillUtil.createFrom(read.fileData().content(), Map.of(), SOURCE_PREFIX));
         }
         return skills;
-    }
+    }*/
 }

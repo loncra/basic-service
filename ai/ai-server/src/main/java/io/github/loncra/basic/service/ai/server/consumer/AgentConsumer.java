@@ -7,7 +7,6 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentMessageRoleEnum;
-import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.framework.commons.CastUtils;
@@ -66,8 +65,7 @@ public class AgentConsumer {
 
         AgentExecutionMetadata execution;
         try {
-            AgentChannelResolver resolver = AgentChannelResolver.channelResolver(agentManager.getChannelResolvers(), executeMessage.getChannel());
-            execution = resolver.getAgentExecutionMetadata(executeMessage, token);
+            execution = agentManager.getAgentExecutionMetadata(executeMessage, token);
         }
         catch (Exception e) {
             log.info("执行引用 [{}] 组装执行内容失败，跳过执行: {}", executeMessage.getRef(), e.getMessage());

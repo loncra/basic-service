@@ -16,7 +16,7 @@ import io.agentscope.harness.agent.skill.runtime.SkillLoadTool;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
 import io.github.loncra.basic.service.ai.server.resolver.AbstractAgentPluginMessageContentResolver;
-import io.github.loncra.basic.service.ai.server.service.agent.HubSkillRepository;
+import io.github.loncra.basic.service.ai.server.service.agent.UserPluginRuntimeContextSkillRepository;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import lombok.RequiredArgsConstructor;
@@ -59,8 +59,8 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
         if (context == null || CollectionUtils.isEmpty(hits)) {
             return;
         }
-        HubSkillRepository hubSkillRepository = findHubSkillRepository(context.getAgent());
-        if (hubSkillRepository == null) {
+        UserPluginRuntimeContextSkillRepository userPluginRuntimeContextSkillRepository = findHubSkillRepository(context.getAgent());
+        if (userPluginRuntimeContextSkillRepository == null) {
             log.warn("点名 Skill 找不到 Hub 仓，跳过");
             return;
         }
@@ -68,7 +68,7 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
         List<String> loadedNames = new LinkedList<>();
         for (Long packageId : packageIds) {
             try {
-                String loadedName = loadIfPresent(context, hubSkillRepository, packageId);
+                String loadedName = loadIfPresent(context, userPluginRuntimeContextSkillRepository, packageId);
                 if (StringUtils.isNotBlank(loadedName)) {
                     loadedNames.add(loadedName);
                 }
@@ -84,7 +84,7 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
 
     private String loadIfPresent(
             AgentPluginInstructionContext context,
-            HubSkillRepository hubSkillRepository,
+            UserPluginRuntimeContextSkillRepository userPluginRuntimeContextSkillRepository,
             Long packageId
     ) {
         AiSkillPackageEntity skillPackage = aiSkillPackageService.get(packageId);
@@ -93,11 +93,11 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
             return null;
         }
         String packageKey = skillPackage.getPackageKey();
-        if (!hubSkillRepository.skillExists(packageKey)) {
+        if (!userPluginRuntimeContextSkillRepository.skillExists(packageKey)) {
             log.warn("点名 Skill 不在 Hub 仓，跳过 packageId={} packageKey={}", packageId, packageKey);
             return null;
         }
-        AgentSkill skill = hubSkillRepository.getSkill(packageKey);
+        AgentSkill skill = userPluginRuntimeContextSkillRepository.getSkill(packageKey);
         if (skill == null || StringUtils.isBlank(skill.getSkillContent())) {
             log.warn("点名 Skill 读仓失败，跳过 packageId={} packageKey={}", packageId, packageKey);
             return null;
@@ -153,13 +153,13 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
         return true;
     }
 
-    private HubSkillRepository findHubSkillRepository(HarnessAgent agent) {
+    private UserPluginRuntimeContextSkillRepository findHubSkillRepository(HarnessAgent agent) {
         if (agent == null || CollectionUtils.isEmpty(agent.getSkillRepositories())) {
             return null;
         }
         for (AgentSkillRepository repository : agent.getSkillRepositories()) {
-            if (repository instanceof HubSkillRepository hubSkillRepository) {
-                return hubSkillRepository;
+            if (repository instanceof UserPluginRuntimeContextSkillRepository userPluginRuntimeContextSkillRepository) {
+                return userPluginRuntimeContextSkillRepository;
             }
         }
         return null;

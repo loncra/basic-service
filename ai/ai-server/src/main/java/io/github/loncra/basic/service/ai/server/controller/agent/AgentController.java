@@ -53,14 +53,16 @@ public class AgentController {
     public AgentChatResponseBody chat(
             @RequestBody
             AgentChatRequestBody body,
-            @CurrentSecurityContext SecurityContext securityContext,
-            HttpServletRequest request
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ){
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.chat(
                 body,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
     }
 
@@ -68,14 +70,16 @@ public class AgentController {
     public AgentChatBasicResponseBody resume(
             @RequestBody
             AgentResumeRequestBody body,
-            @CurrentSecurityContext SecurityContext securityContext,
-            HttpServletRequest request
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.resume(
                 body,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
     }
 
@@ -87,14 +91,15 @@ public class AgentController {
             ExecutionChannelEnum channel,
             @CurrentSecurityContext
             SecurityContext securityContext,
-            HttpServletRequest request
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         String sessionId = agentManager.interrupt(
                 assistantMessageId,
                 channel,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
         return RestResult.of("中断 [" + sessionId + "] 会话成功");
     }
@@ -107,8 +112,10 @@ public class AgentController {
             ExecutionChannelEnum channel,
             @RequestParam(required = false, defaultValue = "true")
             boolean loadHistory,
-            @CurrentSecurityContext SecurityContext securityContext,
-            HttpServletRequest request
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.stream(
@@ -116,7 +123,7 @@ public class AgentController {
                 channel,
                 loadHistory,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
     }
 
@@ -130,7 +137,8 @@ public class AgentController {
             boolean totalPage,
             @PathVariable
             String conversationId,
-            @CurrentSecurityContext SecurityContext securityContext
+            @CurrentSecurityContext
+            SecurityContext securityContext
     ) {
         MultiValueMap<String, String> parameter = HttpRequestParameterMapUtils.castMapToMultiValueMap(request.getParameterMap());
         MultiValueMap<String, Object> filter = new LinkedMultiValueMap<>();
@@ -159,7 +167,8 @@ public class AgentController {
             ExecutionChannelEnum channel,
             @CurrentSecurityContext
             SecurityContext securityContext,
-            HttpServletRequest request
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return RestResult.ofSuccess(
@@ -169,7 +178,7 @@ public class AgentController {
                         messageId,
                         pageSize,
                         token,
-                        request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                        deviceIdentified
                 )
         );
     }
@@ -183,14 +192,15 @@ public class AgentController {
             IdNameMetadata body,
             @CurrentSecurityContext
             SecurityContext securityContext,
-            HttpServletRequest request
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         String id = agentManager.saveWorkspace(
                 channel,
                 body,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
         return RestResult.of("保存成功", HttpStatus.OK.value(), String.valueOf(HttpStatus.OK.value()), id);
     }
@@ -201,13 +211,14 @@ public class AgentController {
             ExecutionChannelEnum channel,
             @CurrentSecurityContext
             SecurityContext securityContext,
-            HttpServletRequest request
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.findConversations(
                 channel,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
     }
 
@@ -219,14 +230,15 @@ public class AgentController {
             ExecutionChannelEnum channel,
             @CurrentSecurityContext
             SecurityContext securityContext,
-            HttpServletRequest request
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         agentManager.deleteConversation(
                 ids,
                 channel,
                 token,
-                request.getHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+                deviceIdentified
         );
         return RestResult.of("删除" + ids.size() + "条记录成功");
     }

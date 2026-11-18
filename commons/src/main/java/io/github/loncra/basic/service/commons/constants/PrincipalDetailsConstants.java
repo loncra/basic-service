@@ -84,6 +84,8 @@ public interface PrincipalDetailsConstants {
 
     String ENTERPRISE_ID_KEY = "enterpriseId";
 
+    String TERMINAL_KEY = "terminal";
+
     static void equals(
             AuditPrincipal source,
             AuditAuthenticationToken target
@@ -164,5 +166,10 @@ public interface PrincipalDetailsConstants {
                 details.getMetadata().get(REAL_NAME_KEY),
                 Objects.toString(details.getMetadata().get(NICKNAME_KEY), token.getName())
         );
+    }
+
+    static String getTerminal(AuditAuthenticationToken token) {
+        AuditAuthenticationSuccessDetails details = CastUtils.cast(token.getDetails());
+        return details.getMetadata().get(TERMINAL_KEY).toString();
     }
 }
