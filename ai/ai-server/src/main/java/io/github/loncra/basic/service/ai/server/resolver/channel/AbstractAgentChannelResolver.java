@@ -44,28 +44,17 @@ import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.IdEntity;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
-import io.github.loncra.framework.commons.page.Page;
-import io.github.loncra.framework.commons.page.PageRequest;
-import io.github.loncra.framework.commons.page.TotalPage;
 import io.github.loncra.framework.commons.tree.TreeUtils;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.MultiValueMap;
 
 import java.util.*;
 import java.util.function.Function;
 
 @Setter(onMethod_ = {@Autowired})
 public abstract class AbstractAgentChannelResolver implements AgentChannelResolver {
-
-    public static final String WORKSPACE_KIND_METADATA_KEY = "kind";
-
-    public static final String WORKSPACE_KEY_METADATA_KEY = "key";
-
-    public static final String WORKSPACE_ROOTS_METADATA_KEY = "roots";
 
     protected ModelSettingService modelSettingService;
 
@@ -79,31 +68,13 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
 
     protected SnowflakeIdGenerateService snowflakeIdGenerateService;
 
-    protected ConversationConfig conversationConfig;
-
     protected UserPluginRuntimeContextSkillRepository userPluginRuntimeContextSkillRepository;
+
+    protected ConversationConfig conversationConfig;
 
     protected ModelSettingMetadata resolveModelMetadata(Long modelId) {
         ModelSettingEntity model = Objects.requireNonNull(modelSettingService.get(modelId), "找不到 ID 为 [" + modelId + "] 的模型数据");
         return CastUtils.of(model, ModelSettingMetadata.class);
-    }
-
-    protected AgentConversationEntity buildBasicConversation(
-            String principal,
-            AgentConversationTypeEnum type
-    ) {
-        AgentConversationEntity entity = new AgentConversationEntity();
-        entity.setId(snowflakeIdGenerateService.generateSnowflakeId());
-        entity.setStatus(AgentChatStatusEnum.READY);
-        entity.setPrincipal(principal);
-        entity.setType(type);
-        if (type.equals(AgentConversationTypeEnum.WORKSPACE_CONVERSATION)) {
-            entity.setGenerateNameStatus(ExecuteStatus.Pending);
-        } else {
-            entity.setGenerateNameStatus(ExecuteStatus.Success);
-        }
-        entity.getMetadata().put(WORKSPACE_KIND_METADATA_KEY, getChannel().getValue());
-        return entity;
     }
 
     protected AgentMessageEntity buildUserMessage(
@@ -147,6 +118,102 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         return responseBody;
     }
 
+    protected AgentConversationEntity buildBasicConversation(
+            String principal,
+            AgentConversationTypeEnum type
+    ) {
+        AgentConversationEntity entity = new AgentConversationEntity();
+        entity.setId(snowflakeIdGenerateService.generateSnowflakeId());
+        entity.setStatus(AgentChatStatusEnum.READY);
+        entity.setPrincipal(principal);
+        entity.setType(type);
+        if (type.equals(AgentConversationTypeEnum.WORKSPACE_CONVERSATION)) {
+            entity.setGenerateNameStatus(ExecuteStatus.Pending);
+        } else {
+            entity.setGenerateNameStatus(ExecuteStatus.Success);
+        }
+        entity.getMetadata().put(AgentChannelResolver.WORKSPACE_KIND_METADATA_KEY, getChannel());
+        return entity;
+    }
+
+    @Override
+    public List<AgentConversationEntity> findConversations(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        List<AgentConversationEntity> data = getAgentRecordStore().listConversations(token.getName(), deviceIdentified).stream()
+                .sorted(Comparator.comparing(AgentConversationEntity::getId).reversed())
+                .toList();
+        List<AgentConversationEntity> result = new LinkedList<>(data);
+        if (data.stream().noneMatch(s -> AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(s.getType()))) {
+            AgentConversationEntity entity = createDefaultIfNotExist(token, deviceIdentified);
+            result.add(entity);
+        }
+        return TreeUtils.buildGenericTree(result);
+    }
+
+    protected AgentConversationEntity createDefaultIfNotExist(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        AgentConversationEntity entity = getDefaultWorkspace(token, deviceIdentified);
+
+        if (Objects.isNull(entity)) {
+            IdNameMetadata body = IdNameMetadata.of(StringUtils.EMPTY, conversationConfig.getDefaultWorkspaceName());
+            entity = saveWorkspace(
+                    body,
+                    token,
+                    deviceIdentified,
+                    AgentConversationTypeEnum.DEFAULT_WORKSPACE
+            );
+        }
+
+        return entity;
+    }
+
+    public AgentConversationEntity getDefaultWorkspace(
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    ) {
+        return getAgentRecordStore().listConversations(token.getName(), deviceIdentified).stream()
+                .filter(item -> AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(item.getType()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
+    public AgentConversationEntity saveWorkspace(
+            IdNameMetadata body,
+            AuditAuthenticationToken token,
+            String deviceIdentified,
+            AgentConversationTypeEnum type
+    ) {
+        AgentConversationEntity entity;
+        if (StringUtils.isEmpty(body.getId())) {
+            entity = buildBasicConversation(token.getName(), type);
+            entity.setName(body.getName());
+            entity.getMetadata().putAll(body.getMetadata());
+
+            preCreateWorkspace(entity, token, deviceIdentified);
+            getAgentRecordStore().insertConversation(entity, deviceIdentified);
+        } else {
+            entity = getAgentRecordStore().getConversation(token.getName(), body.getId(), deviceIdentified);
+            entity.setName(body.getName());
+            entity.getMetadata().putAll(body.getMetadata());
+
+            preCreateWorkspace(entity, token, deviceIdentified);
+            getAgentRecordStore().updateConversation(entity, deviceIdentified);
+        }
+
+        return entity;
+    }
+
+    protected abstract void preCreateWorkspace(
+            AgentConversationEntity workspace,
+            AuditAuthenticationToken token,
+            String deviceIdentified
+    );
+
     @Override
     public HarnessAgent createHarnessAgent(AgentExecutionMetadata execution) {
 
@@ -161,7 +228,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                 .model(modelResolverMetadata.getModel())
                 .toolkit(modelResolverMetadata.getToolkit())
                 .enableMetaTool(true)
-                .stateStore(openStateStore(execution))
+                .stateStore(getAgentStateStore(execution))
                 .compaction(aiAppConfig.toCompactionConfig())
                 .transcriptTenant(SourceOfTruthFileSystemFactory.TRANSCRIPTS_DIR)
                 .skillRepository(userPluginRuntimeContextSkillRepository)
@@ -189,7 +256,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
     }
 
     @Override
-    public AgentStateStore openStateStore(BasicAgentExecutionMetadata execution) {
+    public AgentStateStore getAgentStateStore(BasicAgentExecutionMetadata execution) {
         return new FilesystemAgentStateStore(openRecords(execution.getDeviceIdentified()));
     }
 
@@ -198,7 +265,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             BasicAgentExecutionMetadata basic,
             AuditAuthenticationToken token
     ) {
-        AgentState state = openStateStore(basic)
+        AgentState state = getAgentStateStore(basic)
                 .get(
                         AgentMessageEntity.obtainUserId(token.getName()),
                         basic.getClientConversationId(),
@@ -256,39 +323,12 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
     }
 
     @Override
-    public AgentConversationEntity saveWorkspace(
-            IdNameMetadata body,
-            AuditAuthenticationToken token,
-            String deviceIdentified,
-            AgentConversationTypeEnum type
-    ) {
-        AgentConversationEntity entity;
-        if (StringUtils.isEmpty(body.getId())) {
-            entity = buildBasicConversation(token.getName(), type);
-            entity.setName(body.getName());
-            entity.getMetadata().putAll(body.getMetadata());
-
-            preCreateWorkspace(entity, token, deviceIdentified);
-            getAgentRecordStore().insertConversation(entity, deviceIdentified);
-        } else {
-            entity = getAgentRecordStore().getConversation(token.getName(), body.getId(), deviceIdentified);
-            entity.setName(body.getName());
-            entity.getMetadata().putAll(body.getMetadata());
-
-            preCreateWorkspace(entity, token, deviceIdentified);
-            getAgentRecordStore().updateConversation(entity, deviceIdentified);
-        }
-
-        return entity;
-    }
-
-    @Override
     public AgentChatResponseBody chat(
             AgentChatRequestBody body,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-
+        AgentRecordStore agentRecordStore = getAgentRecordStore();
         AgentConversationEntity conversation;
 
         if (Objects.isNull(body.getAgentConversationId())) {
@@ -296,7 +336,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             SystemException.isTrue(Objects.nonNull(conversation), "默认工作空间不存在，请先打开智能体页面完成初始化");
         } else {
             conversation = Objects.requireNonNull(
-                    getAgentRecordStore().getConversation(token.getName(), body.getAgentConversationId(), deviceIdentified),
+                    agentRecordStore.getConversation(token.getName(), body.getAgentConversationId(), deviceIdentified),
                     "找不到 ID 为 [" + body.getAgentConversationId() + "] 的会话内容"
             );
         }
@@ -323,8 +363,8 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         AgentMessageEntity userMessage = buildUserMessage(body, modelMetadata, conversation.getId(), token.getName());
 
         AgentMessageEntity assistantMessage = buildAssistantMessage(userMessage, conversation.getId());
-        getAgentRecordStore().saveMessage(userMessage, deviceIdentified);
-        getAgentRecordStore().saveMessage(assistantMessage, deviceIdentified);
+        agentRecordStore.saveMessage(userMessage, deviceIdentified);
+        agentRecordStore.saveMessage(assistantMessage, deviceIdentified);
 
         agentSseStreamPublishResolver.sendExecuteMessage(
                 AgentExecuteMessageMetadata.of(getChannel(), assistantMessage.getId(), deviceIdentified),
@@ -336,61 +376,6 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         agentSseStreamPublishResolver.publishStreamStart(conversation.getId(), assistantMessage.getId());
 
         return responseBody;
-    }
-
-    protected AgentConversationEntity getDefaultWorkspace(
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        return getAgentRecordStore().listConversations(token.getName(), deviceIdentified).stream()
-                .filter(item -> AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(item.getType()))
-                .findFirst()
-                .orElse(null);
-    }
-
-    @Override
-    public List<AgentConversationEntity> findConversations(
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        List<AgentConversationEntity> data = doFindConversations(token, deviceIdentified);
-        List<AgentConversationEntity> result = new LinkedList<>(Objects.requireNonNullElse(data, new LinkedList<>()));
-        if (data.stream().noneMatch(s -> AgentConversationTypeEnum.DEFAULT_WORKSPACE.equals(s.getType()))) {
-            AgentConversationEntity entity = createDefaultIfNotExist(token, deviceIdentified);
-            result.add(entity);
-        }
-        return TreeUtils.buildGenericTree(result);
-    }
-
-    protected AgentConversationEntity createDefaultIfNotExist(
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        AgentConversationEntity entity = getDefaultWorkspace(token, deviceIdentified);
-
-        if (Objects.isNull(entity)) {
-            IdNameMetadata body = IdNameMetadata.of(StringUtils.EMPTY, conversationConfig.getDefaultWorkspaceName());
-            entity = saveWorkspace(body, token, deviceIdentified, AgentConversationTypeEnum.DEFAULT_WORKSPACE);
-        }
-
-        return entity;
-    }
-
-    protected void preCreateWorkspace(
-            AgentConversationEntity workspace,
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-
-    }
-
-    protected List<AgentConversationEntity> doFindConversations(
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        return getAgentRecordStore().listConversations(token.getName(), deviceIdentified).stream()
-                .sorted(Comparator.comparing(AgentConversationEntity::getId).reversed())
-                .toList();
     }
 
     @Override
@@ -421,98 +406,10 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         return result;
     }
 
-    @Override
-    public void deleteConversation(
-            String id,
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        AgentConversationEntity conversation = getAgentRecordStore().getConversation(token.getName(), id, deviceIdentified);
-        PrincipalDetailsConstants.equals(conversation, token);
-
-        doDeleteConversation(conversation, token, deviceIdentified);
-
-        BasicAgentExecutionMetadata basic = new BasicAgentExecutionMetadata();
-        basic.setChannel(getChannel());
-        basic.setDeviceIdentified(deviceIdentified);
-        basic.setClientConversationId(conversation.getId());
-        openStateStore(basic).delete(AgentMessageEntity.obtainUserId(conversation.getPrincipal()), conversation.getId());
-
-        agentSseStreamPublishResolver.remove(conversation.getId());
-    }
-
-    protected void doDeleteConversation(
-            AgentConversationEntity conversation,
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        String principal = conversation.getPrincipal();
-        AgentRecordStore store = getAgentRecordStore();
-        store.deleteConversationFiles(conversation, deviceIdentified);
-        store.listConversations(principal, deviceIdentified).stream()
-                .filter(item -> Strings.CS.equals(item.getParentId(), conversation.getId()))
-                .forEach(item -> deleteConversation(item.getId(), token, deviceIdentified));
-    }
-
     protected abstract AbstractFilesystem openRecords(String deviceIdentified);
 
     @Override
     public AgentRecordStore getAgentRecordStore() {
         return new FilesystemAgentRecordStore(this::openRecords);
     }
-
-    @Override
-    public Page<AgentMessageEntity> histories(
-            PageRequest request,
-            MultiValueMap<String, Object> filter,
-            String conversationId,
-            boolean totalPage,
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    ) {
-        String principal = token.getName();
-        AgentConversationEntity conversation = Objects.requireNonNull(
-                getAgentRecordStore().getConversation(principal, conversationId, deviceIdentified),
-                "找不到 ID 为 [" + conversationId + "] 的会话内容"
-        );
-        PrincipalDetailsConstants.equals(conversation, token);
-        List<AgentMessageEntity> messages = getAgentRecordStore().getConversationMessages(principal, conversationId, deviceIdentified).stream()
-                .sorted(Comparator.comparing(AgentMessageEntity::getId).reversed())
-                .toList();
-        List<AgentMessageEntity> elements = messages.subList(
-                Math.min(request.getOffset(), messages.size()),
-                Math.min(request.getOffset() + request.getSize(), messages.size())
-        );
-        return totalPage ? new TotalPage<>(request, elements, messages.size()) : new Page<>(request, elements);
-    }
-
-    /*@Override
-    public AgentExecutionMetadata getAgentExecutionMetadata(
-            AgentExecuteMessageMetadata message,
-            AuditAuthenticationToken token
-    ) {
-
-        AgentMessageEntity assistant = getAgentRecordStore().getMessage(token.getName(), message.getRef(), message.getDeviceIdentified());
-        if (Objects.isNull(assistant)) {
-            return null;
-        }
-
-        AgentMessageEntity userMessage = Objects.requireNonNull(
-                getAgentRecordStore().getMessage(token.getName(), assistant.getParentId(), message.getDeviceIdentified()),
-                "找不到 ID 为 [" + assistant.getParentId() + "] 的用户消息记录")
-        ;
-        AgentConversationEntity conversation = Objects.requireNonNull(
-                getAgentRecordStore().getConversation(token.getName(), assistant.getAgentConversationId(), message.getDeviceIdentified()),
-                "找不到 ID 为 [" + assistant.getAgentConversationId() + "] 的会话内容"
-        );
-
-        AgentExecutionMetadata execution = new AgentExecutionMetadata();
-        execution.setChannel(getChannel());
-        execution.setDeviceIdentified(message.getDeviceIdentified());
-        execution.setClientConversationId(assistant.getAgentConversationId());
-        execution.setConversation(conversation);
-        execution.setUserMessage(userMessage);
-        execution.setAssistantMessage(assistant);
-        return execution;
-    }*/
 }

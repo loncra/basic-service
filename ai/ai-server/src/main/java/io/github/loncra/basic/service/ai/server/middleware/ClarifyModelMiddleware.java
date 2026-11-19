@@ -62,7 +62,7 @@ public class ClarifyModelMiddleware implements MiddlewareBase {
             return next.apply(input);
         }
         AgentExecutionMetadata execution = ctx.get(AgentExecutionMetadata.class);
-        AgentStateStore agentStateStore = ctx.get(AgentChannelResolver.class).openStateStore(execution);
+        AgentStateStore agentStateStore = ctx.get(AgentChannelResolver.class).getAgentStateStore(execution);
         ClarifyModeContextState clarifyModeContextState = manager.getOrCreateClarifyModeContextState(
                 ctx.getUserId(),
                 ctx.getSessionId(),

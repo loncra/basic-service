@@ -1,7 +1,7 @@
 package io.github.loncra.basic.service.ai.server.controller.agent;
 
-import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.body.UserPluginInstallResult;
+import io.github.loncra.basic.service.ai.server.domain.body.UserPluginRequestBody;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentHubService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
@@ -32,10 +32,10 @@ public class AgentHubController {
     @PostMapping
     @OperationDataTrace("安装广场插件")
     @PreAuthorize("isFullyAuthenticated()")
-    public RestResult<UserPluginInstallResult> install(
+    public RestResult<List<UserPluginInstallResult>> install(
             @Valid
             @RequestBody
-            UserPluginInstallRequestBody body,
+            UserPluginRequestBody body,
             @CurrentSecurityContext
             SecurityContext securityContext,
             @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
@@ -54,20 +54,22 @@ public class AgentHubController {
             String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentHubService.find(token, deviceIdentified);
+        return agentHubService.findActivatedInstallsByPrincipal(token, deviceIdentified);
     }
 
-    @DeleteMapping("/{id:\\d+}")
+    @DeleteMapping
     @OperationDataTrace("卸载广场插件")
     @PreAuthorize("isFullyAuthenticated()")
     public RestResult<Void> uninstall(
-            @PathVariable
-            Long id,
+            @RequestBody
+            UserPluginRequestBody body,
             @CurrentSecurityContext
-            SecurityContext securityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        agentHubService.uninstall(id, token);
+        agentHubService.uninstall(body, token, deviceIdentified);
         return RestResult.of("卸载成功");
     }
 }

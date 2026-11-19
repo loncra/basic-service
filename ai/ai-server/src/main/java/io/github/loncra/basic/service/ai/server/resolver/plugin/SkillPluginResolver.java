@@ -13,33 +13,41 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.skill.runtime.HarnessSkillEntry;
 import io.agentscope.harness.agent.skill.runtime.SkillCatalog;
 import io.agentscope.harness.agent.skill.runtime.SkillLoadTool;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.SkillUserPluginInstallMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallStatusEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillPackageEntity;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiSkillReleaseEntity;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
-import io.github.loncra.basic.service.ai.server.resolver.AbstractAgentPluginMessageContentResolver;
 import io.github.loncra.basic.service.ai.server.service.agent.UserPluginRuntimeContextSkillRepository;
 import io.github.loncra.basic.service.ai.server.service.hub.AiSkillPackageService;
+import io.github.loncra.basic.service.ai.server.service.hub.AiSkillReleaseService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
+import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
+import io.github.loncra.framework.commons.exception.ServiceException;
+import io.github.loncra.framework.commons.exception.SystemException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginMessageContentResolver {
+public class SkillPluginResolver extends AbstractPluginResolver {
 
     public static final String PREFIX = "/skill";
 
-    private static final String SKILL_FILE = "SKILL.md";
-
     private final AiSkillPackageService aiSkillPackageService;
+
+    private final AiSkillReleaseService aiSkillReleaseService;
 
     @Override
     protected String getPrefix() {
@@ -47,12 +55,59 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
     }
 
     @Override
-    public void apply(AgentPluginInstructionContext context, List<InstructionMessageMetadata> hits) {
+    public void applyAgentPluginInstruction(AgentPluginInstructionContext context, List<InstructionMessageMetadata> hits) {
         try {
             applyInternal(context, hits);
         } catch (RuntimeException e) {
             log.warn("点名 Skill apply 失败", e);
         }
+    }
+
+    @Override
+    public PluginTargetTypeEnum getTargetType() {
+        return PluginTargetTypeEnum.SKILL;
+    }
+
+    @Override
+    public void applyAgentHubInstall(AiUserPluginInstallEntity entity) {
+        entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
+        AbstractUserPluginInstallMetadata metadata = getAgentHubInstallMetadata(entity.getPackageId());
+        entity.setMetadata(CastUtils.convertValue(metadata, CastUtils.MAP_TYPE_REFERENCE));
+    }
+
+    @Override
+    public AbstractUserPluginInstallMetadata getAgentHubInstallMetadata(Long packageId) {
+        AiSkillPackageEntity entity = CastUtils.cast(getPluginPackage(packageId));
+        return createSkillMetadata(entity);
+    }
+
+    @Override
+    public PluginPackageMetadata getPluginPackage(Long packageId) {
+        AiSkillPackageEntity entity = Objects.requireNonNull(aiSkillPackageService.get(packageId),"找不到 ID 为 [" + packageId + "] 的 [" + getTargetType() + "] 目录");
+        assertHubReleased(entity, getTargetType() + " 目录 [" + entity.getPackageKey() + "]");
+        return entity;
+    }
+
+    private SkillUserPluginInstallMetadata createSkillMetadata(AiSkillPackageEntity skillPackage) {
+        SystemException.isTrue(
+                StringUtils.isNotBlank(skillPackage.getLatestVersion()),
+                () -> new ServiceException("Skill 目录 [" + skillPackage.getPackageKey() + "] 尚未打包版本，不能安装")
+        );
+        AiSkillReleaseEntity release = aiSkillReleaseService.lambdaQuery()
+                .eq(AiSkillReleaseEntity::getAiSkillPackageId, skillPackage.getId())
+                .eq(AiSkillReleaseEntity::getReleaseVersion, skillPackage.getLatestVersion())
+                .eq(AiSkillReleaseEntity::getEnabled, YesOrNo.Yes)
+                .one();
+        SystemException.isTrue(
+                Objects.nonNull(release),
+                () -> new ServiceException("Skill 目录 [" + skillPackage.getPackageKey() + "] 找不到已启用的版本 [" + skillPackage.getLatestVersion() + "]")
+        );
+        SkillUserPluginInstallMetadata metadata = new SkillUserPluginInstallMetadata();
+        metadata.setReleaseId(release.getId());
+        metadata.setReleaseVersion(release.getReleaseVersion());
+        metadata.setContentHash(release.getContentHash());
+        metadata.setUpdatePolicy(skillPackage.getDefaultUpdatePolicy());
+        return metadata;
     }
 
     private void applyInternal(AgentPluginInstructionContext context, List<InstructionMessageMetadata> hits) {
@@ -133,7 +188,7 @@ public class SkillAgentPluginMessageContentResolver extends AbstractAgentPluginM
                 .build();
         Map<String, Object> input = Map.of(
                 "skillId", skill.getSkillId(),
-                "path", SKILL_FILE
+                "path", aiSkillPackageService.getSkillConfig().getFilename()
         );
         ToolCallParam param = ToolCallParam.builder()
                 .toolUseBlock(ToolUseBlock.builder()

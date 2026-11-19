@@ -15,6 +15,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.SandboxTypeEnum;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
+import io.github.loncra.basic.service.auth.api.enumerate.TerminalTypeEnum;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,11 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
     @Override
     public ExecutionChannelEnum getChannel() {
         return ExecutionChannelEnum.CLOUD;
+    }
+
+    @Override
+    public List<TerminalTypeEnum> getSupportTerminalTypes() {
+        return List.of(TerminalTypeEnum.BROWSER, TerminalTypeEnum.CLIENT);
     }
 
     @Override

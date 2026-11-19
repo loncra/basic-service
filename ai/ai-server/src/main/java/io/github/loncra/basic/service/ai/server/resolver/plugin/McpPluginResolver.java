@@ -2,25 +2,29 @@ package io.github.loncra.basic.service.ai.server.resolver.plugin;
 
 import io.agentscope.core.tool.ToolGroup;
 import io.agentscope.core.tool.Toolkit;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.McpUserPluginInstallMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallStatusEnum;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
+import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
-import io.github.loncra.basic.service.ai.server.resolver.AbstractAgentPluginMessageContentResolver;
+import io.github.loncra.basic.service.ai.server.enumerate.McpPackageAuthModeEnum;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
+import io.github.loncra.framework.commons.CastUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class McpAgentPluginMessageContentResolver extends AbstractAgentPluginMessageContentResolver {
+public class McpPluginResolver extends AbstractPluginResolver {
 
     public static final String PREFIX = "/mcp";
 
@@ -32,12 +36,50 @@ public class McpAgentPluginMessageContentResolver extends AbstractAgentPluginMes
     }
 
     @Override
-    public void apply(AgentPluginInstructionContext context, List<InstructionMessageMetadata> hits) {
+    public void applyAgentPluginInstruction(AgentPluginInstructionContext context, List<InstructionMessageMetadata> hits) {
         try {
             applyInternal(context, hits);
         } catch (RuntimeException e) {
             log.warn("点名 MCP apply 失败", e);
         }
+    }
+
+    @Override
+    public PluginTargetTypeEnum getTargetType() {
+        return PluginTargetTypeEnum.MCP;
+    }
+
+    @Override
+    public void applyAgentHubInstall(AiUserPluginInstallEntity entity) {
+        entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
+        AiMcpPackageEntity mcpEntity =  CastUtils.cast(getPluginPackage(entity.getPackageId()));
+
+        entity.setMetadata(CastUtils.convertValue(createMcpMetadata(mcpEntity), CastUtils.MAP_TYPE_REFERENCE));
+        if (!McpPackageAuthModeEnum.NONE.equals(mcpEntity.getAuthMode())) {
+            entity.setStatus(PluginInstallStatusEnum.PENDING);
+        }
+    }
+
+    @Override
+    public AbstractUserPluginInstallMetadata getAgentHubInstallMetadata(Long packageId) {
+        AiMcpPackageEntity entity = CastUtils.cast(getPluginPackage(packageId));
+        return createMcpMetadata(entity);
+    }
+
+    @Override
+    public PluginPackageMetadata getPluginPackage(Long packageId) {
+        AiMcpPackageEntity mcpEntity = Objects.requireNonNull(aiMcpPackageService.get(packageId), "找不到 ID 为 [" + packageId + "] 的 [" + getTargetType() + "] 目录");
+        assertHubReleased(mcpEntity, getTargetType() + " 目录 [" + mcpEntity.getPackageKey() + "]");
+        return mcpEntity;
+    }
+
+    private McpUserPluginInstallMetadata createMcpMetadata(AiMcpPackageEntity mcpPackage) {
+        McpUserPluginInstallMetadata metadata = new McpUserPluginInstallMetadata();
+        metadata.setPackageId(mcpPackage.getId());
+        if (Objects.nonNull(mcpPackage.getAuthMode())) {
+            metadata.setAuthMode(mcpPackage.getAuthMode().getValue());
+        }
+        return metadata;
     }
 
     private void applyInternal(AgentPluginInstructionContext context, List<InstructionMessageMetadata> hits) {

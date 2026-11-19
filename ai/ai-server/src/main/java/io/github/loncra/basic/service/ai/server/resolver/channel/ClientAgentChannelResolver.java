@@ -14,16 +14,17 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecu
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.basic.service.ai.server.resolver.filesystem.ClientRpcSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
 import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTruthFileSystemFactory;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.support.ClientRpcSandboxFilesystem;
-import io.github.loncra.basic.service.ai.server.service.agent.AgentSocketSessionResolver;
+import io.github.loncra.basic.service.auth.api.enumerate.TerminalTypeEnum;
 import io.github.loncra.basic.service.message.api.domian.metadata.SocketSessionMetadata;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 import io.github.loncra.framework.spring.web.device.DeviceUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import nl.basjes.parse.useragent.UserAgent;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -37,11 +38,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
-
-    private final AgentSocketSessionResolver agentSocketSessionResolver;
 
     private final SocketServiceClient socketServiceClient;
 
@@ -51,12 +51,38 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     @Override
+    public List<TerminalTypeEnum> getSupportTerminalTypes() {
+        return List.of(TerminalTypeEnum.CLIENT);
+    }
+
+    public SocketSessionMetadata getSession(String principal, String deviceIdentified) {
+        if (StringUtils.isBlank(principal) || StringUtils.isBlank(deviceIdentified)) {
+            return null;
+        }
+
+        try {
+            SocketSessionMetadata session = socketServiceClient.getSocketSession(deviceIdentified);
+            if (Objects.isNull(session) || !session.isOnline()) {
+                return null;
+            }
+            if (!StringUtils.equals(session.getPrincipal(), principal)) {
+                return null;
+            }
+            return session;
+        }
+        catch (Exception e) {
+            log.warn("查询客户端会话失败, deviceIdentified={}", deviceIdentified, e);
+            return null;
+        }
+    }
+
+    @Override
     public AgentChatResponseBody chat(
             AgentChatRequestBody body,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        SocketSessionMetadata session = agentSocketSessionResolver.getSession(token.getName(), deviceIdentified);
+        SocketSessionMetadata session = getSession(token.getName(), deviceIdentified);
         SystemException.isTrue(Objects.nonNull(session), "客户端工作空间执行需要桌面客户端在线");
         String executeShell = Objects.toString(session.getMetadata().get(SocketSessionMetadata.EXECUTE_SHELL_METADATA_NAME), null);
         SystemException.isTrue(StringUtils.isNotBlank(executeShell), "客户端 [" + deviceIdentified + "] 未上报 executeShell，无法执行客户端任务");
@@ -88,7 +114,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
             return ;
         }
 
-        SocketSessionMetadata session = agentSocketSessionResolver.getSession(token.getName(), deviceIdentified);
+        SocketSessionMetadata session = getSession(token.getName(), deviceIdentified);
         if (Objects.isNull(session)) {
             return;
         }
@@ -170,7 +196,7 @@ public class ClientAgentChannelResolver extends AbstractAgentChannelResolver {
     }
 
     private String createEnvironmentMemory(String deviceIdentified, String principal) {
-        SocketSessionMetadata session = agentSocketSessionResolver.getSession(principal, deviceIdentified);
+        SocketSessionMetadata session = getSession(principal, deviceIdentified);
         if (Objects.isNull(session)) {
             return null;
         }

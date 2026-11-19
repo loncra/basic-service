@@ -23,6 +23,7 @@ import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.jackson.serializer.DesensitizeSerializer;
 import io.github.loncra.framework.commons.minio.FileObject;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +51,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AiSkillPackageService extends BasicService<AiSkillPackageDao, AiSkillPackageEntity> {
 
+    @Getter
     private final SkillConfig skillConfig;
 
     private final SourceOfTruthFileSystemFactory sourceOfTruthFileSystemFactory;

@@ -7,22 +7,27 @@ import io.github.loncra.basic.service.ai.server.domain.body.AgentChatRequestBody
 import io.github.loncra.basic.service.ai.server.domain.body.AgentChatResponseBody;
 import io.github.loncra.basic.service.ai.server.domain.body.AgentResumeRequestBody;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentConversationEntity;
-import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgentExecutionMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.basic.service.auth.api.enumerate.TerminalTypeEnum;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
-import io.github.loncra.framework.commons.page.Page;
-import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
-import org.springframework.util.MultiValueMap;
 
 import java.util.List;
 
 public interface AgentChannelResolver {
 
+    String WORKSPACE_KIND_METADATA_KEY = "kind";
+
+    String WORKSPACE_KEY_METADATA_KEY = "key";
+
+    String WORKSPACE_ROOTS_METADATA_KEY = "roots";
+
     ExecutionChannelEnum getChannel();
+
+    List<TerminalTypeEnum> getSupportTerminalTypes();
 
     AgentChatResponseBody chat(
             AgentChatRequestBody body,
@@ -36,11 +41,6 @@ public interface AgentChannelResolver {
             String deviceIdentified
     );
 
-    List<AgentConversationEntity> findConversations(
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    );
-
     AgentConversationEntity saveWorkspace(
             IdNameMetadata body,
             AuditAuthenticationToken token,
@@ -48,32 +48,25 @@ public interface AgentChannelResolver {
             AgentConversationTypeEnum type
     );
 
-    HarnessAgent createHarnessAgent(AgentExecutionMetadata execution);
-
-    AgentStateStore openStateStore(BasicAgentExecutionMetadata execution);
-
-    AgentRecordStore getAgentRecordStore();
-
-    void deleteConversation(
-            String id,
+    List<AgentConversationEntity> findConversations(
             AuditAuthenticationToken token,
             String deviceIdentified
     );
 
-    default void deleteConversation(
-            List<String> ids,
+    default List<AgentConversationEntity> findWorkspaces(
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
-        ids.forEach(id -> deleteConversation(id, token, deviceIdentified));
+        List<AgentConversationEntity> list = getAgentRecordStore().listConversations(token.getName(), deviceIdentified);
+
+        return list.stream()
+                .filter(s -> !AgentConversationTypeEnum.WORKSPACE_CONVERSATION.equals(s.getType()))
+                .toList();
     }
 
-    Page<AgentMessageEntity> histories(
-            PageRequest request,
-            MultiValueMap<String, Object> filter,
-            String conversationId,
-            boolean totalPage,
-            AuditAuthenticationToken token,
-            String deviceIdentified
-    );
+    HarnessAgent createHarnessAgent(AgentExecutionMetadata execution);
+
+    AgentStateStore getAgentStateStore(BasicAgentExecutionMetadata execution);
+
+    AgentRecordStore getAgentRecordStore();
 }

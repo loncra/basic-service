@@ -1,11 +1,10 @@
-package io.github.loncra.basic.service.ai.server.resolver.filesystem.support;
+package io.github.loncra.basic.service.ai.server.resolver.filesystem;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.harness.agent.filesystem.model.*;
 import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.RpcFilesystemOperationEnum;
-import io.github.loncra.basic.service.ai.server.resolver.filesystem.RpcFilesystemScope;
 import io.github.loncra.basic.service.message.api.service.SocketServiceClient;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;

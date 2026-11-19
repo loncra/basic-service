@@ -1,14 +1,15 @@
 package io.github.loncra.basic.service.ai.server.domain.body;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
-import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
-import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
+import io.github.loncra.basic.service.ai.server.domain.metadata.plugin.UserPluginMetadata;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.Serializable;
 
 /**
  * 当前用户的插件安装（含指定工作空间 id）
@@ -16,8 +17,9 @@ import java.util.List;
  * @author maurice.chen
  */
 @Data
+@JsonIgnoreProperties("packageId")
 @EqualsAndHashCode(callSuper = true)
-public class UserPluginInstallResult extends AiUserPluginInstallEntity {
+public class UserPluginInstallResult extends UserPluginMetadata implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 7384920165830471926L;
@@ -25,11 +27,8 @@ public class UserPluginInstallResult extends AiUserPluginInstallEntity {
     /**
      * 指定工作空间时的白名单；全部范围为空。
      */
-    private List<IdNameMetadata> workspaces = new LinkedList<>();
+    private IdValueMetadata<String, ExecutionChannelEnum> workspace;
 
-    /**
-     * 当前目录快照（Skill / MCP 实体）；目录已删时为空。
-     */
     private PluginPackageMetadata pluginPackage;
 }
 

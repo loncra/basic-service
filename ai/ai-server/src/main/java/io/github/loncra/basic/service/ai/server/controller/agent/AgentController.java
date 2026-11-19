@@ -15,6 +15,7 @@ import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.page.Page;
 import io.github.loncra.framework.commons.page.PageRequest;
 import io.github.loncra.framework.security.plugin.Plugin;
@@ -183,7 +184,7 @@ public class AgentController {
         );
     }
 
-    @OperationDataTrace("保存会话")
+    @OperationDataTrace("保存工作空间")
     @PutMapping("conversation/{channel}")
     public RestResult<String> saveWorkspace(
             @PathVariable
@@ -207,8 +208,6 @@ public class AgentController {
 
     @PostMapping("conversation")
     public List<AgentConversationEntity> findConversations(
-            @RequestParam
-            ExecutionChannelEnum channel,
             @CurrentSecurityContext
             SecurityContext securityContext,
             @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
@@ -216,7 +215,20 @@ public class AgentController {
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         return agentManager.findConversations(
-                channel,
+                token,
+                deviceIdentified
+        );
+    }
+
+    @PostMapping("workspace")
+    public List<AgentConversationEntity> findWorkspaces(
+            @CurrentSecurityContext
+            SecurityContext securityContext,
+            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
+            String deviceIdentified
+    ) {
+        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
+        return agentManager.findWorkspaces(
                 token,
                 deviceIdentified
         );
@@ -224,10 +236,8 @@ public class AgentController {
 
     @DeleteMapping("conversation")
     public RestResult<Void> deleteConversation(
-            @RequestParam
-            List<String> ids,
-            @RequestParam
-            ExecutionChannelEnum channel,
+            @RequestBody
+            List<IdValueMetadata<String, ExecutionChannelEnum>> conversations,
             @CurrentSecurityContext
             SecurityContext securityContext,
             @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
@@ -235,11 +245,10 @@ public class AgentController {
     ) {
         AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
         agentManager.deleteConversation(
-                ids,
-                channel,
+                conversations,
                 token,
                 deviceIdentified
         );
-        return RestResult.of("删除" + ids.size() + "条记录成功");
+        return RestResult.of("删除" + conversations.size() + "条记录成功");
     }
 }

@@ -18,7 +18,7 @@ public enum McpPackageAuthModeEnum implements NameValueEnum<Integer> {
 
     OAUTH("OAuth", 20),
 
-    NONE("免费开源", 30),
+    NONE("无", 30),
     ;
 
     private final String name;

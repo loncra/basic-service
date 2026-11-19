@@ -5,6 +5,8 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum AgentConversationTypeEnum implements NameValueEnum<Integer> {
@@ -18,4 +20,6 @@ public enum AgentConversationTypeEnum implements NameValueEnum<Integer> {
     private final String name;
 
     private final Integer value;
+
+    public static final List<AgentConversationTypeEnum> WORKSPACE_TYPES = List.of(DEFAULT_WORKSPACE, CUSTOMIZE_WORKSPACE);
 }

@@ -1,7 +1,13 @@
-package io.github.loncra.basic.service.ai.server.resolver;
+package io.github.loncra.basic.service.ai.server.resolver.plugin;
 
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.enumerate.hub.PackageTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessageEntity;
+import io.github.loncra.basic.service.ai.server.resolver.PluginResolver;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
+import io.github.loncra.basic.service.commons.enumerate.DataStatusEnum;
+import io.github.loncra.framework.commons.exception.ServiceException;
+import io.github.loncra.framework.commons.exception.SystemException;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -11,13 +17,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class AbstractAgentPluginMessageContentResolver
-        implements AgentPluginMessageContentResolver {
+public abstract class AbstractPluginResolver
+        implements PluginResolver {
 
     protected abstract String getPrefix();
 
     @Override
-    public List<InstructionMessageMetadata> getHits(AgentMessageEntity userMessage) {
+    public List<InstructionMessageMetadata> getUserAgentMessageHits(AgentMessageEntity userMessage) {
         if (userMessage == null) {
             return List.of();
         }
@@ -51,5 +57,19 @@ public abstract class AbstractAgentPluginMessageContentResolver
             }
         }
         return packageIds;
+    }
+
+    protected void assertHubReleased(
+            PluginPackageMetadata entity,
+            String label
+    ) {
+        SystemException.isTrue(
+                PackageTypeEnum.HUB.equals(entity.getType()),
+                () -> new ServiceException(label + "不是广场插件，不能安装")
+        );
+        SystemException.isTrue(
+                DataStatusEnum.RELEASE.equals(entity.getStatus()),
+                () -> new ServiceException(label + "尚未发布，不能安装")
+        );
     }
 }

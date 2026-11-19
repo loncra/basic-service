@@ -21,6 +21,8 @@ public class McpUserPluginInstallMetadata extends AbstractUserPluginInstallMetad
     @Serial
     private static final long serialVersionUID = 4829683157294850312L;
 
+    private Long packageId;
+
     /**
      * 认证模式取值，对应服务端 {@code McpPackageAuthModeEnum} 的 value。
      */
