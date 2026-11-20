@@ -245,7 +245,7 @@ public class AgentHubService {
         Object specificsObject = workspaceEntity.getMetadata().getOrDefault(AgentHubService.WORKSPACE_PLUGIN_KEY, new LinkedList<>());
         List<Map<String, Object>> specifics = CastUtils.cast(specificsObject);
         Stream<UserPluginMetadata> stream = specifics.stream()
-                .map(m -> CastUtils.cast(m, UserPluginMetadata.class));
+                .map(m -> CastUtils.convertValue(m, UserPluginMetadata.class));
         if (Objects.nonNull(targetType)) {
             stream = stream.filter(m -> m.getTargetType().equals(targetType));
         }

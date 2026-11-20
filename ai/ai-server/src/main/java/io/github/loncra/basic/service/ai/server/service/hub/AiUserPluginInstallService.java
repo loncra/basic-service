@@ -73,7 +73,7 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
         }
 
         LambdaQueryChainWrapper<AiUserPluginInstallEntity> query = lambdaQuery()
-                .eq(AiUserPluginInstallEntity::getStatus, PluginInstallStatusEnum.ACTIVATED)
+                .ne(AiUserPluginInstallEntity::getStatus, PluginInstallStatusEnum.DISABLED)
                 .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
                 .eq(AiUserPluginInstallEntity::getPrincipal, token.getName());
         if (Objects.nonNull(targetType)) {
