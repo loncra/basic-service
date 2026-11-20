@@ -127,7 +127,7 @@ public class CloudAgentChannelResolver extends AbstractAgentChannelResolver {
 
     @Override
     protected AbstractFilesystem openRecords(String deviceIdentified) {
-        return sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(StringUtils.EMPTY);
+        return sourceOfTruthFileSystemFactory.getSourceOfTruthFileSystem(sourceOfTruthFileSystemFactory.getSourceOfTruthConfig().getDataDir());
     }
 
 }

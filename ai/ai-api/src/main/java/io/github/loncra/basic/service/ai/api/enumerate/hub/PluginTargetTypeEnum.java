@@ -10,17 +10,17 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PluginTargetTypeEnum implements NameValueEnum<Integer> {
+public enum PluginTargetTypeEnum implements NameValueEnum<String> {
 
-    SKILL("技能", 10, SkillUserPluginInstallMetadata.class),
+    SKILL("技能", "skill", SkillUserPluginInstallMetadata.class),
 
-    MCP("MCP", 20, McpUserPluginInstallMetadata.class),
+    MCP("MCP", "mcp", McpUserPluginInstallMetadata.class),
 
     ;
 
     private final String name;
 
-    private final Integer value;
+    private final String value;
 
     private final Class<? extends AbstractUserPluginInstallMetadata> targetClass;
 }

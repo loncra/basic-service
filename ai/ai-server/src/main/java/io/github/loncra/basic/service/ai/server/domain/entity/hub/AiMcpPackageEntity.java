@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.McpPackageMetadata;
-import io.github.loncra.basic.service.ai.server.enumerate.McpPackageAuthModeEnum;
+import io.github.loncra.basic.service.commons.enumerate.ApiKeyModeEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.TimeProperties;
 import io.github.loncra.framework.commons.enumerate.basic.YesOrNo;
@@ -39,7 +39,7 @@ public class AiMcpPackageEntity extends PluginPackageMetadata {
     /**
      * 认证模式: 10. OAuth, 20. apiKey
      */
-    private McpPackageAuthModeEnum authMode;
+    private ApiKeyModeEnum authMode;
 
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private TimeProperties initializeTimeout;

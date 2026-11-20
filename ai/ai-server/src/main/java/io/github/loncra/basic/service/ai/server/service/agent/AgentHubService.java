@@ -19,8 +19,11 @@ import io.github.loncra.basic.service.ai.server.service.hub.AiUserPluginInstallS
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.NameEnum;
+import io.github.loncra.framework.commons.enumerate.NameValueEnum;
+import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
+import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.idempotent.annotation.Concurrent;
@@ -132,7 +135,7 @@ public class AgentHubService {
                     continue;
                 }
                 agentRecordStore.updateConversation(workspaceEntity, deviceIdentified);
-                result.add(toResult(pluginMetadata, workspace));
+                result.add(toResult(pluginMetadata, workspaceEntity.toIdNameValueMetadata()));
             }
 
             return result;
@@ -157,7 +160,7 @@ public class AgentHubService {
         String kind = workspace.getMetadata()
                 .getOrDefault(AbstractAgentChannelResolver.WORKSPACE_KIND_METADATA_KEY, StringUtils.EMPTY)
                 .toString();
-        ExecutionChannelEnum executionChannelEnum = NameEnum.ofEnum(ExecutionChannelEnum.class, kind);
+        ExecutionChannelEnum executionChannelEnum = ValueEnum.ofEnum(ExecutionChannelEnum.class, kind);
         agentManager.getChannelResolver(executionChannelEnum)
                 .getAgentRecordStore()
                 .updateConversation(workspace, deviceIdentified);
@@ -173,12 +176,8 @@ public class AgentHubService {
                 .collect(Collectors.toCollection(LinkedList::new));
         List<AgentConversationEntity> workspaces = agentManager.findWorkspaces(token, deviceIdentified);
         for (AgentConversationEntity workspace : workspaces) {
-            String kind = workspace.getMetadata()
-                    .getOrDefault(AgentChannelResolver.WORKSPACE_KIND_METADATA_KEY, StringUtils.EMPTY)
-                    .toString();
-            ExecutionChannelEnum channel = NameEnum.ofEnum(ExecutionChannelEnum.class, kind);
             getWorkspacePluginInstall(workspace, null).stream()
-                    .map(s -> toResult(s, IdValueMetadata.of(workspace.getId(), channel)))
+                    .map(s -> toResult(s, workspace.toIdNameValueMetadata()))
                     .forEach(result::add);
         }
         return result;
@@ -192,7 +191,7 @@ public class AgentHubService {
 
     private UserPluginInstallResult toResult(
             UserPluginMetadata pluginMetadata,
-            IdValueMetadata<String, ExecutionChannelEnum> workspace
+            IdNameValueMetadata<String, ExecutionChannelEnum> workspace
     ) {
         UserPluginInstallResult result = CastUtils.of(pluginMetadata, UserPluginInstallResult.class);
         PluginPackageMetadata pluginPackage = getPluginResolver(pluginMetadata.getTargetType()).getPluginPackage(pluginMetadata.getPackageId());

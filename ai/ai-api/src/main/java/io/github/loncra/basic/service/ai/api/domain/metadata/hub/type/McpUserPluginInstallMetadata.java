@@ -2,6 +2,7 @@ package io.github.loncra.basic.service.ai.api.domain.metadata.hub.type;
 
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
+import io.github.loncra.basic.service.commons.enumerate.ApiKeyModeEnum;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -21,12 +22,10 @@ public class McpUserPluginInstallMetadata extends AbstractUserPluginInstallMetad
     @Serial
     private static final long serialVersionUID = 4829683157294850312L;
 
-    private Long packageId;
-
     /**
-     * 认证模式取值，对应服务端 {@code McpPackageAuthModeEnum} 的 value。
+     * 认证模式取值，
      */
-    private Integer authMode;
+    private ApiKeyModeEnum authMode;
 
     /**
      * 用户填写的 API Key，或 OAuth 完成后得到的凭据。本轮安装可空，后续写入。

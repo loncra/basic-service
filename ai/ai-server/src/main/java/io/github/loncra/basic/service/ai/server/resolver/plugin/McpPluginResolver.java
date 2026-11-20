@@ -10,7 +10,7 @@ import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
-import io.github.loncra.basic.service.ai.server.enumerate.McpPackageAuthModeEnum;
+import io.github.loncra.basic.service.commons.enumerate.ApiKeyModeEnum;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.framework.commons.CastUtils;
@@ -55,7 +55,7 @@ public class McpPluginResolver extends AbstractPluginResolver {
         AiMcpPackageEntity mcpEntity =  CastUtils.cast(getPluginPackage(entity.getPackageId()));
 
         entity.setMetadata(CastUtils.convertValue(createMcpMetadata(mcpEntity), CastUtils.MAP_TYPE_REFERENCE));
-        if (!McpPackageAuthModeEnum.NONE.equals(mcpEntity.getAuthMode())) {
+        if (!ApiKeyModeEnum.NONE.equals(mcpEntity.getAuthMode())) {
             entity.setStatus(PluginInstallStatusEnum.PENDING);
         }
     }
@@ -75,9 +75,8 @@ public class McpPluginResolver extends AbstractPluginResolver {
 
     private McpUserPluginInstallMetadata createMcpMetadata(AiMcpPackageEntity mcpPackage) {
         McpUserPluginInstallMetadata metadata = new McpUserPluginInstallMetadata();
-        metadata.setPackageId(mcpPackage.getId());
         if (Objects.nonNull(mcpPackage.getAuthMode())) {
-            metadata.setAuthMode(mcpPackage.getAuthMode().getValue());
+            metadata.setAuthMode(mcpPackage.getAuthMode());
         }
         return metadata;
     }

@@ -7,8 +7,13 @@ import io.github.loncra.basic.service.ai.api.domain.metadata.ModelSettingMetadat
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatStatusEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
+import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
+import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.id.StringIdEntity;
+import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
+import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import io.github.loncra.framework.commons.tenant.TenantEntity;
 import io.github.loncra.framework.commons.tree.Tree;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -17,6 +22,7 @@ import io.github.loncra.framework.security.audit.AuditPrincipal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serial;
 import java.util.LinkedHashMap;
@@ -90,5 +96,14 @@ public class AgentConversationEntity extends StringIdEntity implements TenantEnt
 
     public String getKey() {
         return getId();
+    }
+
+    public IdNameValueMetadata<String, ExecutionChannelEnum> toIdNameValueMetadata(){
+        String kind = getMetadata()
+                .getOrDefault(AgentChannelResolver.WORKSPACE_KIND_METADATA_KEY, StringUtils.EMPTY)
+                .toString();
+        ExecutionChannelEnum channel = ValueEnum.ofEnum(ExecutionChannelEnum.class, kind);
+
+        return new IdNameValueMetadata<>(IdValueMetadata.of(getId(), channel), getName());
     }
 }

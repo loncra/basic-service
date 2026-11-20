@@ -132,7 +132,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         } else {
             entity.setGenerateNameStatus(ExecuteStatus.Success);
         }
-        entity.getMetadata().put(AgentChannelResolver.WORKSPACE_KIND_METADATA_KEY, getChannel());
+        entity.getMetadata().put(AgentChannelResolver.WORKSPACE_KIND_METADATA_KEY, getChannel().getValue());
         return entity;
     }
 

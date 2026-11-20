@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.server.domain.metadata.plugin.UserPluginMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.framework.commons.id.metadata.IdNameValueMetadata;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -27,7 +28,7 @@ public class UserPluginInstallResult extends UserPluginMetadata implements Seria
     /**
      * 指定工作空间时的白名单；全部范围为空。
      */
-    private IdValueMetadata<String, ExecutionChannelEnum> workspace;
+    private IdNameValueMetadata<String, ExecutionChannelEnum> workspace;
 
     private PluginPackageMetadata pluginPackage;
 }
