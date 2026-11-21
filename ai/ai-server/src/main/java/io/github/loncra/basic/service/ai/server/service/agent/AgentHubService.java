@@ -176,7 +176,7 @@ public class AgentHubService {
                 .collect(Collectors.toCollection(LinkedList::new));
         List<AgentConversationEntity> workspaces = agentManager.findWorkspaces(token, deviceIdentified);
         for (AgentConversationEntity workspace : workspaces) {
-            getWorkspacePluginInstall(workspace, null).stream()
+            getWorkspacePluginInstall(workspace).stream()
                     .map(s -> toResult(s, workspace.toIdNameValueMetadata()))
                     .forEach(result::add);
         }
@@ -195,7 +195,7 @@ public class AgentHubService {
     ) {
         UserPluginInstallResult result = CastUtils.of(pluginMetadata, UserPluginInstallResult.class);
         PluginPackageMetadata pluginPackage = getPluginResolver(pluginMetadata.getTargetType()).getPluginPackage(pluginMetadata.getPackageId());
-        result.setPluginPackage(pluginPackage);
+        result.setPluginPackage(CastUtils.of(pluginPackage, PluginPackageMetadata.class));
         result.setWorkspace(workspace);
         return result;
     }
@@ -233,36 +233,36 @@ public class AgentHubService {
                 }
                 agentRecordStore.updateConversation(workspaceEntity, deviceIdentified);
             }
+        } else {
+            throw new SystemException("暂不支持 [" + body.getWorkspaceScope() + "] 的工作空间范围卸载插件");
         }
-
-        throw new SystemException("暂不支持 [" + body.getWorkspaceScope() + "] 的工作空间范围卸载插件");
     }
 
     public List<UserPluginMetadata> getWorkspacePluginInstall(
-            AgentConversationEntity workspaceEntity,
-            PluginTargetTypeEnum targetType
+            AgentConversationEntity workspaceEntity
     ) {
         Object specificsObject = workspaceEntity.getMetadata().getOrDefault(AgentHubService.WORKSPACE_PLUGIN_KEY, new LinkedList<>());
         List<Map<String, Object>> specifics = CastUtils.cast(specificsObject);
-        Stream<UserPluginMetadata> stream = specifics.stream()
-                .map(m -> CastUtils.convertValue(m, UserPluginMetadata.class));
-        if (Objects.nonNull(targetType)) {
-            stream = stream.filter(m -> m.getTargetType().equals(targetType));
-        }
-        return stream.collect(Collectors.toCollection(LinkedList::new));
+        return  specifics.stream()
+                .map(m -> CastUtils.convertValue(m, UserPluginMetadata.class))
+                .collect(Collectors.toCollection(LinkedList::new));
     }
 
     private boolean addWorkspacePluginInstall(
             AgentConversationEntity workspaceEntity,
             UserPluginMetadata pluginMetadata
     ) {
-        List<UserPluginMetadata> exists = getWorkspacePluginInstall(workspaceEntity, pluginMetadata.getTargetType());
+        List<UserPluginMetadata> current = getWorkspacePluginInstall(workspaceEntity);
+
         String id = UserPluginInstallResult.toUniqueIdentification(pluginMetadata);
-        if (exists.stream().anyMatch(m -> UserPluginInstallResult.toUniqueIdentification(m).equals(id))) {
+        boolean exist = current.stream()
+                .filter(s -> s.getTargetType().equals(pluginMetadata.getTargetType()))
+                .anyMatch(m -> UserPluginInstallResult.toUniqueIdentification(m).equals(id));
+        if (exist) {
             return false;
         }
-        exists.add(pluginMetadata);
-        workspaceEntity.getMetadata().put(AgentHubService.WORKSPACE_PLUGIN_KEY, exists);
+        current.add(pluginMetadata);
+        workspaceEntity.getMetadata().put(AgentHubService.WORKSPACE_PLUGIN_KEY, current);
         return true;
     }
 
@@ -271,7 +271,7 @@ public class AgentHubService {
             Long packageId,
             PluginTargetTypeEnum targetType
     ) {
-        List<UserPluginMetadata> exists = getWorkspacePluginInstall(workspaceEntity, targetType);
+        List<UserPluginMetadata> exists = getWorkspacePluginInstall(workspaceEntity);
         String id = UserPluginInstallResult.toUniqueIdentification(packageId, targetType);
         boolean removed = exists.removeIf(m -> UserPluginInstallResult.toUniqueIdentification(m).equals(id));
         if (!removed) {

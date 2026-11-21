@@ -30,6 +30,7 @@ public class UserPluginInstallResult extends UserPluginMetadata implements Seria
      */
     private IdNameValueMetadata<String, ExecutionChannelEnum> workspace;
 
+    @JsonIgnoreProperties({"origin","status", "type", "category", "metadata"})
     private PluginPackageMetadata pluginPackage;
 }
 

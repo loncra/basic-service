@@ -220,20 +220,6 @@ public class AgentController {
         );
     }
 
-    @PostMapping("workspace")
-    public List<AgentConversationEntity> findWorkspaces(
-            @CurrentSecurityContext
-            SecurityContext securityContext,
-            @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
-            String deviceIdentified
-    ) {
-        AuditAuthenticationToken token = CastUtils.cast(securityContext.getAuthentication());
-        return agentManager.findWorkspaces(
-                token,
-                deviceIdentified
-        );
-    }
-
     @DeleteMapping("conversation")
     public RestResult<Void> deleteConversation(
             @RequestBody
