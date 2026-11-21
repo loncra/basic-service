@@ -253,12 +253,8 @@ public class AgentHubService {
         List<UserPluginMetadata> current = getWorkspacePluginInstall(workspaceEntity);
 
         String id = UserPluginInstallResult.toUniqueIdentification(pluginMetadata);
-        boolean exist = current.stream()
-                .filter(s -> s.getTargetType().equals(pluginMetadata.getTargetType()))
-                .anyMatch(m -> UserPluginInstallResult.toUniqueIdentification(m).equals(id));
-        if (exist) {
-            return false;
-        }
+        current.removeIf(s -> s.getTargetType().equals(pluginMetadata.getTargetType()) && UserPluginInstallResult.toUniqueIdentification(s).equals(id));
+
         current.add(pluginMetadata);
         workspaceEntity.getMetadata().put(AgentHubService.WORKSPACE_PLUGIN_KEY, current);
         return true;
