@@ -11,15 +11,12 @@ import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginIn
 import io.github.loncra.basic.service.ai.server.domain.metadata.plugin.UserPluginMetadata;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
-import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.resolver.AgentRecordStore;
 import io.github.loncra.basic.service.ai.server.resolver.PluginResolver;
 import io.github.loncra.basic.service.ai.server.resolver.channel.AbstractAgentChannelResolver;
 import io.github.loncra.basic.service.ai.server.service.hub.AiUserPluginInstallService;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
-import io.github.loncra.framework.commons.enumerate.NameEnum;
-import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.exception.ServiceException;
 import io.github.loncra.framework.commons.exception.SystemException;
@@ -40,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * 将当前工作空间已激活的 Hub Skill 缓存到 {@code .skill-hub}，并返回第三仓。
@@ -100,7 +96,8 @@ public class AgentHubService {
             AiUserPluginInstallEntity existing = aiUserPluginInstallService.findUserInstallPluginByPrincipal(
                     token.getName(),
                     body.getTargetType(),
-                    body.getPackageId()
+                    body.getPackageId(),
+                    body.getScope()
             );
             if (Objects.nonNull(existing)) {
                 existing.setScope(body.getScope());
@@ -210,7 +207,8 @@ public class AgentHubService {
             AiUserPluginInstallEntity entity = aiUserPluginInstallService.findUserInstallPluginByPrincipal(
                     token.getName(),
                     body.getTargetType(),
-                    body.getPackageId()
+                    body.getPackageId(),
+                    body.getScope()
             );
             SystemException.isTrue(Objects.nonNull(entity), () -> new ServiceException("找不到 ID 为 [" + body.getPackageId() + "] 的 [" + body.getTargetType().getName() + "] 插件安装"));
             SystemException.isTrue(

@@ -7,6 +7,7 @@ import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspac
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.dao.hub.AiUserPluginInstallDao;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
+import io.github.loncra.basic.service.ai.server.domain.metadata.plugin.UserPluginMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.tenant.holder.TenantContextHolder;
 import io.github.loncra.framework.mybatis.plus.service.BasicService;
@@ -34,13 +35,15 @@ public class AiUserPluginInstallService extends BasicService<AiUserPluginInstall
     public AiUserPluginInstallEntity findUserInstallPluginByPrincipal(
             String principal,
             PluginTargetTypeEnum targetType,
-            Long packageId
+            Long packageId,
+            PluginInstallUserScopeEnum scope
     ) {
         return lambdaQuery()
                 .eq(AiUserPluginInstallEntity::getPrincipal, principal)
                 .eq(AiUserPluginInstallEntity::getTargetType, targetType)
                 .eq(AiUserPluginInstallEntity::getPackageId, packageId)
-                .eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
+                .eq(UserPluginMetadata::getScope, scope.getValue())
+                //.eq(AiUserPluginInstallEntity::getScope, PluginInstallUserScopeEnum.USER)
                 .one();
     }
 

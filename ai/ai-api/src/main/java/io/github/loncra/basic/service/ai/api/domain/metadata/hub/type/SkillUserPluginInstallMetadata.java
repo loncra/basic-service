@@ -1,6 +1,7 @@
 package io.github.loncra.basic.service.ai.api.domain.metadata.hub.type;
 
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.UpdatePolicyUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.commons.enumerate.UpdatePolicyEnum;
 import lombok.Data;
@@ -17,20 +18,10 @@ import java.io.Serial;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class SkillUserPluginInstallMetadata extends AbstractUserPluginInstallMetadata {
+public class SkillUserPluginInstallMetadata extends UpdatePolicyUserPluginInstallMetadata {
 
     @Serial
     private static final long serialVersionUID = 3918572046183749201L;
-
-    /**
-     * 锁定的 {@code tb_ai_skill_release.id}
-     */
-    private Long releaseId;
-
-    /**
-     * 锁定的 semver
-     */
-    private String releaseVersion;
 
     /**
      * Release 内容指纹

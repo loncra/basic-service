@@ -3,10 +3,9 @@ package io.github.loncra.basic.service.ai.server.domain.entity.hub;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.hub.UpdatePolicyPluginPackageMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.SkillSourceTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.metadata.SkillPackageMetadata;
-import io.github.loncra.basic.service.commons.enumerate.UpdatePolicyEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import lombok.Data;
@@ -29,22 +28,12 @@ import java.io.Serial;
 @Alias("aiSkillPackage")
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = "tb_ai_skill_package", autoResultMap = true)
-public class AiSkillPackageEntity extends PluginPackageMetadata {
+public class AiSkillPackageEntity extends UpdatePolicyPluginPackageMetadata {
 
     @Serial
     private static final long serialVersionUID = 7927470412713379855L;
 
     public static final String SOURCE_FIELD = "source";
-
-    /**
-     * 最新已发布 semver
-     */
-    private String latestVersion;
-
-    /**
-     * 更新策略:10.手动更新,20.自动更新
-     */
-    private UpdatePolicyEnum defaultUpdatePolicy;
 
     /**
      * 来源类型:10.Git, 20.手工录入
