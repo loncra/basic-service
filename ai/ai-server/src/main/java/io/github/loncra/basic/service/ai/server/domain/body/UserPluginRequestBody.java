@@ -10,7 +10,9 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户安装或卸载广场插件范围
@@ -38,4 +40,6 @@ public class UserPluginRequestBody implements Serializable {
     private List<IdValueMetadata<String, ExecutionChannelEnum>> workspaces;
 
     private PluginInstallUserScopeEnum scope = PluginInstallUserScopeEnum.USER;
+
+    private Map<String, Object> metadata = new LinkedHashMap<>();
 }
