@@ -20,4 +20,6 @@ public abstract class AbstractMcpClientTransportMetadata implements Serializable
     private Map<String, List<IdValueMetadata<String, String>>> failureAssertions = new LinkedHashMap<>();
 
     abstract public String getType();
+
+    abstract public void configDefaultValue(Map<String, Object> defaultConfig);
 }

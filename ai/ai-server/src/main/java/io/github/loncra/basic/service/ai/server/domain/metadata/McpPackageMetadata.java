@@ -32,13 +32,22 @@ public class McpPackageMetadata implements Serializable {
         return obtainClientTransport(client);
     }
 
-    public static <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport(Map<String, Object> client) {
+    public <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport(Map<String, Object> defaultConfig) {
+        return obtainClientTransport(client, defaultConfig);
+    }
+
+    public static <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport(Map<String, Object> client, Map<String, Object> defaultConfig) {
         if (MapUtils.isEmpty(client)) {
             return null;
         }
 
         String type = client.get(TypeIdNameMetadata.TYPE_FIELD_NAME).toString();
         McpClientTypeEnum clientTypeEnum = NameEnum.ofEnum(McpClientTypeEnum.class, type);
-        return CastUtils.cast(CastUtils.convertValue(client, clientTypeEnum.getTargetClass()));
+        T entity = CastUtils.cast(CastUtils.convertValue(client, clientTypeEnum.getTargetClass()));
+        if (MapUtils.isNotEmpty(defaultConfig)) {
+            entity.configDefaultValue(defaultConfig);
+        }
+
+        return entity;
     }
 }

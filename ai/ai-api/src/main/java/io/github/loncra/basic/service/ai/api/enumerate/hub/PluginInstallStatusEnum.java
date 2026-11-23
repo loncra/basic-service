@@ -14,6 +14,8 @@ public enum PluginInstallStatusEnum implements NameValueEnum<Integer> {
     ACTIVATED("已激活", 20),
 
     DISABLED("已禁用", 30),
+
+    FAILURE("连接失败", 99),
     ;
 
     private final String name;

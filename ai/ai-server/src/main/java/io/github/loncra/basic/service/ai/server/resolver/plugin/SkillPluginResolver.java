@@ -69,7 +69,7 @@ public class SkillPluginResolver extends AbstractPluginResolver {
     }
 
     @Override
-    public void applyAgentHubInstall(AiUserPluginInstallEntity entity) {
+    public void applyAgentHubInstall(AiUserPluginInstallEntity entity, Map<String, Object> bodyMetadata) {
         entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
         AbstractUserPluginInstallMetadata metadata = getAgentHubInstallMetadata(entity.getPackageId());
         entity.setMetadata(CastUtils.convertValue(metadata, CastUtils.MAP_TYPE_REFERENCE));

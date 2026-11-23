@@ -30,10 +30,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -77,7 +74,7 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
             Map<String, Object> client
     ) {
         SystemException.isTrue(MapUtils.isNotEmpty(client), "MCP 配置不能为空");
-        AbstractMcpClientTransportMetadata transportMetadata = McpPackageMetadata.obtainClientTransport(client);
+        AbstractMcpClientTransportMetadata transportMetadata = McpPackageMetadata.obtainClientTransport(client, new LinkedHashMap<>());
         try (McpClientWrapper clientWrapper = createMcpClientWrapper(name, transportMetadata).orElseThrow(() -> new SystemException("无法根据当前传输配置创建 MCP 客户端"))) {
             if (transportMetadata instanceof McpClientSseTransportMetadata sse) {
                 initializeClient(clientWrapper, sse.getTimeout());
@@ -122,7 +119,7 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
         return createMcpClientWrapper(mcpPackage.getPackageKey(), metadata);
     }
 
-    private @NonNull Optional<McpClientWrapper> createMcpClientWrapper(
+    public @NonNull Optional<McpClientWrapper> createMcpClientWrapper(
             String name,
             AbstractMcpClientTransportMetadata metadata
     ) {

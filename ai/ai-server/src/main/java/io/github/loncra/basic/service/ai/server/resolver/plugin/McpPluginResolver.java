@@ -2,18 +2,21 @@ package io.github.loncra.basic.service.ai.server.resolver.plugin;
 
 import io.agentscope.core.tool.ToolGroup;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.core.tool.mcp.McpClientWrapper;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.PluginPackageMetadata;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.type.McpUserPluginInstallMetadata;
+import io.github.loncra.basic.service.ai.api.domain.metadata.mcp.AbstractMcpClientTransportMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallStatusEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiMcpPackageEntity;
 import io.github.loncra.basic.service.ai.server.domain.entity.hub.AiUserPluginInstallEntity;
 import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPluginInstructionContext;
-import io.github.loncra.basic.service.commons.enumerate.ApiKeyModeEnum;
 import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
+import io.github.loncra.basic.service.commons.enumerate.ApiKeyModeEnum;
 import io.github.loncra.framework.commons.CastUtils;
+import io.github.loncra.framework.commons.RestResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -50,15 +53,36 @@ public class McpPluginResolver extends AbstractPluginResolver {
     }
 
     @Override
-    public void applyAgentHubInstall(AiUserPluginInstallEntity entity) {
+    public void applyAgentHubInstall(AiUserPluginInstallEntity entity, Map<String, Object> bodyMetadata) {
         entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
         AiMcpPackageEntity mcpEntity =  CastUtils.cast(getPluginPackage(entity.getPackageId()));
-
-        entity.setMetadata(CastUtils.convertValue(createMcpMetadata(mcpEntity), CastUtils.MAP_TYPE_REFERENCE));
         if (!ApiKeyModeEnum.NONE.equals(mcpEntity.getAuthMode())) {
             entity.setStatus(PluginInstallStatusEnum.PENDING);
         }
+        McpUserPluginInstallMetadata metadata =  createMcpMetadata(mcpEntity);
+        if (ApiKeyModeEnum.MANUAL.equals(mcpEntity.getAuthMode())) {
+            metadata.getMetadata().putAll(bodyMetadata);
+            AbstractMcpClientTransportMetadata transport = mcpEntity.obtainMetadata().obtainClientTransport(bodyMetadata);
+            aiMcpPackageService.createMcpClientWrapper(mcpEntity.getPackageKey(), transport)
+                    .ifPresent(mcpClientWrapper -> this.validMcpClient(mcpClientWrapper, entity));
+
+        }
+        entity.setMetadata(CastUtils.convertValue(metadata, CastUtils.MAP_TYPE_REFERENCE));
     }
+
+    private void validMcpClient(
+            McpClientWrapper mcpClientWrapper,
+            AiUserPluginInstallEntity entity
+    ) {
+        try (McpClientWrapper client = mcpClientWrapper) {
+            client.initialize().block();
+            entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
+        } catch (Exception e) {
+            entity.setStatus(PluginInstallStatusEnum.FAILURE);
+            entity.getMetadata().put(RestResult.DEFAULT_MESSAGE_NAME, e.getMessage());
+        }
+    }
+
 
     @Override
     public AbstractUserPluginInstallMetadata getAgentHubInstallMetadata(Long packageId) {

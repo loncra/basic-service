@@ -78,7 +78,7 @@ public class AgentHubService {
         entity.setWorkspaceScope(body.getWorkspaceScope());
 
         PluginResolver pluginResolver = getPluginResolver(body.getTargetType());
-        pluginResolver.applyAgentHubInstall(entity);
+        pluginResolver.applyAgentHubInstall(entity, body.getMetadata());
 
         if (ResourceSourceEnum.CONSOLE_SOURCE_VALUE.equals(token.getType())) {
             entity.setPrincipal(token.getName());

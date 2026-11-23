@@ -9,6 +9,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.AgentPlugi
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PluginResolver {
 
@@ -21,7 +22,7 @@ public interface PluginResolver {
 
     PluginTargetTypeEnum getTargetType();
 
-    void applyAgentHubInstall(AiUserPluginInstallEntity entity);
+    void applyAgentHubInstall(AiUserPluginInstallEntity entity, Map<String, Object> bodyMetadata);
 
     AbstractUserPluginInstallMetadata getAgentHubInstallMetadata(Long packageId);
 
