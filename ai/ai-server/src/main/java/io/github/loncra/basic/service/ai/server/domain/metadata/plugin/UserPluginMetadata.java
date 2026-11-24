@@ -55,6 +55,8 @@ public class UserPluginMetadata implements Serializable {
     @TableField(typeHandler = JacksonJsonTypeHandler.class)
     private Map<String, Object> metadata;
 
+    private String exception;
+
     public <T extends AbstractUserPluginInstallMetadata> T obtainMetadata() {
         if (Objects.isNull(targetType) || Objects.isNull(metadata) || metadata.isEmpty()) {
             return null;

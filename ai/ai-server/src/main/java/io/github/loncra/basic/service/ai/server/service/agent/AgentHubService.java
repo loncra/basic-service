@@ -135,6 +135,11 @@ public class AgentHubService {
                 result.add(toResult(pluginMetadata, workspaceEntity.toIdNameValueMetadata()));
             }
 
+            agentManager.findWorkspaces(token, deviceIdentified)
+                    .stream()
+                    .filter(s -> !body.getWorkspaces().contains(s.toIdNameValueMetadata()))
+                    .forEach(s -> removeWorkspacePluginInstall(pluginMetadata, s, deviceIdentified));
+
             return result;
         }
 

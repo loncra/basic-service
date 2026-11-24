@@ -29,7 +29,7 @@ public class McpPackageMetadata implements Serializable {
     private List<McpClarifyToolPolicyMetadata> clarifyPolicies = new LinkedList<>();
 
     public <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport() {
-        return obtainClientTransport(client);
+        return obtainClientTransport(new LinkedHashMap<>());
     }
 
     public <T extends AbstractMcpClientTransportMetadata> T obtainClientTransport(Map<String, Object> defaultConfig) {

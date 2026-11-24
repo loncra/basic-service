@@ -173,7 +173,8 @@ public class AiMcpPackageService extends BasicService<AiMcpPackageDao, AiMcpPack
     ) {
         initializeClient(client, null);
     }
-    private void initializeClient(
+
+    public void initializeClient(
             McpClientWrapper client,
             TimeProperties timeout
     ) {

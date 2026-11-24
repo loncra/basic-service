@@ -16,7 +16,6 @@ import io.github.loncra.basic.service.ai.server.service.hub.AiMcpPackageService;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.InstructionMessageMetadata;
 import io.github.loncra.basic.service.commons.enumerate.ApiKeyModeEnum;
 import io.github.loncra.framework.commons.CastUtils;
-import io.github.loncra.framework.commons.RestResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -64,22 +63,24 @@ public class McpPluginResolver extends AbstractPluginResolver {
             metadata.getMetadata().putAll(bodyMetadata);
             AbstractMcpClientTransportMetadata transport = mcpEntity.obtainMetadata().obtainClientTransport(bodyMetadata);
             aiMcpPackageService.createMcpClientWrapper(mcpEntity.getPackageKey(), transport)
-                    .ifPresent(mcpClientWrapper -> this.validMcpClient(mcpClientWrapper, entity));
+                    .ifPresent(mcp -> this.validMcpClientWrapper(mcp, entity, mcpEntity));
 
         }
         entity.setMetadata(CastUtils.convertValue(metadata, CastUtils.MAP_TYPE_REFERENCE));
     }
 
-    private void validMcpClient(
+    private void validMcpClientWrapper(
             McpClientWrapper mcpClientWrapper,
-            AiUserPluginInstallEntity entity
+            AiUserPluginInstallEntity entity,
+            AiMcpPackageEntity mcpPackage
     ) {
         try (McpClientWrapper client = mcpClientWrapper) {
             client.initialize().block();
+            aiMcpPackageService.initializeClient(client, mcpPackage.getInitializeTimeout());
             entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
         } catch (Exception e) {
             entity.setStatus(PluginInstallStatusEnum.FAILURE);
-            entity.getMetadata().put(RestResult.DEFAULT_MESSAGE_NAME, e.getMessage());
+            entity.setException(e.getMessage());
         }
     }
 
