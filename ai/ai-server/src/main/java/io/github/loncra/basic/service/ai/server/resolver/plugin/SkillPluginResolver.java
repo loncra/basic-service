@@ -71,14 +71,13 @@ public class SkillPluginResolver extends AbstractPluginResolver {
     @Override
     public void applyAgentHubInstall(AiUserPluginInstallEntity entity, Map<String, Object> bodyMetadata) {
         entity.setStatus(PluginInstallStatusEnum.ACTIVATED);
-        AbstractUserPluginInstallMetadata metadata = getAgentHubInstallMetadata(entity.getPackageId());
+        AbstractUserPluginInstallMetadata metadata = getAgentHubInstallMetadata(entity.getPackageId(), bodyMetadata);
         entity.setMetadata(CastUtils.convertValue(metadata, CastUtils.MAP_TYPE_REFERENCE));
     }
 
     @Override
     public AbstractUserPluginInstallMetadata getAgentHubInstallMetadata(Long packageId) {
-        AiSkillPackageEntity entity = CastUtils.cast(getPluginPackage(packageId));
-        return createSkillMetadata(entity);
+        return getAgentHubInstallMetadata(packageId, Map.of());
     }
 
     @Override
@@ -88,19 +87,32 @@ public class SkillPluginResolver extends AbstractPluginResolver {
         return entity;
     }
 
-    private SkillUserPluginInstallMetadata createSkillMetadata(AiSkillPackageEntity skillPackage) {
+    /**
+     * 按 bodyMetadata.releaseVersion 锁定版本；未指定时回退目录 latestVersion。
+     * 指定版本不存在或未启用直接报错，不静默回退最新。
+     */
+    private AbstractUserPluginInstallMetadata getAgentHubInstallMetadata(Long packageId, Map<String, Object> bodyMetadata) {
+        AiSkillPackageEntity entity = CastUtils.cast(getPluginPackage(packageId));
         SystemException.isTrue(
-                StringUtils.isNotBlank(skillPackage.getLatestVersion()),
-                () -> new ServiceException("Skill 目录 [" + skillPackage.getPackageKey() + "] 尚未打包版本，不能安装")
+                StringUtils.isNotBlank(entity.getLatestVersion()),
+                () -> new ServiceException("Skill 目录 [" + entity.getPackageKey() + "] 尚未打包版本，不能安装")
         );
+        Object requested = Objects.isNull(bodyMetadata) ? null : bodyMetadata.get("releaseVersion");
+        String releaseVersion = StringUtils.isNotBlank(Objects.toString(requested, null))
+                ? Objects.toString(requested)
+                : entity.getLatestVersion();
+        return createSkillMetadata(entity, releaseVersion);
+    }
+
+    private SkillUserPluginInstallMetadata createSkillMetadata(AiSkillPackageEntity skillPackage, String releaseVersion) {
         AiSkillReleaseEntity release = aiSkillReleaseService.lambdaQuery()
                 .eq(AiSkillReleaseEntity::getAiSkillPackageId, skillPackage.getId())
-                .eq(AiSkillReleaseEntity::getReleaseVersion, skillPackage.getLatestVersion())
+                .eq(AiSkillReleaseEntity::getReleaseVersion, releaseVersion)
                 .eq(AiSkillReleaseEntity::getEnabled, YesOrNo.Yes)
                 .one();
         SystemException.isTrue(
                 Objects.nonNull(release),
-                () -> new ServiceException("Skill 目录 [" + skillPackage.getPackageKey() + "] 找不到已启用的版本 [" + skillPackage.getLatestVersion() + "]")
+                () -> new ServiceException("Skill 目录 [" + skillPackage.getPackageKey() + "] 找不到已启用的版本 [" + releaseVersion + "]")
         );
         SkillUserPluginInstallMetadata metadata = new SkillUserPluginInstallMetadata();
         metadata.setReleaseId(release.getId());

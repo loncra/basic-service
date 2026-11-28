@@ -38,6 +38,7 @@ import io.github.loncra.basic.service.ai.server.resolver.filesystem.SourceOfTrut
 import io.github.loncra.basic.service.ai.server.service.ModelSettingService;
 import io.github.loncra.basic.service.ai.server.service.agent.UserPluginRuntimeContextSkillRepository;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.basic.service.commons.service.SnowflakeIdGenerateService;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
@@ -164,7 +165,8 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                     body,
                     token,
                     deviceIdentified,
-                    AgentConversationTypeEnum.DEFAULT_WORKSPACE
+                    AgentConversationTypeEnum.DEFAULT_WORKSPACE,
+                    OwnershipEnum.USER
             );
         }
 
@@ -186,12 +188,14 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             IdNameMetadata body,
             AuditAuthenticationToken token,
             String deviceIdentified,
-            AgentConversationTypeEnum type
+            AgentConversationTypeEnum type,
+            OwnershipEnum ownership
     ) {
         AgentConversationEntity entity;
         if (StringUtils.isEmpty(body.getId())) {
             entity = buildBasicConversation(token.getName(), type);
             entity.setName(body.getName());
+            entity.setOwnership(Objects.requireNonNullElse(ownership, OwnershipEnum.USER));
             entity.getMetadata().putAll(body.getMetadata());
 
             preCreateWorkspace(entity, token, deviceIdentified);
@@ -284,7 +288,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
                     .filter(s -> s.getToolCallId().equals(toolUseBlock.getId()))
                     .findFirst()
                     .map(AgentResumeRequestBody.ConfirmResult::isConfirmed)
-                    .orElseThrow(() -> new SystemException("ID 为 [" + toolUseBlock.getId() + "] 的工具需要确认"));
+                .orElseThrow(() -> new SystemException("ID 为 [" + toolUseBlock.getId() + "] 的工具需要确认"));
             results.add(new ConfirmResult(confirm, toolUseBlock));
         }
         return results;
@@ -337,7 +341,7 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
         } else {
             conversation = Objects.requireNonNull(
                     agentRecordStore.getConversation(token.getName(), body.getAgentConversationId(), deviceIdentified),
-                    "找不到 ID 为 [" + body.getAgentConversationId() + "] 的会话内容"
+                "找不到 ID 为 [" + body.getAgentConversationId() + "] 的会话内容"
             );
         }
 
@@ -355,9 +359,6 @@ public abstract class AbstractAgentChannelResolver implements AgentChannelResolv
             conversation.setName(StringUtils.defaultIfEmpty(conversation.getName(), conversationConfig.getNewConversation()));
             conversation.setStatus(AgentChatStatusEnum.READY);
             getAgentRecordStore().insertConversation(conversation, deviceIdentified);
-        } else {
-            /* assertNoRunningAssistant(conversation.getId());*/
-            //FIXME 这里处理一下排队内容
         }
 
         AgentMessageEntity userMessage = buildUserMessage(body, modelMetadata, conversation.getId(), token.getName());

@@ -9,6 +9,7 @@ import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentChatTypeEnu
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.resolver.AgentChannelResolver;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.framework.commons.enumerate.ValueEnum;
 import io.github.loncra.framework.commons.enumerate.basic.ExecuteStatus;
 import io.github.loncra.framework.commons.id.StringIdEntity;
@@ -66,6 +67,11 @@ public class AgentConversationEntity extends StringIdEntity implements TenantEnt
     private String tenantId;
 
     private AgentConversationTypeEnum type;
+
+    /**
+     * 归属:10.个人,20.企业；CLIENT 通道恒为个人，企业归属仅企业管理员可创建
+     */
+    private OwnershipEnum ownership = OwnershipEnum.USER;
 
     private ExecuteStatus generateNameStatus;
 

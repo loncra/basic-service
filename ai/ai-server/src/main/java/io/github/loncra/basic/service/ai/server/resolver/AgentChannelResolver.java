@@ -12,6 +12,7 @@ import io.github.loncra.basic.service.ai.server.domain.metadata.agent.BasicAgent
 import io.github.loncra.basic.service.ai.server.enumerate.agent.AgentConversationTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.auth.api.enumerate.TerminalTypeEnum;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.framework.commons.id.metadata.IdNameMetadata;
 import io.github.loncra.framework.spring.security.core.authentication.token.AuditAuthenticationToken;
 
@@ -45,7 +46,8 @@ public interface AgentChannelResolver {
             IdNameMetadata body,
             AuditAuthenticationToken token,
             String deviceIdentified,
-            AgentConversationTypeEnum type
+            AgentConversationTypeEnum type,
+            OwnershipEnum ownership
     );
 
     List<AgentConversationEntity> findConversations(

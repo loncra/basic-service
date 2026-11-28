@@ -3,9 +3,9 @@ package io.github.loncra.basic.service.ai.server.domain.metadata.plugin;
 import com.baomidou.mybatisplus.annotation.TableField;
 import io.github.loncra.basic.service.ai.api.domain.metadata.hub.AbstractUserPluginInstallMetadata;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallStatusEnum;
-import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallUserScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspaceScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.framework.commons.CacheProperties;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.mybatis.handler.JacksonJsonTypeHandler;
@@ -35,9 +35,9 @@ public class UserPluginMetadata implements Serializable {
     private PluginTargetTypeEnum targetType;
 
     /**
-     * 作用返回 10.个人用户,20.企业用户
+     * 作用范围:10.个人,20.企业；企业行按 tenantId 对全体企业成员生效
      */
-    private PluginInstallUserScopeEnum scope;
+    private OwnershipEnum scope;
 
     /**
      * 影响范围:10.所有工作空间, 20.指定工作空间

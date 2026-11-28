@@ -10,6 +10,7 @@ import io.github.loncra.basic.service.ai.server.domain.entity.agent.AgentMessage
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
 import io.github.loncra.basic.service.ai.server.service.agent.AgentManager;
 import io.github.loncra.basic.service.auth.api.enumerate.ResourceTypeEnum;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.basic.service.commons.enumerate.ResourceSourceEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.HttpRequestParameterMapUtils;
@@ -191,6 +192,8 @@ public class AgentController {
             ExecutionChannelEnum channel,
             @RequestBody
             IdNameMetadata body,
+            @RequestParam(required = false)
+            OwnershipEnum ownership,
             @CurrentSecurityContext
             SecurityContext securityContext,
             @RequestHeader(DeviceUtils.REQUEST_DEVICE_IDENTIFIED_HEADER_NAME)
@@ -200,6 +203,7 @@ public class AgentController {
         String id = agentManager.saveWorkspace(
                 channel,
                 body,
+                ownership,
                 token,
                 deviceIdentified
         );

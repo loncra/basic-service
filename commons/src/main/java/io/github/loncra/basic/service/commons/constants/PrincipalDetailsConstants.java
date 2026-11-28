@@ -86,6 +86,20 @@ public interface PrincipalDetailsConstants {
 
     String TERMINAL_KEY = "terminal";
 
+    /**
+     * 企业管理员（owner）的 authority；授予侧为 EnterpriseMemberRoleEnum.SECURITY_ROLE_PREFIX + OWNER 拼接，
+     * 修改该串需与 auth 授予链、前端 usePluginInstallActions 三处同步
+     */
+    String ENTERPRISE_OWNER_AUTHORITY = "ROLE_ENTERPRISE_OWNER";
+
+    /**
+     * 判断 token 是否持有企业管理员（owner）authority
+     */
+    static boolean isEnterpriseOwner(AuditAuthenticationToken token) {
+        return token.getAuthorities().stream()
+                .anyMatch(a -> ENTERPRISE_OWNER_AUTHORITY.equals(a.getAuthority()));
+    }
+
     static void equals(
             AuditPrincipal source,
             AuditAuthenticationToken target

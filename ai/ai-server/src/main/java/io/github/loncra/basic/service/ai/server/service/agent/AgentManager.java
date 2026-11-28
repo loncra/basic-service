@@ -36,6 +36,7 @@ import io.github.loncra.basic.service.auth.api.enumerate.TerminalTypeEnum;
 import io.github.loncra.basic.service.commons.constants.PrincipalDetailsConstants;
 import io.github.loncra.basic.service.commons.constants.SystemConstants;
 import io.github.loncra.basic.service.commons.domain.metadata.chat.TextMessageMetadata;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.framework.commons.CastUtils;
 import io.github.loncra.framework.commons.RestResult;
 import io.github.loncra.framework.commons.TimeProperties;
@@ -155,15 +156,27 @@ public class AgentManager {
     public String saveWorkspace(
             ExecutionChannelEnum channel,
             IdNameMetadata body,
+            OwnershipEnum ownership,
             AuditAuthenticationToken token,
             String deviceIdentified
     ) {
+        if (OwnershipEnum.ENTERPRISE.equals(ownership)) {
+            SystemException.isTrue(
+                    ExecutionChannelEnum.CLOUD.equals(channel),
+                    "客户端通道的工作空间不能归属企业"
+            );
+            SystemException.isTrue(
+                    PrincipalDetailsConstants.isEnterpriseOwner(token),
+                    "仅企业管理员可以创建企业工作空间"
+            );
+        }
 
         AgentConversationEntity entity = getChannelResolver(channel).saveWorkspace(
                 body,
                 token,
                 deviceIdentified,
-                AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE
+                AgentConversationTypeEnum.CUSTOMIZE_WORKSPACE,
+                Objects.requireNonNullElse(ownership, OwnershipEnum.USER)
         );
 
         return entity.getId();
@@ -520,7 +533,7 @@ public class AgentManager {
     ) {
         return Flux.fromIterable(agentStreamEventInterceptors)
                 .concatMap(interceptor -> Flux.fromIterable(interceptor.postEventsStream(assistant, context))
-                        .doOnError(e -> log.error("助手消息 [{}] 拦截器 [{}] 执行失败", assistant.getId(), interceptor.getClass().getSimpleName(), e))
+                .doOnError(e -> log.error("助手消息 [{}] 拦截器 [{}] 执行失败", assistant.getId(), interceptor.getClass().getSimpleName(), e))
                 );
     }
 

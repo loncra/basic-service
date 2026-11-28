@@ -1,4 +1,4 @@
-package io.github.loncra.basic.service.ai.api.enumerate.hub;
+package io.github.loncra.basic.service.commons.enumerate;
 
 import io.github.loncra.framework.commons.enumerate.NameValueEnum;
 import lombok.AccessLevel;
@@ -7,11 +7,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PluginInstallUserScopeEnum implements NameValueEnum<Integer> {
+public enum OwnershipEnum implements NameValueEnum<Integer> {
 
-    USER("个人用户", 10),
+    USER("个人", 10),
 
-    ENTERPRISE("企业用户", 20),
+    ENTERPRISE("企业", 20),
 
     ;
 

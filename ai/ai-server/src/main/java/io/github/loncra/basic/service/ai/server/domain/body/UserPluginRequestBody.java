@@ -1,9 +1,9 @@
 package io.github.loncra.basic.service.ai.server.domain.body;
 
-import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallUserScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginInstallWorkspaceScopeEnum;
 import io.github.loncra.basic.service.ai.api.enumerate.hub.PluginTargetTypeEnum;
 import io.github.loncra.basic.service.ai.server.enumerate.agent.ExecutionChannelEnum;
+import io.github.loncra.basic.service.commons.enumerate.OwnershipEnum;
 import io.github.loncra.framework.commons.id.metadata.IdValueMetadata;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -39,7 +39,11 @@ public class UserPluginRequestBody implements Serializable {
      */
     private List<IdValueMetadata<String, ExecutionChannelEnum>> workspaces;
 
-    private PluginInstallUserScopeEnum scope = PluginInstallUserScopeEnum.USER;
+    /**
+     * 安装归属:10.个人,20.企业；全部范围时决定落 principal 行还是 tenant 行，
+     * 指定工作空间时须与所选工作空间的归属一致，企业归属仅企业管理员可用
+     */
+    private OwnershipEnum scope = OwnershipEnum.USER;
 
     private Map<String, Object> metadata = new LinkedHashMap<>();
 }
